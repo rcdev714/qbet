@@ -1,0 +1,686 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  ActivityIndicator,
+  Platform,
+  Dimensions, // Add Dimensions import
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useMarket } from "../hooks/useMarket";
+import { useTheme } from "../contexts/ThemeContext";
+import { supabase } from "../lib/supabase";
+import { formatCurrency, formatProbability } from "../lib/parimutuel";
+import { LineChart } from "react-native-gifted-charts";
+// Removed RootStackParamList import
+
+interface BetWithUser {
+  id: string;
+  user_id: string;
+  option_id: string;
+  amount: number;
+  placed_at: string;
+  user: {
+    username: string | null;
+    email: string | null;
+  } | null;
+}
+
+interface UserBetSummary {
+  userId: string;
+  username: string;
+  optionId: string;
+  optionLabel: string;
+  totalAmount: number;
+  color: string;
+}
+
+// Vibrant, non-repeating colors for options
+const VIBRANT_COLORS = [
+  "#00D1FF", // Neon Blue
+  "#FFB800", // Bright Yellow
+  "#FF2D55", // Pink/Red
+  "#34C759", // Emerald Green
+  "#AF52DE", // Purple
+  "#FF9500", // Orange
+  "#5856D6", // Royal Blue
+  "#007AFF", // iOS Blue
+];
+
+export function BetDetailScreen() {
+  const router = useRouter();
+  const { id: marketId } = useLocalSearchParams<{ id: string }>();
+  const { market, options, loading: marketLoading } = useMarket(marketId);
+  const { theme, isDark } = useTheme();
+  const [bets, setBets] = useState<BetWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calculate probability history for the chart
+  const chartData = React.useMemo(() => {
+    if (bets.length === 0) return [];
+
+    const chronologicalBets = [...bets].reverse();
+    const runningPools = new Map<string, number>();
+    options.forEach((opt) => runningPools.set(opt.id, 0));
+    let runningTotal = 0;
+
+    const historyByOption: Record<string, { value: number; label?: string }[]> = {};
+    options.forEach((opt) => (historyByOption[opt.id] = []));
+
+    chronologicalBets.forEach((bet) => {
+      const currentAmount = runningPools.get(bet.option_id) || 0;
+      runningPools.set(bet.option_id, currentAmount + bet.amount);
+      runningTotal += bet.amount;
+
+      options.forEach((opt) => {
+        const optPool = runningPools.get(opt.id) || 0;
+        const prob = (optPool / runningTotal) * 100;
+        historyByOption[opt.id].push({ value: prob });
+      });
+    });
+
+    return options.map((opt, index) => {
+      const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+      // Configure data points: hide all except the last one
+      const dataWithPoints = historyByOption[opt.id].map((point, idx, arr) => ({
+        ...point,
+        hideDataPoint: idx !== arr.length - 1,
+        dataPointColor: color,
+        dataPointRadius: 4,
+        dataPointStrokeColor: isDark ? "#000" : "#fff",
+        dataPointStrokeWidth: 2,
+      }));
+
+      return {
+        data: dataWithPoints,
+        color: color,
+        thickness: 2,
+        hideDataPoints: false,
+        curved: true,
+      };
+    });
+  }, [bets, options, isDark]);
+
+  useEffect(() => {
+    const fetchBets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("bets")
+          .select(`
+            id,
+            user_id,
+            option_id,
+            amount,
+            placed_at,
+            user:users!bets_user_id_fkey (
+              username,
+              email
+            )
+          `)
+          .eq("market_id", marketId)
+          .order("placed_at", { ascending: false });
+
+        if (!error && data) {
+          setBets(data as unknown as BetWithUser[]);
+        }
+      } catch (err) {
+        console.error("Error fetching bets:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBets();
+  }, [marketId]);
+
+  if (loading || marketLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={theme.text} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!market) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorText, { color: theme.error }]}>Market not found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Aggregate bets by user and option
+  const userBetMap = new Map<string, UserBetSummary>();
+  const userColorMap = new Map<string, string>();
+  let colorIndex = 0;
+
+  bets.forEach((bet) => {
+    if (!userColorMap.has(bet.user_id)) {
+      userColorMap.set(bet.user_id, VIBRANT_COLORS[colorIndex % VIBRANT_COLORS.length]);
+      colorIndex++;
+    }
+
+    const key = `${bet.user_id}-${bet.option_id}`;
+    const option = options.find((o) => o.id === bet.option_id);
+    const existing = userBetMap.get(key);
+
+    if (existing) {
+      existing.totalAmount += bet.amount;
+    } else {
+      userBetMap.set(key, {
+        userId: bet.user_id,
+        username: bet.user?.username || bet.user?.email?.split("@")[0] || "Anonymous",
+        optionId: bet.option_id,
+        optionLabel: option?.label || "Unknown",
+        totalAmount: bet.amount,
+        color: userColorMap.get(bet.user_id) || VIBRANT_COLORS[0],
+      });
+    }
+  });
+
+  const userBets = Array.from(userBetMap.values());
+  const totalPool = options.reduce((sum, opt) => sum + Number(opt.total_pool), 0);
+
+  // Group by option for display
+  const optionGroups = options.map((option, index) => {
+    const optionBets = userBets.filter((b) => b.optionId === option.id);
+    const optionTotal = Number(option.total_pool);
+    return {
+      option,
+      bets: optionBets.sort((a, b) => b.totalAmount - a.totalAmount),
+      total: optionTotal,
+      percentage: totalPool > 0 ? (optionTotal / totalPool) * 100 : 0,
+      color: VIBRANT_COLORS[index % VIBRANT_COLORS.length],
+    };
+  });
+
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={[styles.backButtonText, { color: theme.primary }]}>←</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Bet Distribution</Text>
+        </View>
+
+        {/* Market Question */}
+        <View style={[styles.questionSection, { backgroundColor: theme.background }]}>
+          <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
+          <View style={styles.metaRow}>
+            <View style={[styles.statusBadge, market.status === "open" && styles.statusOpen]}>
+              <Text style={[styles.statusText, market.status === "open" && styles.statusTextOpen]}>
+                {market.status.toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.poolText}>{formatCurrency(totalPool)} total</Text>
+          </View>
+        </View>
+
+        {/* Distribution Chart */}
+        {bets.length === 0 ? (
+          <View style={styles.emptyState}>
+            {/* Removed Emoji */}
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No bets yet</Text>
+            <Text style={styles.emptySubtitle}>Be the first to make a prediction</Text>
+          </View>
+        ) : (
+          <>
+            {/* Overview Section with Chart */}
+            <View style={[styles.overviewSection, { backgroundColor: theme.surface }]}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.sectionLabel}>PROBABILITY HISTORY</Text>
+                <View style={[styles.statusBadge, market.status === "open" && styles.statusOpen]}>
+                  <Text style={[styles.statusText, market.status === "open" && styles.statusTextOpen]}>
+                    {market.status.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.chartContainer}>
+                <LineChart
+                  dataSet={chartData}
+                  height={180}
+                  width={Dimensions.get("window").width - 60} // Reduce width for left axis space
+                  noOfSections={4}
+                  areaChart={false}
+                  spacing={(Dimensions.get("window").width - 80) / Math.max(bets.length - 1, 1)} // Adjusted spacing logic
+                  initialSpacing={0}
+                  endSpacing={40} // Balanced end spacing
+                  color="transparent"
+                  thickness={3}
+                  hideRules
+                  yAxisColor="transparent"
+                  showVerticalLines={false}
+                  xAxisThickness={0}
+                  yAxisOffset={0}
+                  maxValue={100}
+                  yAxisLabelSuffix="%"
+                  yAxisTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
+                  yAxisSide={0} // 0: Left, 1: Right (enum)
+                  pointerConfig={{
+                    pointerStripHeight: 180,
+                    pointerStripColor: theme.border,
+                    pointerStripWidth: 2,
+                    strokeDashArray: [2, 5],
+                    pointerColor: theme.primary,
+                    radius: 4,
+                    pointerLabelWidth: 120, // Required for auto-adjust to work
+                    autoAdjustPointerLabelPosition: true,
+                    pointerLabelComponent: (items: any) => {
+                      return (
+                        <View style={[styles.pointerLabel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                          {items.map((item: any, idx: number) => (
+                            <View key={idx} style={styles.pointerRow}>
+                              <View style={[styles.pointerDot, { backgroundColor: item.color }]} />
+                              <Text style={[styles.pointerText, { color: theme.text }]}>
+                                {item.value.toFixed(1)}%
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      );
+                    },
+                  }}
+                />
+              </View>
+
+              <View style={styles.overviewLegend}>
+                {optionGroups.map((group) => (
+                  <View key={group.option.id} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: group.color }]} />
+                    <Text style={[styles.legendLabel, { color: theme.text }]} numberOfLines={1}>
+                      {group.option.label}
+                    </Text>
+                    <Text style={[styles.legendValue, { color: group.color }]}>
+                      {group.percentage.toFixed(0)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Per Option Breakdown */}
+            {optionGroups.map((group) => (
+              <View key={group.option.id} style={[styles.optionSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <View style={styles.optionHeader}>
+                  <View style={styles.optionTitleRow}>
+                    <View style={[styles.optionIndicator, { backgroundColor: group.color }]} />
+                    <Text style={[styles.optionLabel, { color: theme.text }]}>{group.option.label}</Text>
+                  </View>
+                  <Text style={[styles.optionTotal, { color: theme.text }]}>{formatCurrency(group.total)}</Text>
+                </View>
+
+                {group.bets.length === 0 ? (
+                  <Text style={styles.noBetsText}>No bets on this option</Text>
+                ) : (
+                  <View style={styles.barsContainer}>
+                    {group.bets.map((bet) => {
+                      const barWidth = group.total > 0 ? (bet.totalAmount / group.total) * 100 : 0;
+                      return (
+                        <View key={`${bet.userId}-${bet.optionId}`} style={styles.barRow}>
+                          <View style={styles.barInfo}>
+                            <View style={[styles.userDot, { backgroundColor: bet.color }]} />
+                            <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                              {bet.username}
+                            </Text>
+                          </View>
+                          <View style={[styles.barWrapper, { backgroundColor: isDark ? theme.background : "#F2F2F7" }]}>
+                            <View
+                              style={[
+                                styles.bar,
+                                { width: `${Math.max(barWidth, 4)}%`, backgroundColor: group.color }
+                              ]}
+                            />
+                          </View>
+                          <Text style={[styles.barAmount, { color: theme.text }]}>{formatCurrency(bet.totalAmount)}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            ))}
+
+            {/* Participants List */}
+            <View style={styles.participantsSection}>
+              <Text style={styles.sectionLabel}>
+                {new Set(bets.map((b) => b.user_id)).size} PARTICIPANT{new Set(bets.map((b) => b.user_id)).size !== 1 ? "S" : ""}
+              </Text>
+              <View style={[styles.participantsList, { backgroundColor: theme.surface }]}>
+                {Array.from(userColorMap.entries()).map(([userId, color]) => {
+                  const userBet = bets.find((b) => b.user_id === userId);
+                  const username = userBet?.user?.username || userBet?.user?.email?.split("@")[0] || "Anonymous";
+                  const userTotal = bets
+                    .filter((b) => b.user_id === userId)
+                    .reduce((sum, b) => sum + b.amount, 0);
+
+                  return (
+                    <View key={userId} style={[styles.participantRow, { borderBottomColor: theme.border }]}>
+                      <View style={[styles.participantDot, { backgroundColor: color }]} />
+                      <Text style={[styles.participantName, { color: theme.text }]}>{username}</Text>
+                      <Text style={[styles.participantAmount, { color: theme.text }]}>{formatCurrency(userTotal)}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F2F2F7", // iOS background
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "android" ? 40 : 16,
+    paddingBottom: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#C6C6C8",
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#000",
+    marginLeft: 8,
+  },
+  questionSection: {
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+  question: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    letterSpacing: -0.5,
+    lineHeight: 28,
+    marginBottom: 12,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#E5E5EA",
+  },
+  statusOpen: {
+    backgroundColor: "#E7F3FF",
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8E8E93",
+  },
+  statusTextOpen: {
+    color: "#007AFF",
+  },
+  poolText: {
+    fontSize: 14,
+    color: "#8E8E93",
+    fontWeight: "500",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#8E8E93",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: "center",
+  },
+  overviewSection: {
+    padding: 20,
+    backgroundColor: "#fff",
+    marginTop: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#C6C6C8",
+  },
+  chartHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  chartContainer: {
+    alignItems: "center",
+    marginVertical: 10,
+    marginLeft: 0, // Reset margin for left axis
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#8E8E93",
+    letterSpacing: 0.5,
+  },
+  overviewLegend: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 20,
+    gap: 12,
+    justifyContent: "center",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.03)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+    maxWidth: "45%",
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendLabel: {
+    fontSize: 12,
+    color: "#000",
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  legendValue: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  pointerLabel: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pointerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginVertical: 2,
+  },
+  pointerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  pointerText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  optionSection: {
+    marginTop: 20,
+    backgroundColor: "#fff",
+    padding: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#C6C6C8",
+  },
+  optionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  optionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  optionIndicator: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+  },
+  optionTotal: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+  },
+  noBetsText: {
+    fontSize: 14,
+    color: "#8E8E93",
+    fontStyle: "italic",
+    textAlign: "center",
+  },
+  barsContainer: {
+    gap: 16,
+  },
+  barRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  barInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 100,
+    gap: 8,
+  },
+  userDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  userName: {
+    fontSize: 13,
+    color: "#000",
+    fontWeight: "500",
+    flex: 1,
+  },
+  barWrapper: {
+    flex: 1,
+    height: 12,
+    backgroundColor: "#F2F2F7",
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  bar: {
+    height: "100%",
+    borderRadius: 6,
+  },
+  barAmount: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000",
+    width: 70,
+    textAlign: "right",
+  },
+  participantsSection: {
+    marginTop: 20,
+  },
+  participantsList: {
+    backgroundColor: "#fff",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#C6C6C8",
+    paddingHorizontal: 20,
+  },
+  participantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#C6C6C8",
+  },
+  participantDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  participantName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#000",
+  },
+  participantAmount: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#FF3B30",
+  },
+});
+

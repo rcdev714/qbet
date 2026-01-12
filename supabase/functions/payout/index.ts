@@ -1,0 +1,108 @@
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+  apiVersion: "2022-11-15",
+  httpClient: Stripe.createFetchHttpClient(),
+});
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const { amount, userId } = await req.json(); // amount in cents
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // 1. Get user's wallet to get stripe_account_id and check balance
+    const { data: wallet, error: walletError } = await supabase
+      .from("wallets")
+      .select("balance, stripe_account_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (walletError || !wallet || !wallet.stripe_account_id) {
+      throw new Error("Wallet not found or not connected to Stripe");
+    }
+
+    const amountInDollars = amount / 100;
+    if (wallet.balance < amountInDollars) {
+      throw new Error("Insufficient balance");
+    }
+
+    // 2. Perform Stripe Transfer to the Connected Account
+    // Deduct 1.75% withdrawal fee from the transfer amount
+    // User pays the full amount from balance, but receives 98.25%
+    const withdrawalFeePercent = 0.0175;
+    const transferAmount = Math.floor(amount * (1 - withdrawalFeePercent)); // amount in cents
+
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: transferAmount, // amount in cents (after fee)
+        currency: "usd",
+        destination: wallet.stripe_account_id,
+        metadata: {
+          userId: userId,
+          type: "payout",
+        },
+      });
+
+      // 3. Log the Payout Request in Supabase as completed
+      const { data: payoutRequest, error: payoutError } = await supabase
+        .from("payout_requests")
+        .insert({
+          user_id: userId,
+          amount: amountInDollars,
+          status: "completed",
+          bank_details: { stripe_transfer_id: transfer.id },
+        })
+        .select()
+        .single();
+
+      if (payoutError) throw payoutError;
+
+      // 4. Deduct from Supabase wallet balance
+      const newBalance = Number(wallet.balance) - amountInDollars;
+      const { error: updateError } = await supabase
+        .from("wallets")
+        .update({ balance: newBalance })
+        .eq("user_id", userId);
+
+      if (updateError) throw updateError;
+
+      return new Response(JSON.stringify({ success: true, payoutRequest, transferId: transfer.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (stripeError) {
+      console.error("Stripe Transfer Error:", stripeError);
+      throw new Error(`Stripe Transfer failed: ${stripeError.message}`);
+    }
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return new Response(JSON.stringify({ payout }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error in payout:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
