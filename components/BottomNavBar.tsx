@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { Router } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -30,8 +31,6 @@ export function BottomNavBar({ router, onJoinPress }: BottomNavBarProps) {
   return (
     <>
       <View style={[styles.bottomBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-
-
         <TouchableOpacity
           style={styles.bottomButton}
           onPress={handleJoin}
@@ -52,7 +51,21 @@ export function BottomNavBar({ router, onJoinPress }: BottomNavBarProps) {
           style={styles.bottomButton}
           onPress={() => router?.push("/profile" as any)}
         >
-          <IconSymbol name="person.fill" size={28} color={theme.text} />
+          {user?.avatar_url ? (
+            <Image
+              source={{ uri: user.avatar_url }}
+              style={styles.bottomAvatar}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : (
+             <View style={[styles.bottomAvatarPlaceholder, { backgroundColor: theme.primary }]}>
+                 <Text style={styles.bottomAvatarInitials}>
+                   {user?.username ? user.username.substring(0, 1).toUpperCase() : "U"}
+                 </Text>
+             </View>
+          )}
+          {/* <IconSymbol name="person.fill" size={28} color={theme.text} /> */}
           <Text style={[styles.bottomButtonLabel, { color: theme.textSecondary }]}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -73,7 +86,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#C6C6C8",
     paddingTop: 6,
-    paddingBottom: Platform.OS === "ios" ? 24 : 10,
+    paddingBottom: Platform.OS === "ios" ? 10 : 0,
     paddingHorizontal: 32,
   },
   bottomButton: {
@@ -91,6 +104,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
     color: "#667781",
+  },
+  bottomAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginBottom: 4,
+  },
+  bottomAvatarPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginBottom: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomAvatarInitials: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

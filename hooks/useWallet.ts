@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 import { walletService } from "../services/wallet.service";
 import type { Wallet } from "../types/user";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export function useWallet(userId?: string) {
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -19,12 +19,12 @@ export function useWallet(userId?: string) {
         setError(null);
 
         // Subscribe to real-time updates
-        if (walletData) {
+        if (walletData && walletData.user_id) {
           channel = walletService.subscribeToWallet(
             walletData.user_id,
             (updatedWallet) => {
               setWallet(updatedWallet);
-            }
+            },
           );
         }
       } catch (err) {
@@ -47,8 +47,8 @@ export function useWallet(userId?: string) {
   const isVirtual = wallet?.is_virtual ?? true;
 
   const addFunds = async (amount: number) => {
-    const { wallet: updatedWallet, error: addError } =
-      await walletService.addFunds(amount, userId);
+    const { wallet: updatedWallet, error: addError } = await walletService
+      .addFunds(amount, userId);
     if (updatedWallet) {
       setWallet(updatedWallet);
     }
@@ -88,4 +88,3 @@ export function useWallet(userId?: string) {
     refresh,
   };
 }
-

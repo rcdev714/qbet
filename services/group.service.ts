@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
-import type { GroupMember, GroupSummary, Invite } from "../types/group";
 import type { Database } from "../types/database";
+import type { GroupMember, GroupSummary, Invite } from "../types/group";
 
 export interface CreateGroupData {
   name: string;
@@ -14,14 +14,23 @@ export interface CreateInviteData {
 
 /**
  * Group service
- * Handles group and invite management
+ * Handles PRIVATE prediction market groups and member management.
+ *
+ * PRIVATE MARKETS:
+ * - Visible only to group members
+ * - Created by group members via marketService.createMarket()
+ * - Only group members can place bets
+ * - group_id is set, is_public is FALSE
+ *
+ * @see feedService for PUBLIC markets open to all users
+ * @see marketService for creating markets within groups
  */
 export const groupService = {
   /**
    * Create a new group
    */
   async createGroup(
-    data: CreateGroupData
+    data: CreateGroupData,
   ): Promise<{ group: GroupSummary | null; error: Error | null }> {
     try {
       const {
@@ -44,18 +53,25 @@ export const groupService = {
         .single();
 
       if (error || !group) {
-        return { group: null, error: error || new Error("Failed to create group") };
+        return {
+          group: null,
+          error: error || new Error("Failed to create group"),
+        };
       }
 
       // Add creator as member
-      const { error: memberError } = await supabase.from("group_members").insert({
-        group_id: group.id,
-        user_id: user.id,
-        role: "admin",
-      });
+      const { error: memberError } = await supabase.from("group_members")
+        .insert({
+          group_id: group.id,
+          user_id: user.id,
+          role: "admin",
+        });
 
       if (memberError) {
-        console.error("[groupService] Failed to add creator as member:", memberError);
+        console.error(
+          "[groupService] Failed to add creator as member:",
+          memberError,
+        );
       } else {
         console.log("[groupService] Added creator as group member:", group.id);
       }
@@ -71,7 +87,7 @@ export const groupService = {
    */
   async updateGroup(
     groupId: string,
-    data: Partial<CreateGroupData>
+    data: Partial<CreateGroupData>,
   ): Promise<{ error: Error | null }> {
     try {
       const { error } = await supabase
@@ -113,7 +129,7 @@ export const groupService = {
    * Get the group's share code (admin only)
    */
   async getGroupShareCode(
-    groupId: string
+    groupId: string,
   ): Promise<{ shareCode: string | null; error: Error | null }> {
     try {
       const { data, error } = await supabase.rpc("get_group_share_code", {
@@ -130,11 +146,16 @@ export const groupService = {
   /**
    * Join a group using its unique 4-character share code
    */
-  async joinGroupByCode(code: string): Promise<{ membership: GroupMember | null; error: Error | null }> {
+  async joinGroupByCode(
+    code: string,
+  ): Promise<{ membership: GroupMember | null; error: Error | null }> {
     try {
-      const { data: membership, error } = await supabase.rpc("join_group_by_code", {
-        p_code: code.toUpperCase().trim(),
-      });
+      const { data: membership, error } = await supabase.rpc(
+        "join_group_by_code",
+        {
+          p_code: code.toUpperCase().trim(),
+        },
+      );
 
       if (error) throw error;
       return { membership: membership as GroupMember, error: null };
@@ -146,7 +167,10 @@ export const groupService = {
   /**
    * Promote a member to admin role
    */
-  async promoteMember(groupId: string, userId: string): Promise<{ error: Error | null }> {
+  async promoteMember(
+    groupId: string,
+    userId: string,
+  ): Promise<{ error: Error | null }> {
     try {
       const { error } = await supabase
         .from("group_members")
@@ -164,7 +188,10 @@ export const groupService = {
   /**
    * Remove a member from a group (admin only)
    */
-  async removeMember(groupId: string, userId: string): Promise<{ error: Error | null }> {
+  async removeMember(
+    groupId: string,
+    userId: string,
+  ): Promise<{ error: Error | null }> {
     try {
       const { data, error } = await supabase.rpc("remove_group_member", {
         p_group_id: groupId,
@@ -194,8 +221,15 @@ export const groupService = {
     } catch (error) {
       const err = error as any;
       // Friendly message for "cannot delete with active markets" (migration raises 22023)
-      if (err?.code === "22023" || String(err?.message || "").includes("predictions are active")) {
-        return { error: new Error("All bets must be resolved before deleting this group.") };
+      if (
+        err?.code === "22023" ||
+        String(err?.message || "").includes("predictions are active")
+      ) {
+        return {
+          error: new Error(
+            "All bets must be resolved before deleting this group.",
+          ),
+        };
       }
       return { error: err as Error };
     }
@@ -220,7 +254,7 @@ export const groupService = {
           `
           group_id,
           groups (id,name,description,admin_id,created_at)
-        `
+        `,
         )
         .eq("user_id", user.id);
 
@@ -230,11 +264,23 @@ export const groupService = {
       }
 
       return (groups || [])
-        .map((item: { group_id: string; groups: Pick<Database["public"]["Tables"]["groups"]["Row"], "id" | "name" | "description" | "admin_id" | "created_at"> | null }) => {
-          const group = item.groups;
-          if (!group) return null;
-          return group as GroupSummary;
-        })
+        .map(
+          (
+            item: {
+              group_id: string;
+              groups:
+                | Pick<
+                  Database["public"]["Tables"]["groups"]["Row"],
+                  "id" | "name" | "description" | "admin_id" | "created_at"
+                >
+                | null;
+            },
+          ) => {
+            const group = item.groups;
+            if (!group) return null;
+            return group as GroupSummary;
+          },
+        )
         .filter((group): group is GroupSummary => group !== null);
     } catch (error) {
       console.error("Error fetching user groups:", error);
@@ -253,7 +299,7 @@ export const groupService = {
           `
           *,
           users (*)
-        `
+        `,
         )
         .eq("group_id", groupId);
 
@@ -273,7 +319,7 @@ export const groupService = {
    * Create an invite code for a group
    */
   async createInvite(
-    data: CreateInviteData
+    data: CreateInviteData,
   ): Promise<{ invite: Invite | null; error: Error | null }> {
     try {
       const {
@@ -299,7 +345,10 @@ export const groupService = {
         .single();
 
       if (error || !invite) {
-        return { invite: null, error: error || new Error("Failed to create invite") };
+        return {
+          invite: null,
+          error: error || new Error("Failed to create invite"),
+        };
       }
 
       return { invite: invite as Invite, error: null };
@@ -312,7 +361,7 @@ export const groupService = {
    * Accept an invite code to join a group
    */
   async acceptInvite(
-    code: string
+    code: string,
   ): Promise<{ membership: GroupMember | null; error: Error | null }> {
     try {
       const { data: membership, error } = await supabase.rpc("accept_invite", {
@@ -351,5 +400,67 @@ export const groupService = {
       return [];
     }
   },
-};
 
+  /**
+   * Get a group with its latest markets
+   */
+  async getGroupWithMarkets(
+    groupId: string,
+  ): Promise<{ group: GroupSummary; markets: any[] } | null> {
+    try {
+      const group = await this.getGroup(groupId);
+      if (!group) return null;
+
+      const { data: markets } = await supabase
+        .from("markets")
+        .select("*")
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      return {
+        group,
+        markets: markets || [],
+      };
+    } catch (error) {
+      console.error("Error fetching group with markets:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get aggregated market statistics for a group
+   */
+  async getGroupMarketStats(
+    groupId: string,
+  ): Promise<
+    { totalMarkets: number; activeMarkets: number; totalPool: number }
+  > {
+    try {
+      const { data: markets, error } = await supabase
+        .from("markets")
+        .select("id, status, options(total_pool)")
+        .eq("group_id", groupId);
+
+      if (error || !markets) {
+        return { totalMarkets: 0, activeMarkets: 0, totalPool: 0 };
+      }
+
+      const totalMarkets = markets.length;
+      const activeMarkets = markets.filter((m) => m.status === "open").length;
+
+      let totalPool = 0;
+      markets.forEach((m) => {
+      });
+
+      return {
+        totalMarkets,
+        activeMarkets,
+        totalPool,
+      };
+    } catch (error) {
+      console.error("Error getting group stats:", error);
+      return { totalMarkets: 0, activeMarkets: 0, totalPool: 0 };
+    }
+  },
+};

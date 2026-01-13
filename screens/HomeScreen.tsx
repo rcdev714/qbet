@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -18,7 +17,6 @@ import {
   TouchableWithoutFeedback,
   View
 } from "react-native";
-import { BottomNavBar } from "../components/BottomNavBar";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -156,7 +154,7 @@ export function HomeScreen() {
     const previewText = getPreviewText();
     const messageTime = lastMessage
       ? new Date(lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      : new Date(item.created_at || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
       <TouchableOpacity
@@ -172,7 +170,7 @@ export function HomeScreen() {
           }
         ]}>
           <Text style={[styles.groupInitials, { color: isDark ? theme.text : "#8E8E93" }]}>
-            {item.name.substring(0, 2).toUpperCase()}
+            {(item.name || "Group").substring(0, 2).toUpperCase()}
           </Text>
           {unreadCount > 0 && (
             <View style={[styles.badge, { borderColor: theme.background }]}>
@@ -218,25 +216,7 @@ export function HomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.headerLeftAction}
-          onPress={() => router.push("/profile" as any)}
-        >
-          {user?.avatar_url ? (
-            <Image 
-              source={{ uri: user.avatar_url }} 
-              style={styles.headerAvatar} 
-              contentFit="cover"
-              transition={200}
-            />
-          ) : (
-            <View style={[styles.headerAvatarPlaceholder, { backgroundColor: theme.primary }]}>
-                <Text style={styles.headerAvatarInitials}>
-                  {user?.username ? user.username.substring(0, 1).toUpperCase() : "U"}
-                </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+
         <Text style={[styles.headerTitle, { color: theme.text }]}>Groups</Text>
         <TouchableOpacity
           style={styles.headerButton}
@@ -341,10 +321,7 @@ export function HomeScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <BottomNavBar
-        router={router}
-        onJoinPress={() => openModal('join')}
-      />
+
     </SafeAreaView>
   );
 }
@@ -375,32 +352,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   headerButton: {
-    position: 'absolute',
-    right: 12,
     padding: 8,
-  },
-  headerLeftAction: {
-    position: 'absolute',
-    left: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  headerAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerAvatarInitials: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
   },
   list: {
     paddingBottom: 40,
@@ -578,8 +530,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
-  headerAction: {
-    fontSize: 32,
-    fontWeight: "300",
-  },
+
 });
+
+

@@ -1,22 +1,22 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  ActivityIndicator,
-  Platform,
-  Dimensions, // Add Dimensions import
+    ActivityIndicator,
+    Dimensions,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useMarket } from "../hooks/useMarket";
-import { useTheme } from "../contexts/ThemeContext";
-import { supabase } from "../lib/supabase";
-import { formatCurrency, formatProbability } from "../lib/parimutuel";
 import { LineChart } from "react-native-gifted-charts";
+import { useTheme } from "../contexts/ThemeContext";
+import { useMarket } from "../hooks/useMarket";
+import { formatCurrency } from "../lib/parimutuel";
+import { supabase } from "../lib/supabase";
 // Removed RootStackParamList import
 
 interface BetWithUser {
@@ -99,9 +99,9 @@ export function BetDetailScreen() {
       return {
         data: dataWithPoints,
         color: color,
-        thickness: 2,
+        thickness: 1.5,
         hideDataPoints: false,
-        curved: true,
+        curved: false,
       };
     });
   }, [bets, options, isDark]);
@@ -224,7 +224,7 @@ export function BetDetailScreen() {
           <View style={styles.metaRow}>
             <View style={[styles.statusBadge, market.status === "open" && styles.statusOpen]}>
               <Text style={[styles.statusText, market.status === "open" && styles.statusTextOpen]}>
-                {market.status.toUpperCase()}
+                {(market.status || 'open').toUpperCase()}
               </Text>
             </View>
             <Text style={styles.poolText}>{formatCurrency(totalPool)} total</Text>
@@ -246,7 +246,7 @@ export function BetDetailScreen() {
                 <Text style={styles.sectionLabel}>PROBABILITY HISTORY</Text>
                 <View style={[styles.statusBadge, market.status === "open" && styles.statusOpen]}>
                   <Text style={[styles.statusText, market.status === "open" && styles.statusTextOpen]}>
-                    {market.status.toUpperCase()}
+                    {(market.status || 'open').toUpperCase()}
                   </Text>
                 </View>
               </View>
@@ -262,7 +262,7 @@ export function BetDetailScreen() {
                   initialSpacing={0}
                   endSpacing={40} // Balanced end spacing
                   color="transparent"
-                  thickness={3}
+                  thickness={1.5}
                   hideRules
                   yAxisColor="transparent"
                   showVerticalLines={false}

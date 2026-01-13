@@ -10,5 +10,3 @@ export type User = UserProfile;
 export type Wallet = Database["public"]["Tables"]["wallets"]["Row"];
 export type WalletInsert = Database["public"]["Tables"]["wallets"]["Insert"];
 export type WalletUpdate = Database["public"]["Tables"]["wallets"]["Update"];
-
-

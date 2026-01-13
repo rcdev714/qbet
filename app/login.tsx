@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
   Alert,
   SafeAreaView,
   StatusBar,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -45,7 +45,22 @@ export default function LoginScreen() {
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      let errorMessage = "An error occurred. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null) {
+        // Handle Response objects or other non-Error objects
+        const errObj = error as { status?: number; statusText?: string; message?: string };
+        if (errObj.status === 502 || errObj.status === 503) {
+          errorMessage = "Service temporarily unavailable. Please wait a moment and try again.";
+        } else if (errObj.message) {
+          errorMessage = errObj.message;
+        } else if (errObj.statusText) {
+          errorMessage = errObj.statusText;
+        }
+      }
+      
       Alert.alert("Error", errorMessage);
     } finally {
       setAuthSubmitting(false);

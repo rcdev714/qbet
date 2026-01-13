@@ -165,7 +165,7 @@ export function MarketCard({
           styles.statusBadge,
           market.status === 'open' ? [styles.statusOpen, { color: theme.primary }] : [styles.statusClosed, { color: theme.textSecondary }]
         ]}>
-          {market.status.toUpperCase()}
+          {(market.status || 'open').toUpperCase()}
         </Text>
       </View>
     </View>
