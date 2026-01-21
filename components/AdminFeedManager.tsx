@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { decode } from "base64-arraybuffer";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -47,6 +49,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
   const [closesAt, setClosesAt] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // Default 7 days
   const [imageUrl, setImageUrl] = useState("");
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Fetch recent private markets that are candidates for the feed
@@ -210,6 +213,59 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
   const removeOption = (index: number) => {
     if (options.length <= 2) return;
     setOptions(options.filter((_, i) => i !== index));
+  };
+
+  const pickMedia = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Images and videos
+        allowsEditing: true,
+        aspect: [9, 16], // Portrait aspect ratio
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadMedia(result.assets[0]);
+      }
+    } catch (error: any) {
+      Alert.alert("Error picking media", error.message);
+    }
+  };
+
+  const uploadMedia = async (asset: ImagePicker.ImagePickerAsset) => {
+    try {
+      setUploading(true);
+
+      if (!asset.base64) {
+        throw new Error('No media data found (base64 is missing)');
+      }
+
+      const arrayBuffer = decode(asset.base64);
+      const ext = asset.uri.substring(asset.uri.lastIndexOf('.') + 1);
+      const fileName = `markets/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('market-images')
+        .upload(fileName, arrayBuffer, {
+          contentType: asset.mimeType ?? 'image/jpeg',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('market-images')
+        .getPublicUrl(fileName);
+
+      setImageUrl(publicUrl);
+      console.log('Uploaded market media:', publicUrl);
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      Alert.alert('Error uploading media', error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = (marketId: string) => {
@@ -387,12 +443,29 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
         />
       )}
 
-      {/* Image URL & Phone Preview */}
+      {/* Image/Video Upload & Phone Preview */}
       <Text style={[styles.label, { color: theme.text }]}>Market Visual</Text>
       <View style={[styles.imageManagementCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          {/* Upload Button */}
+          <TouchableOpacity
+            style={[styles.uploadButton, { backgroundColor: theme.primary, opacity: uploading ? 0.7 : 1 }]}
+            onPress={pickMedia}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+                <Text style={styles.uploadButtonText}>Upload Image or Video</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Optional URL Input for external URLs */}
           <TextInput
-            style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-            placeholder="Paste target image URL..."
+            style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border, marginTop: 12 }]}
+            placeholder="Or paste external URL..."
             placeholderTextColor={theme.textSecondary}
             value={imageUrl}
             onChangeText={setImageUrl}
@@ -419,6 +492,11 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
                   </View>
               </View>
               <Text style={styles.helperText}>Portrait background (Phone dimensions)</Text>
+              {imageUrl && (
+                <TouchableOpacity onPress={() => setImageUrl("")} style={{ marginTop: 8 }}>
+                  <Text style={{ color: theme.error, fontSize: 13 }}>Remove Media</Text>
+                </TouchableOpacity>
+              )}
           </View>
       </View>
 
@@ -717,6 +795,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 8,
     fontWeight: '800',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   helperText: {
     fontSize: 11,

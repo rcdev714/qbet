@@ -1,21 +1,24 @@
+import { decode } from "base64-arraybuffer";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from "react-native";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
@@ -162,16 +165,26 @@ export function HomeScreen() {
         activeOpacity={0.7}
         onPress={() => router.push(`/group/${item.id}` as any)}
       >
-        <View style={[
-          styles.groupIconPlaceholder,
-          {
-            backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA", // Darker gray for light mode
-            borderColor: isDark ? "transparent" : "#D1D1D6" // Visible border for light mode
-          }
-        ]}>
-          <Text style={[styles.groupInitials, { color: isDark ? theme.text : "#8E8E93" }]}>
-            {(item.name || "Group").substring(0, 2).toUpperCase()}
-          </Text>
+        <View style={styles.groupIconContainer}>
+          {item.avatar_url ? (
+            <Image
+              source={{ uri: item.avatar_url }}
+              style={styles.groupIcon}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[
+              styles.groupIconPlaceholder,
+              {
+                backgroundColor: isDark ? "#2C2C2E" : "#E5E5EA",
+                borderColor: isDark ? "transparent" : "#D1D1D6"
+              }
+            ]}>
+              <Text style={[styles.groupInitials, { color: isDark ? theme.text : "#8E8E93" }]}>
+                {(item.name || "G").substring(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          )}
           {unreadCount > 0 && (
             <View style={[styles.badge, { borderColor: theme.background }]}>
               <Text style={styles.badgeText}>
@@ -369,15 +382,24 @@ const styles = StyleSheet.create({
     // Removed margins and shadows for flat list feel
     backgroundColor: "transparent",
   },
+  groupIconContainer: {
+    width: 60,
+    height: 60,
+    marginRight: 16,
+    position: "relative",
+  },
+  groupIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
   groupIconPlaceholder: {
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-    position: "relative",
-    borderWidth: 1, // Add border width to support conditional coloring
+    borderWidth: 1,
   },
   groupInitials: {
     fontSize: 24,

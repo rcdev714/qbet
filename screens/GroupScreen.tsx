@@ -1,9 +1,11 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { decode } from "base64-arraybuffer";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { Router, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   FlatList,
@@ -91,11 +93,14 @@ export function GroupScreen() {
   const [editedDescription, setEditedDescription] = useState("");
   const [newQuestion, setNewQuestion] = useState("");
   const [newOptions, setNewOptions] = useState(["", ""]);
-  const [newDuration, setNewDuration] = useState<string>("24h");
+  const [closesAt, setClosesAt] = useState<Date>(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [initialBetAmount, setInitialBetAmount] = useState("");
   const [selectedInitialOption, setSelectedInitialOption] = useState<number | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
   const [marketImage, setMarketImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingGroupAvatar, setIsUploadingGroupAvatar] = useState(false);
 
   // Bet State
   const [betModalVisible, setBetModalVisible] = useState(false);
@@ -177,6 +182,67 @@ export function GroupScreen() {
     }
   };
 
+  const pickGroupImage = async () => {
+    if (!isAdmin) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadGroupImage(result.assets[0]);
+      }
+    } catch (error: any) {
+      Alert.alert("Error picking image", error.message);
+    }
+  };
+
+  const uploadGroupImage = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!user || !groupId || !isAdmin) return;
+
+    try {
+      setIsUploadingGroupAvatar(true);
+      
+      if (!asset.base64) {
+        throw new Error('No image data found');
+      }
+
+      const arrayBuffer = decode(asset.base64);
+      const uriPath = asset.uri.split(/[?#]/)[0];
+      const lastDot = uriPath.lastIndexOf('.');
+      const ext = lastDot !== -1 ? uriPath.substring(lastDot + 1) : 'jpg';
+      const fileName = `group-avatars/${groupId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, arrayBuffer, {
+          contentType: asset.mimeType ?? 'image/jpeg',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const { error } = await groupService.updateGroup(groupId, {
+        avatar_url: publicUrl,
+      });
+
+      if (error) throw error;
+      Alert.alert("Success", "Group profile picture updated!");
+    } catch (error: any) {
+      Alert.alert("Error uploading image", error.message);
+    } finally {
+      setIsUploadingGroupAvatar(false);
+    }
+  };
+
   const handleRemoveMember = (memberUserId: string) => {
     if (!isAdmin) return;
     if (!user) return;
@@ -227,13 +293,7 @@ export function GroupScreen() {
     );
   };
 
-  const DURATIONS = [
-    { label: '1h', value: '1h' },
-    { label: '6h', value: '6h' },
-    { label: '24h', value: '24h' },
-    { label: '2d', value: '48h' },
-    { label: '7d', value: '168h' },
-  ];
+
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
@@ -251,6 +311,95 @@ export function GroupScreen() {
     if (error) {
       Alert.alert("Error", "Failed to send message");
       setInputText(text);
+    }
+  };
+
+  const handleAttachPress = () => {
+    Keyboard.dismiss();
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Create Prediction', 'Send Image'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            setCreateModalVisible(true);
+          } else if (buttonIndex === 2) {
+            pickChatImage();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        "Choose Action",
+        "",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Create Prediction", onPress: () => setCreateModalVisible(true) },
+          { text: "Send Image", onPress: () => pickChatImage() },
+        ]
+      );
+    }
+  };
+
+  const pickChatImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadChatImage(result.assets[0]);
+      }
+    } catch (error: any) {
+      Alert.alert("Error picking image", error.message);
+    }
+  };
+
+  const uploadChatImage = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!user || !groupId) return;
+
+    try {
+      setIsUploadingImage(true);
+      
+      if (!asset.base64) {
+        throw new Error('No image data found');
+      }
+
+      const arrayBuffer = decode(asset.base64);
+      const ext = asset.uri.substring(asset.uri.lastIndexOf('.') + 1);
+      const fileName = `${groupId}/${Date.now()}.${ext}`;
+
+      // Upload to market-images bucket (reusing existing bucket)
+      const { error: uploadError } = await supabase.storage
+        .from('market-images')
+        .upload(fileName, arrayBuffer, {
+          contentType: asset.mimeType ?? 'image/jpeg',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('market-images')
+        .getPublicUrl(fileName);
+
+      const { error } = await sendMessage({
+        user_id: user.id,
+        content: publicUrl,
+        message_type: "image",
+      });
+
+      if (error) throw error;
+
+    } catch (error: any) {
+      Alert.alert("Error uploading image", error.message);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -280,10 +429,8 @@ export function GroupScreen() {
       return;
     }
 
-    // Calculate end date
-    const closesAt = new Date();
-    const hours = parseInt(newDuration.replace('h', ''));
-    closesAt.setHours(closesAt.getHours() + hours);
+    // Use the selected closesAt from state
+    const marketClosesAt = closesAt;
 
     // Generate a temporary ID for optimistic UI
     const tempId = `temp_market_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -342,7 +489,7 @@ export function GroupScreen() {
         groupId,
         question: newQuestion,
         options: filteredOptions,
-        closesAt: closesAt,
+        closesAt: marketClosesAt,
         imageUrl: imageUrl
       });
 
@@ -394,7 +541,7 @@ export function GroupScreen() {
       // Reset form state
       setNewQuestion("");
       setNewOptions(["", ""]);
-      setNewDuration("24h");
+      setClosesAt(new Date(Date.now() + 24 * 60 * 60 * 1000));
       setInitialBetAmount("");
       setSelectedInitialOption(null);
       setMarketImage(null);
@@ -605,6 +752,7 @@ export function GroupScreen() {
 
 
 
+
     const Avatar = () => (
       <View style={styles.avatarContainer}>
         {item.user?.avatar_url ? (
@@ -621,6 +769,37 @@ export function GroupScreen() {
         )}
       </View>
     );
+
+    if (item.message_type === "image" && item.content) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <View style={[
+            styles.imageBubble,
+            isMe ? styles.myImageBubble : styles.theirImageBubble,
+            { borderColor: theme.border, borderWidth: isDark ? 1 : 0 }
+          ]}>
+            {!isMe && displayName && (
+              <Text style={[styles.senderName, { color: getRandomColor(displayName || "User"), marginBottom: 4 }]}>
+                {displayName}
+              </Text>
+            )}
+            <Image
+              source={{ uri: item.content }}
+              style={styles.chatImage}
+              contentFit="cover"
+              transition={200}
+            />
+            <View style={styles.messageFooter}>
+              <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.7)" : theme.textSecondary }]}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              {renderStatusIndicator()}
+            </View>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
@@ -666,14 +845,31 @@ export function GroupScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: theme.text }]}>←</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerInfo}
+        <TouchableOpacity 
+          style={styles.headerInfo} 
           onPress={() => setMembersModalVisible(true)}
         >
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{group?.name || "Group"}</Text>
-          <Text style={styles.headerSubtitle}>
-            {isAdmin ? `Code: ${shareCode ?? "…"} • Tap for Info` : "Tap for Info"}
-          </Text>
+          {group?.avatar_url ? (
+            <Image
+              source={{ uri: group.avatar_url }}
+              style={styles.groupHeaderAvatar}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.groupHeaderAvatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
+              <Text style={[styles.groupHeaderAvatarInitials, { color: theme.primary }]}>
+                {group?.name?.[0]?.toUpperCase() || 'G'}
+              </Text>
+            </View>
+          )}
+          <View>
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+              {group?.name || "Group"}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {isAdmin ? `Code: ${shareCode ?? "…"} • Tap for Info` : "Tap for Info"}
+            </Text>
+          </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerAction}
@@ -689,6 +885,7 @@ export function GroupScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <FlatList
+          style={{ flex: 1 }}
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
@@ -714,12 +911,13 @@ export function GroupScreen() {
         <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <TouchableOpacity
             style={styles.attachButton}
-            onPress={() => {
-              Keyboard.dismiss();
-              setCreateModalVisible(true);
-            }}
+            onPress={handleAttachPress}
           >
-            <Text style={styles.attachButtonText}>+</Text>
+            {isUploadingImage ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <Text style={styles.attachButtonText}>+</Text>
+            )}
           </TouchableOpacity>
           <View style={[styles.inputWrapper, { backgroundColor: isDark ? theme.background : "#F0F2F5" }]}>
             <TextInput
@@ -765,14 +963,15 @@ export function GroupScreen() {
                 <FlatList
                   data={newOptions}
                   keyExtractor={(_, index) => index.toString()}
+                  contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
                   ListHeaderComponent={
                     <View>
-                      <TouchableOpacity onPress={pickMarketImage} style={styles.imagePickerButton}>
+                      <TouchableOpacity onPress={pickMarketImage} style={[styles.imagePickerButton, { backgroundColor: isDark ? theme.background : "#F0F2F5" }]}>
                         {marketImage ? (
                           <Image source={{ uri: marketImage.uri }} style={styles.selectedImage} contentFit="cover" />
                         ) : (
                           <View style={styles.imagePickerPlaceholder}>
-                            <Text style={styles.imagePickerText}>+ Add Banner Image</Text>
+                            <Text style={[styles.imagePickerText, { color: theme.primary }]}>+ Add Banner Image</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -802,7 +1001,7 @@ export function GroupScreen() {
                         {selectedInitialOption === index && <View style={styles.optionCheckInner} />}
                       </TouchableOpacity>
                       <TextInput
-                        style={[styles.optionInput, { backgroundColor: isDark ? theme.background : "#F0F2F5", color: theme.text }]}
+                        style={[styles.optionInput, { color: theme.text }]}
                         placeholder={`Option ${index + 1}`}
                         placeholderTextColor={theme.textSecondary}
                         value={item}
@@ -822,27 +1021,28 @@ export function GroupScreen() {
                       </TouchableOpacity>
 
                       <View style={styles.durationSection}>
-                        <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Prediction Duration</Text>
-                        <View style={styles.durationRow}>
-                          {DURATIONS.map((d) => (
-                            <TouchableOpacity
-                              key={d.value}
-                              style={[
-                                styles.durationBtn,
-                                { backgroundColor: isDark ? theme.background : "#F0F2F5" },
-                                newDuration === d.value && styles.durationBtnSelected
-                              ]}
-                              onPress={() => setNewDuration(d.value)}
-                            >
-                              <Text style={[
-                                styles.durationBtnText,
-                                newDuration === d.value && styles.durationBtnTextSelected
-                              ]}>
-                                {d.label}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
+                        <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Prediction Ends</Text>
+                        <TouchableOpacity 
+                          style={[styles.dateButton, { backgroundColor: isDark ? theme.background : "#F0F2F5", borderColor: theme.border }]}
+                          onPress={() => setShowDatePicker(true)}
+                        >
+                          <Text style={[styles.dateText, { color: theme.text }]}>
+                            {closesAt.toLocaleDateString()} at {closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </Text>
+                        </TouchableOpacity>
+                        {showDatePicker && (
+                          <DateTimePicker
+                            value={closesAt}
+                            mode="datetime"
+                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                            onChange={(_event: any, date?: Date) => {
+                              setShowDatePicker(Platform.OS === "ios");
+                              if (date) setClosesAt(date);
+                            }}
+                            minimumDate={new Date()}
+                            textColor={isDark ? "#FFFFFF" : "#000000"}
+                          />
+                        )}
                       </View>
 
                       <View style={styles.initialBetSection}>
@@ -864,7 +1064,7 @@ export function GroupScreen() {
                       </View>
 
                       <TouchableOpacity
-                        style={[styles.createButton, { backgroundColor: theme.primary }, createLoading && { opacity: 0.5 }, { marginTop: 20 }]}
+                        style={[styles.createButton, { backgroundColor: theme.primary }, createLoading && { opacity: 0.5 }]}
                         onPress={handleCreateMarket}
                         disabled={createLoading}
                       >
@@ -896,7 +1096,7 @@ export function GroupScreen() {
               behavior={Platform.OS === "ios" ? "padding" : "height"}
               style={styles.modalKeyboardAvoiding}
             >
-              <View style={[styles.modalContent, { maxHeight: '90%', backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.modalContent, { flex: 1, maxHeight: '90%', backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
                   <Text style={[styles.modalTitle, { color: theme.text }]}>Group Info</Text>
                   <TouchableOpacity onPress={() => setMembersModalVisible(false)}>
@@ -907,6 +1107,37 @@ export function GroupScreen() {
                 <FlatList
                   ListHeaderComponent={
                     <>
+                      <View style={styles.modalGroupAvatarContainer}>
+                        <TouchableOpacity 
+                          onPress={pickGroupImage}
+                          disabled={!isAdmin || isUploadingGroupAvatar}
+                        >
+                          {group?.avatar_url ? (
+                            <Image
+                              source={{ uri: group.avatar_url }}
+                              style={styles.modalGroupAvatar}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <View style={[styles.modalGroupAvatarPlaceholder, { backgroundColor: theme.primary + '20' }]}>
+                              <Text style={[styles.modalGroupAvatarInitials, { color: theme.primary }]}>
+                                {group?.name?.[0]?.toUpperCase() || 'G'}
+                              </Text>
+                            </View>
+                          )}
+                          {isUploadingGroupAvatar && (
+                            <View style={styles.uploadProgressOverlay}>
+                              <ActivityIndicator color="#fff" />
+                            </View>
+                          )}
+                          {isAdmin && !isUploadingGroupAvatar && (
+                            <View style={[styles.uploadProgressOverlay, { backgroundColor: 'transparent' }]}>
+                              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2 }}>EDIT</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+
                       {isAdmin ? (
                         <View style={[styles.shareCodeSection, { backgroundColor: isDark ? theme.background : "#F8F9FA" }]}>
                           <Text style={[styles.shareCodeLabel, { color: theme.textSecondary }]}>Invite code (admin only):</Text>
@@ -960,7 +1191,7 @@ export function GroupScreen() {
                           onPress={() => setOpenExpanded((v) => !v)}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.accordionTitle}>Open</Text>
+                          <Text style={[styles.accordionTitle, { color: theme.text }]}>Open</Text>
                           <View style={styles.accordionRight}>
                             <Text style={styles.accordionCount}>{openMarkets.length}</Text>
                             <Text style={styles.accordionChevron}>{openExpanded ? "▾" : "▸"}</Text>
@@ -1080,7 +1311,7 @@ export function GroupScreen() {
                     ) : <View style={{ height: 40 }} />
                   }
                   style={{ flex: 1 }}
-                  contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 40 : 20 }}
+                  contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20 }}
                   showsVerticalScrollIndicator={false}
                 />
               </View>
@@ -1185,6 +1416,7 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     alignItems: 'center',
+    flexDirection: 'row',
   },
   settingsButton: {
     padding: 8,
@@ -1480,6 +1712,7 @@ const styles = StyleSheet.create({
   },
   modalKeyboardAvoiding: {
     flex: 1,
+    justifyContent: "flex-end",
   },
   modalContainer: {
     backgroundColor: "#fff",
@@ -1492,8 +1725,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 34,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     maxHeight: '90%',
+    width: '100%',
   },
   modalHeader: {
     flexDirection: "row",
@@ -1520,13 +1754,13 @@ const styles = StyleSheet.create({
   },
   modalSection: {
     marginBottom: 24,
-    paddingHorizontal: 20,
   },
   modalSectionTitle: {
     fontSize: 13,
     fontWeight: '600',
     color: '#8E8E93',
     textTransform: 'uppercase',
+    marginTop: 16,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -1549,8 +1783,9 @@ const styles = StyleSheet.create({
   modalInput: {
     backgroundColor: '#F2F2F7',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 24, // Use 24 instead of 100 for multiline text areas
     fontSize: 16,
+    height: 48,
   },
   textArea: {
     minHeight: 80,
@@ -1574,14 +1809,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 12,
+    borderRadius: 100,
+    paddingHorizontal: 16,
   },
-  optionInput: { // Added missing class
+  optionInput: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 100,
     fontSize: 16,
+    height: 48,
   },
   optionCheck: {
     width: 24,
@@ -1589,7 +1826,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#C7C7CC',
-    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1610,13 +1846,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 12,
     backgroundColor: '#F2F2F7',
-    borderRadius: 12,
+    borderRadius: 100,
     justifyContent: 'center',
   },
   addOptionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
+    marginBottom: 16,
   },
   addOptionText: {
     marginLeft: 8,
@@ -1649,54 +1886,24 @@ const styles = StyleSheet.create({
   },
   durationSection: {
     marginBottom: 24,
-    paddingHorizontal: 20,
   },
-  durationRow: {
+  dateButton: {
     flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 100,
+    padding: 12,
     gap: 8,
   },
-  durationOption: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#F2F2F7',
-    alignItems: 'center',
-  },
-  durationOptionSelected: {
-    backgroundColor: '#007AFF',
-  },
-  durationOptionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  durationTextSelected: {
-    color: '#fff',
-  },
-  durationBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#F2F2F7',
-    alignItems: 'center',
-  },
-  durationBtnSelected: {
-    backgroundColor: '#007AFF',
-  },
-  durationBtnText: {
-    fontSize: 14,
+  dateText: {
+    fontSize: 16,
     fontWeight: '500',
-    color: '#000',
-  },
-  durationBtnTextSelected: {
-    color: '#fff',
   },
   createButton: {
-    margin: 20,
+    marginTop: 20,
     backgroundColor: "#007AFF",
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 100,
     alignItems: "center",
   },
   createButtonText: {
@@ -1760,14 +1967,14 @@ const styles = StyleSheet.create({
   },
   initialBetSection: {
     marginBottom: 24,
-    paddingHorizontal: 20,
   },
   initialBetInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    height: 56,
   },
   initialBetInput: {
     flex: 1,
@@ -1776,10 +1983,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   currencyPrefix: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1A1A1A',
-    marginRight: 4,
+    marginRight: 8,
   },
   betInput: {
     flex: 1,
@@ -1801,7 +2008,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalFooter: {
-    paddingHorizontal: 20,
     paddingTop: 10,
   },
   primaryButton: {
@@ -1832,7 +2038,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     height: 160,
     backgroundColor: '#F2F2F7',
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -1876,7 +2082,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   descriptionInfoSection: {
-    paddingHorizontal: 20,
     marginBottom: 24,
   },
   descriptionEditBox: {
@@ -1911,7 +2116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#C6C6C8',
   },
@@ -1980,7 +2184,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
@@ -2068,6 +2271,72 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
+  },
+  imageBubble: {
+    padding: 2,
+    borderRadius: 12,
+    maxWidth: '75%',
+    overflow: 'hidden',
+  },
+  myImageBubble: {
+    backgroundColor: '#007AFF',
+    borderBottomRightRadius: 2,
+    borderTopRightRadius: 12,
+  },
+  theirImageBubble: {
+    backgroundColor: '#E5E5EA',
+    borderBottomLeftRadius: 2,
+    borderTopLeftRadius: 12,
+  },
+  chatImage: {
+    width: 250,
+    height: 180,
+    borderRadius: 10,
+  },
+  groupHeaderAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+  },
+  groupHeaderAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  groupHeaderAvatarInitials: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalGroupAvatarContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  modalGroupAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  modalGroupAvatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalGroupAvatarInitials: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  uploadProgressOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

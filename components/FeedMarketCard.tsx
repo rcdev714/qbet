@@ -9,14 +9,14 @@ import { LinearGradient } from "expo-linear-gradient"; // Ensure you have this o
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
@@ -204,18 +204,17 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
 
       {/* Content Overlay */}
       <View style={styles.contentOverlay}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-             <View style={styles.categoryPill}>
-                <Text style={styles.categoryText}>{(market.category || "General").toUpperCase()}</Text>
-             </View>
+        <View style={styles.metadataContainer}>
+             <Text style={styles.categoryText}>{market.category || "General"}</Text>
              
              {/* Volume Stats */}
              {stats && (
                  <View style={styles.statRow}>
-                    <IconSymbol name="dollarsign.circle.fill" size={14} color="#8E8E93" />
+                    <View style={styles.divider} />
+                    <IconSymbol name="dollarsign.circle.fill" size={16} color="#fff" />
                     <Text style={styles.statText}>${stats.totalPool.toLocaleString()}</Text>
                     <View style={styles.divider} />
-                    <IconSymbol name="person.2.fill" size={14} color="#8E8E93" />
+                    <IconSymbol name="person.2.fill" size={16} color="#fff" />
                     <Text style={styles.statText}>{stats.betCount}</Text>
                  </View>
              )}
@@ -496,29 +495,42 @@ const styles = StyleSheet.create({
     zIndex: 2,
     justifyContent: 'flex-end',
   },
-  categoryPill: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  metadataContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: 'rgba(30,30,30,0.65)',
+    paddingVertical: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
     borderRadius: 100,
-    marginRight: 12,
+    alignSelf: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
+   /* removed categoryPill */
   categoryText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
+   /* removed creatorInfo/Text */
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   statText: {
-    color: '#ccc',
-    fontSize: 13,
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
     marginLeft: 2,
   },
@@ -531,13 +543,14 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '600',
     color: '#fff',
     marginBottom: 40,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
     lineHeight: 36,
+    textAlign: 'center',
   },
   probContainer: {
     width: '100%',
@@ -578,12 +591,12 @@ const styles = StyleSheet.create({
   probBarTrack: {
     height: 8,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 4,
+    borderRadius: 100,
     overflow: 'hidden',
   },
   probBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 100,
   },
   graphContainer: {
     paddingHorizontal: 0,
@@ -602,7 +615,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 100,
     width: '100%',
   },
   legendLabelContainer: {

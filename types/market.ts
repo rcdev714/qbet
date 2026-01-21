@@ -2,7 +2,9 @@ import type { Database } from "./database";
 
 export type MarketStatus = Database["public"]["Enums"]["market_status"];
 
-export type Market = Database["public"]["Tables"]["markets"]["Row"];
+export type Market = Database["public"]["Tables"]["markets"]["Row"] & {
+    creator?: { username: string | null; avatar_url: string | null } | null;
+};
 export type MarketInsert = Database["public"]["Tables"]["markets"]["Insert"];
 export type MarketUpdate = Database["public"]["Tables"]["markets"]["Update"];
 

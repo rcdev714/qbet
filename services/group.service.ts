@@ -5,6 +5,7 @@ import type { GroupMember, GroupSummary, Invite } from "../types/group";
 export interface CreateGroupData {
   name: string;
   description?: string;
+  avatar_url?: string;
 }
 
 export interface CreateInviteData {
@@ -49,7 +50,7 @@ export const groupService = {
           admin_id: user.id,
         })
         // Explicitly select safe columns (share_code may be column-restricted).
-        .select("id,name,description,admin_id,created_at")
+        .select("id,name,description,admin_id,created_at,avatar_url")
         .single();
 
       if (error || !group) {
@@ -110,7 +111,7 @@ export const groupService = {
       const { data: group, error } = await supabase
         .from("groups")
         // Do not select share_code here; it's admin-only.
-        .select("id,name,description,admin_id,created_at")
+        .select("id,name,description,admin_id,created_at,avatar_url")
         .eq("id", groupId)
         .single();
 
@@ -253,7 +254,7 @@ export const groupService = {
         .select(
           `
           group_id,
-          groups (id,name,description,admin_id,created_at)
+          groups (id,name,description,admin_id,created_at,avatar_url)
         `,
         )
         .eq("user_id", user.id);
@@ -271,7 +272,12 @@ export const groupService = {
               groups:
                 | Pick<
                   Database["public"]["Tables"]["groups"]["Row"],
-                  "id" | "name" | "description" | "admin_id" | "created_at"
+                  | "id"
+                  | "name"
+                  | "description"
+                  | "admin_id"
+                  | "created_at"
+                  | "avatar_url"
                 >
                 | null;
             },

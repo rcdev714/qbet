@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
@@ -17,6 +17,9 @@ export function ProfileScreen() {
   const { theme, isDark, setMode, mode } = useTheme();
   const { balance, isVirtual } = useWalletContext();
   const [uploading, setUploading] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState(user?.username || "");
+  const [updatingUsername, setUpdatingUsername] = useState(false);
 
   const pickImage = async () => {
     try {
@@ -90,6 +93,42 @@ export function ProfileScreen() {
     }
   };
 
+  const handleUpdateUsername = async () => {
+    if (!user) return;
+    if (newUsername.trim() === (user.username || "")) {
+      setIsEditingUsername(false);
+      return;
+    }
+
+    try {
+      setUpdatingUsername(true);
+      const { error } = await supabase
+        .from("users")
+        .update({ username: newUsername.trim() })
+        .eq("id", user.id);
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error("This username is already taken. Please choose another one.");
+        }
+        throw error;
+      }
+
+      await refreshUser();
+      setIsEditingUsername(false);
+      Alert.alert("Success", "Username updated!");
+    } catch (error: any) {
+      Alert.alert("Error updating username", error.message);
+    } finally {
+      setUpdatingUsername(false);
+    }
+  };
+
+  const startEditing = () => {
+    setNewUsername(user?.username || "");
+    setIsEditingUsername(true);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -146,7 +185,38 @@ export function ProfileScreen() {
           <View style={[styles.infoList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
               <Text style={[styles.infoLabel, { color: theme.text }]}>Username</Text>
-              <Text style={styles.infoValue}>{user?.username || "Not set"}</Text>
+              {isEditingUsername ? (
+                <View style={styles.editUsernameContainer}>
+                  <TextInput
+                    style={[styles.usernameInput, { color: theme.text, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+                    value={newUsername}
+                    onChangeText={setNewUsername}
+                    autoFocus
+                    placeholder="Enter username"
+                    placeholderTextColor={theme.textSecondary}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity 
+                    onPress={handleUpdateUsername} 
+                    disabled={updatingUsername}
+                    style={styles.saveButton}
+                  >
+                    {updatingUsername ? (
+                      <ActivityIndicator size="small" color={theme.primary} />
+                    ) : (
+                      <Text style={[styles.saveButtonText, { color: theme.primary }]}>Save</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setIsEditingUsername(false)} style={styles.cancelButton}>
+                    <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={startEditing} style={styles.usernameValueContainer}>
+                  <Text style={styles.infoValue}>{user?.username || "Not set"}</Text>
+                  <Text style={[styles.editLabel, { color: theme.primary }]}>Edit</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={[styles.infoRow, styles.lastRow]}>
               <Text style={[styles.infoLabel, { color: theme.text }]}>Email</Text>
@@ -394,6 +464,46 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  editUsernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: 20,
+  },
+  usernameInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  saveButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 4,
+  },
+  cancelButtonText: {
+    fontSize: 18,
+    fontWeight: '400',
+  },
+  usernameValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editLabel: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
 

@@ -44,7 +44,7 @@ export const feedService = {
         try {
             const { data: markets, error } = await supabase
                 .from("markets")
-                .select("*")
+                .select("*, creator:users(username, avatar_url)")
                 .eq("is_public", true)
                 .order("featured_at", { ascending: false, nullsFirst: false })
                 .order("created_at", { ascending: false })
@@ -78,7 +78,7 @@ export const feedService = {
             // Fetch all public markets
             const { data: markets, error } = await supabase
                 .from("markets")
-                .select("*")
+                .select("*, creator:users(username, avatar_url)")
                 .eq("is_public", true)
                 .order("created_at", { ascending: false })
                 .limit(limit * 2); // Fetch extra for scoring
@@ -361,7 +361,7 @@ export const feedService = {
             // Get market
             const { data: market, error } = await supabase
                 .from("markets")
-                .select("*")
+                .select("*, creator:users(username, avatar_url)")
                 .eq("id", marketId)
                 .eq("is_public", true)
                 .single();

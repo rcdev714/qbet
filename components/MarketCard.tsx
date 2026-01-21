@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     backgroundColor: "rgba(0,0,0,0.03)", // Very subtle for chat options
-    borderRadius: 10,
+    borderRadius: 100,
     height: 44, // Slightly smaller
     justifyContent: "center",
     overflow: "hidden",
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF', // Blue
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 100,
   },
   resolveBtnText: {
     color: '#fff',

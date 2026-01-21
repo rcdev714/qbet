@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { MarketChatTab } from "../components/MarketChatTab";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { useMarket } from "../hooks/useMarket";
@@ -33,7 +34,7 @@ export function MarketScreen() {
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOption || null);
   const [error, setError] = useState<string | null>(null);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
-  const [activeTab, setActiveTab] = useState<'predict' | 'bets'>('predict');
+  const [activeTab, setActiveTab] = useState<'predict' | 'bets' | 'chat'>('predict');
 
   if (loading) {
     return (
@@ -111,180 +112,199 @@ export function MarketScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
-            <View style={styles.headerContent}>
-              <Text style={[
-                styles.statusBadge,
-                market.status === 'open' ? styles.statusOpen : styles.statusClosed
-              ]}>
-                {(market.status || 'open').toUpperCase()}
+        {/* Header and Tabs - Always visible */}
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={[
+              styles.statusBadge,
+              market.status === 'open' ? styles.statusOpen : styles.statusClosed
+            ]}>
+              {(market.status || 'open').toUpperCase()}
+            </Text>
+            {market.closes_at && (
+              <Text style={styles.headerDate}>
+                Ends {new Date(market.closes_at).toLocaleDateString()}
               </Text>
-              {market.closes_at && (
-                <Text style={styles.headerDate}>
-                  Ends {new Date(market.closes_at).toLocaleDateString()}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          <View style={[styles.questionContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
-            {market.description && (
-              <Text style={[styles.description, { color: theme.textSecondary }]}>{market.description}</Text>
             )}
-            <TouchableOpacity
-              style={styles.poolContainer}
-              onPress={() => router.push(`/bet/${marketId}` as any)}
-              activeOpacity={0.7}
-            >
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.poolLabel}>Pool: </Text>
-                  <Text style={[styles.poolValue, { color: theme.text }]}>{formatCurrency(totalPool)}</Text>
-                </View>
-                <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
-                  Fees apply. Click for distribution.
-                </Text>
-              </View>
-            </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'predict' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-              onPress={() => setActiveTab('predict')}
-            >
-              <Text style={[styles.tabText, { color: activeTab === 'predict' ? theme.primary : theme.textSecondary }]}>Predict</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'bets' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-              onPress={() => setActiveTab('bets')}
-            >
-              <Text style={[styles.tabText, { color: activeTab === 'bets' ? theme.primary : theme.textSecondary }]}>My Bets ({userBets.length})</Text>
-            </TouchableOpacity>
-          </View>
-
-          {activeTab === 'predict' ? (
-            <View style={styles.optionsContainer}>
-              <Text style={styles.sectionTitle}>Pick an Option</Text>
-              {[...options]
-                .sort((a, b) => Number(b.total_pool) - Number(a.total_pool))
-                .map((option, index) => {
-                const odds = impliedOdds.find((o) => o.optionId === option.id);
-                const isSelected = selectedOption === option.id;
-                const betAmount = bettingAmount ? parseFloat(bettingAmount) : 0;
-                const potentialPayout = selectedOption && bettingAmount && !isNaN(betAmount) && betAmount > 0
-                  ? getPotentialPayout(option.id, betAmount)
-                  : null;
-
-                const percent = totalPool > 0 ? (Number(option.total_pool) / totalPool) * 100 : 0;
-                const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
-
-                return (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.optionCard,
-                      { backgroundColor: theme.surface, borderColor: isSelected ? theme.primary : theme.border },
-                      isSelected && styles.optionSelected
-                    ]}
-                    onPress={() => setSelectedOption(option.id)}
-                    activeOpacity={0.8}
-                  >
-                    {/* Progress Bar Background */}
-                    <View style={[
-                      styles.progressBarContainer,
-                      {
-                        width: `${percent}%`,
-                        backgroundColor: color,
-                        opacity: 0.15 
-                      }
-                    ]} />
-
-                    <View style={styles.optionHeader}>
-                      <Text style={[styles.optionLabel, { color: theme.text }, isSelected && styles.optionLabelSelected]}>
-                        {option.label}
-                      </Text>
-                      {odds && (
-                        <View style={[styles.probabilityBadge, { backgroundColor: isDark ? theme.background : "#E5E5EA" }, isSelected && styles.probabilityBadgeSelected]}>
-                          <Text style={[styles.probabilityText, { color: isSelected ? theme.primary : theme.textSecondary }]}>
-                            {formatProbability(odds.probability)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.optionMeta}>
-                      <Text style={[styles.optionPoolText, { color: theme.textSecondary }]}>
-                        Pool: {formatCurrency(Number(option.total_pool))}
-                      </Text>
-                      {percent > 0 && (
-                        <Text style={[styles.percentText, { color: theme.textSecondary }]}>
-                          {percent.toFixed(1)}%
-                        </Text>
-                      )}
-                    </View>
-
-                    {potentialPayout && isSelected && (
-                      <View style={[styles.payoutContainer, { borderTopColor: theme.border }]}>
-                        <View style={styles.payoutRow}>
-                          <Text style={styles.payoutLabel}>Est. Profit</Text>
-                          <Text style={styles.profitValue}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : (
-             <View style={styles.positionSection}>
-               {userBets.length > 0 ? (
-                 userBets.map((bet) => {
-                   const option = options.find(o => o.id === bet.option_id);
-                   const isResolved = market.status === 'resolved';
-                   const isWinner = isResolved && market.winning_option_id === bet.option_id;
-
-                   return (
-                     <View key={bet.id} style={[styles.positionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                       <View style={styles.positionHeader}>
-                         <Text style={[styles.positionLabel, { color: theme.text }]}>{option?.label}</Text>
-                         <Text style={[
-                           styles.positionStatus,
-                           isResolved
-                             ? (isWinner ? { color: '#34C759' } : { color: theme.textSecondary })
-                             : { color: theme.primary }
-                         ]}>
-                           {isResolved ? (isWinner ? 'WON' : 'LOST') : 'PLACED'}
-                         </Text>
-                       </View>
-                       <View style={styles.positionMeta}>
-                         <Text style={styles.positionText}>Wagered: {formatCurrency(bet.amount)}</Text>
-                         {isResolved ? (
-                           <Text style={[styles.positionText, { fontWeight: '700', color: isWinner ? '#34C759' : theme.textSecondary }]}>
-                             {isWinner ? `+${formatCurrency((bet.amount / Number(option?.total_pool || 1)) * (totalPool * (1 - 0.0795)))}` : '-$0.00'}
-                           </Text>
-                         ) : (
-                           <Text style={styles.positionText}>
-                             Share: {((bet.amount / Number(option?.total_pool || 1)) * 100).toFixed(1)}%
-                           </Text>
-                         )}
-                       </View>
-                     </View>
-                   );
-                 })
-               ) : (
-                 <View style={styles.emptyState}>
-                    <Text style={{ color: theme.textSecondary }}>No bets placed yet.</Text>
-                 </View>
-               )}
-             </View>
+        <View style={[styles.questionContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+          <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
+          {market.description && (
+            <Text style={[styles.description, { color: theme.textSecondary }]}>{market.description}</Text>
           )}
-        </ScrollView>
+          <TouchableOpacity
+            style={styles.poolContainer}
+            onPress={() => router.push(`/bet/${marketId}` as any)}
+            activeOpacity={0.7}
+          >
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.poolLabel}>Pool: </Text>
+                <Text style={[styles.poolValue, { color: theme.text }]}>{formatCurrency(totalPool)}</Text>
+              </View>
+              <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
+                Fees apply. Click for distribution.
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'predict' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab('predict')}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'predict' ? theme.primary : theme.textSecondary }]}>Predict</Text>
+          </TouchableOpacity>
+          {market.is_public && (
+            <TouchableOpacity 
+              style={[styles.tabButton, activeTab === 'chat' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+              onPress={() => setActiveTab('chat')}
+            >
+              <Text style={[styles.tabText, { color: activeTab === 'chat' ? theme.primary : theme.textSecondary }]}>Live Chat</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'bets' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab('bets')}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'bets' ? theme.primary : theme.textSecondary }]}>My Bets ({userBets.length})</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Chat tab renders directly (has its own FlatList) - avoids VirtualizedList nesting */}
+        {activeTab === 'chat' && (
+          <MarketChatTab marketId={marketId} />
+        )}
+
+        {/* Other tabs render in ScrollView */}
+        {activeTab !== 'chat' && (
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {activeTab === 'predict' && (
+              <View style={styles.optionsContainer}>
+                <Text style={styles.sectionTitle}>Pick an Option</Text>
+                {[...options]
+                  .sort((a, b) => Number(b.total_pool) - Number(a.total_pool))
+                  .map((option, index) => {
+                  const odds = impliedOdds.find((o) => o.optionId === option.id);
+                  const isSelected = selectedOption === option.id;
+                  const betAmount = bettingAmount ? parseFloat(bettingAmount) : 0;
+                  const potentialPayout = selectedOption && bettingAmount && !isNaN(betAmount) && betAmount > 0
+                    ? getPotentialPayout(option.id, betAmount)
+                    : null;
+
+                  const percent = totalPool > 0 ? (Number(option.total_pool) / totalPool) * 100 : 0;
+                  const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+
+                  return (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.optionCard,
+                        { backgroundColor: theme.surface, borderColor: isSelected ? theme.primary : theme.border },
+                        isSelected && styles.optionSelected
+                      ]}
+                      onPress={() => setSelectedOption(option.id)}
+                      activeOpacity={0.8}
+                    >
+                      {/* Progress Bar Background */}
+                      <View style={[
+                        styles.progressBarContainer,
+                        {
+                          width: `${percent}%`,
+                          backgroundColor: color,
+                          opacity: 0.15 
+                        }
+                      ]} />
+
+                      <View style={styles.optionHeader}>
+                        <Text style={[styles.optionLabel, { color: theme.text }, isSelected && styles.optionLabelSelected]}>
+                          {option.label}
+                        </Text>
+                        {odds && (
+                          <View style={[styles.probabilityBadge, { backgroundColor: isDark ? theme.background : "#E5E5EA" }, isSelected && styles.probabilityBadgeSelected]}>
+                            <Text style={[styles.probabilityText, { color: isSelected ? theme.primary : theme.textSecondary }]}>
+                              {formatProbability(odds.probability)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.optionMeta}>
+                        <Text style={[styles.optionPoolText, { color: theme.textSecondary }]}>
+                          Pool: {formatCurrency(Number(option.total_pool))}
+                        </Text>
+                        {percent > 0 && (
+                          <Text style={[styles.percentText, { color: theme.textSecondary }]}>
+                            {percent.toFixed(1)}%
+                          </Text>
+                        )}
+                      </View>
+
+                      {potentialPayout && isSelected && (
+                        <View style={[styles.payoutContainer, { borderTopColor: theme.border }]}>
+                          <View style={styles.payoutRow}>
+                            <Text style={styles.payoutLabel}>Est. Profit</Text>
+                            <Text style={styles.profitValue}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+            
+            {activeTab === 'bets' && (
+               <View style={styles.positionSection}>
+                 {userBets.length > 0 ? (
+                   userBets.map((bet) => {
+                     const option = options.find(o => o.id === bet.option_id);
+                     const isResolved = market.status === 'resolved';
+                     const isWinner = isResolved && market.winning_option_id === bet.option_id;
+
+                     return (
+                       <View key={bet.id} style={[styles.positionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                         <View style={styles.positionHeader}>
+                           <Text style={[styles.positionLabel, { color: theme.text }]}>{option?.label}</Text>
+                           <Text style={[
+                             styles.positionStatus,
+                             isResolved
+                               ? (isWinner ? { color: '#34C759' } : { color: theme.textSecondary })
+                               : { color: theme.primary }
+                           ]}>
+                             {isResolved ? (isWinner ? 'WON' : 'LOST') : 'PLACED'}
+                           </Text>
+                         </View>
+                         <View style={styles.positionMeta}>
+                           <Text style={styles.positionText}>Wagered: {formatCurrency(bet.amount)}</Text>
+                           {isResolved ? (
+                             <Text style={[styles.positionText, { fontWeight: '700', color: isWinner ? '#34C759' : theme.textSecondary }]}>
+                               {isWinner ? `+${formatCurrency((bet.amount / Number(option?.total_pool || 1)) * (totalPool * (1 - 0.0795)))}` : '-$0.00'}
+                             </Text>
+                           ) : (
+                             <Text style={styles.positionText}>
+                               Share: {((bet.amount / Number(option?.total_pool || 1)) * 100).toFixed(1)}%
+                             </Text>
+                           )}
+                         </View>
+                       </View>
+                     );
+                   })
+                 ) : (
+                   <View style={styles.emptyState}>
+                      <Text style={{ color: theme.textSecondary }}>No bets placed yet.</Text>
+                   </View>
+                 )}
+               </View>
+            )}
+          </ScrollView>
+        )}
 
         {selectedOption && (
           <View style={[styles.bettingBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
