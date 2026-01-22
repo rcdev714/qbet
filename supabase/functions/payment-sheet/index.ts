@@ -23,9 +23,8 @@ serve(async (req: Request) => {
     const { amount, email, userId } = await req.json();
 
     // Initialize Supabase client
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Get or create Stripe Customer
@@ -98,7 +97,7 @@ serve(async (req: Request) => {
         paymentIntent: paymentIntent.client_secret,
         ephemeralKey: ephemeralKey.secret,
         customer: customerId,
-        publishableKey: Deno.env.get("EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY") ?? Deno.env.get("STRIPE_PUBLISHABLE_KEY"),
+        publishableKey: Deno.env.get("STRIPE_PUBLISHABLE_KEY") ?? "",
       }),
       {
         headers: {

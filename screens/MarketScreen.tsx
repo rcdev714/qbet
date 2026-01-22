@@ -24,13 +24,16 @@ const VIBRANT_COLORS = [
 
 export function MarketScreen() {
   const router = useRouter();
-  const { id: marketId, optionId } = useLocalSearchParams<{ id: string; optionId?: string }>();
+  const { id: marketId, optionId, previewAmount } = useLocalSearchParams<{ id: string; optionId?: string; previewAmount?: string }>();
   const { market, options, userBets, loading, refresh } = useMarket(marketId);
   const { balance, refresh: refreshWallet } = useWalletContext();
   const { theme, isDark } = useTheme();
-  const [bettingAmount, setBettingAmount] = useState<string>("");
-  // Initialize with optionId if present (ensure it's a string, useLocalSearchParams can return array)
+  
+  // Initialize with optionId and previewAmount if present (ensure they're strings, useLocalSearchParams can return arrays)
   const initialOption = Array.isArray(optionId) ? optionId[0] : optionId;
+  const initialAmount = Array.isArray(previewAmount) ? previewAmount[0] : previewAmount;
+  
+  const [bettingAmount, setBettingAmount] = useState<string>(initialAmount || "");
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOption || null);
   const [error, setError] = useState<string | null>(null);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
@@ -226,32 +229,37 @@ export function MarketScreen() {
                         <Text style={[styles.optionLabel, { color: theme.text }, isSelected && styles.optionLabelSelected]}>
                           {option.label}
                         </Text>
-                        {odds && (
-                          <View style={[styles.probabilityBadge, { backgroundColor: isDark ? theme.background : "#E5E5EA" }, isSelected && styles.probabilityBadgeSelected]}>
-                            <Text style={[styles.probabilityText, { color: isSelected ? theme.primary : theme.textSecondary }]}>
-                              {formatProbability(odds.probability)}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.optionMeta}>
-                        <Text style={[styles.optionPoolText, { color: theme.textSecondary }]}>
-                          Pool: {formatCurrency(Number(option.total_pool))}
-                        </Text>
-                        {percent > 0 && (
-                          <Text style={[styles.percentText, { color: theme.textSecondary }]}>
-                            {percent.toFixed(1)}%
+                        <View style={styles.rightInfoContainer}>
+                          <Text style={[styles.optionPoolText, { color: theme.textSecondary }]}>
+                            {formatCurrency(Number(option.total_pool))}
                           </Text>
-                        )}
+                          {odds && (
+                            <View style={[styles.probabilityBadge, { backgroundColor: isDark ? theme.background : "#E5E5EA" }, isSelected && styles.probabilityBadgeSelected]}>
+                              <Text style={[styles.probabilityText, { color: isSelected ? theme.primary : theme.textSecondary }]}>
+                                {formatProbability(odds.probability)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
 
                       {potentialPayout && isSelected && (
                         <View style={[styles.payoutContainer, { borderTopColor: theme.border }]}>
                           <View style={styles.payoutRow}>
-                            <Text style={styles.payoutLabel}>Est. Profit</Text>
+                            <Text style={styles.payoutLabel}>Your Bet</Text>
+                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.userBet)}</Text>
+                          </View>
+                          <View style={styles.payoutRow}>
+                            <Text style={styles.payoutLabel}>If You Win, You Get Back</Text>
+                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.potentialPayout)}</Text>
+                          </View>
+                          <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
+                            <Text style={[styles.payoutLabel, { fontWeight: '600' }]}>Net Profit</Text>
                             <Text style={styles.profitValue}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
                           </View>
+                          <Text style={styles.payoutNote}>
+                            Multiplier: {potentialPayout.payoutMultiplier.toFixed(2)}x (after 7.95% fee)
+                          </Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -537,15 +545,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 0,
   },
   optionLabel: {
     fontSize: 17,
     fontWeight: "600",
     color: "#000",
+    flex: 1,
+    marginRight: 12,
   },
   optionLabelSelected: {
     color: "#007AFF",
+  },
+  rightInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
   },
   probabilityBadge: {
     backgroundColor: "#E5E5EA",
@@ -575,6 +591,7 @@ const styles = StyleSheet.create({
   },
   optionPoolText: {
     fontSize: 13,
+    fontWeight: "600",
     color: "#8E8E93",
   },
   optionPoolTextSelected: {
@@ -604,6 +621,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#34C759",
+  },
+  payoutNote: {
+    fontSize: 10,
+    color: "#8E8E93",
+    marginTop: 8,
+    fontStyle: "italic",
   },
   bettingBar: {
     backgroundColor: "#fff",

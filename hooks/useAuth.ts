@@ -1,4 +1,6 @@
+import * as Linking from "expo-linking";
 import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { authService } from "../services/auth.service";
 import type { User } from "../types/user";
 
@@ -7,6 +9,43 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Handle deep link for auth callback
+    const handleDeepLink = async (url: string) => {
+      if (url.includes("access_token") || url.includes("refresh_token")) {
+        // Extract the fragment (everything after #)
+        const hashIndex = url.indexOf("#");
+        if (hashIndex !== -1) {
+          const fragment = url.substring(hashIndex + 1);
+          const params = new URLSearchParams(fragment);
+          
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+          
+          if (accessToken && refreshToken) {
+            // Set the session from the tokens
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              console.error("Error setting session from deep link:", error);
+            }
+          }
+        }
+      }
+    };
+
+    // Check if app was opened with a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    // Listen for deep links while app is open
+    const subscription = Linking.addEventListener("url", (event) => {
+      handleDeepLink(event.url);
+    });
+
     // Get initial user
     authService.getCurrentUser().then((currentUser) => {
       setUser(currentUser);
@@ -15,14 +54,15 @@ export function useAuth() {
 
     // Subscribe to auth changes
     const {
-      data: { subscription },
+      data: { subscription: authSubscription },
     } = authService.onAuthStateChange((currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription.remove();
+      authSubscription.unsubscribe();
     };
   }, []);
 

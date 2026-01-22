@@ -7,7 +7,7 @@ serve(async (req: Request) => {
     const status = url.searchParams.get("status") || "return";
 
     // This is the custom scheme for your app
-    const appScheme = "myapp://wallet";
+    const appScheme = "qbet://wallet";
 
     // Redirect back to the app
     return Response.redirect(`${appScheme}?status=${status}`, 302);

@@ -22,8 +22,8 @@ serve(async (req: Request) => {
     const { userId, email } = await req.json();
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Check if user already has a connected account
@@ -75,8 +75,6 @@ serve(async (req: Request) => {
 
       if (updateError) throw updateError;
     }
-
-    if (updateError) throw updateError;
 
     return new Response(JSON.stringify({ accountId: account.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

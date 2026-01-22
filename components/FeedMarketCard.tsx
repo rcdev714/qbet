@@ -1,11 +1,12 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { calculatePotentialPayout, formatCurrency } from "@/lib/parimutuel";
 import { feedService } from "@/services/feed.service";
 import type { Market, MarketWithStats } from "@/types/market";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient"; // Ensure you have this or use a simple View
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -15,10 +16,10 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
-import { LineChart } from "react-native-gifted-charts";
 
 interface FeedMarketCardProps {
   market: Market;
@@ -42,7 +43,20 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
   // Countdown state
   const [timeLeft, setTimeLeft] = useState("");
 
+  // Potential gains preview
+  const [previewAmount, setPreviewAmount] = useState<string>("");
+  const [selectedPreviewOption, setSelectedPreviewOption] = useState<string | null>(null);
+
   const viewStartTime = useRef<number | null>(null);
+
+  // Calculate potential profit for an option
+  const getPotentialProfit = (optionId: string, amount: number) => {
+    if (!stats || isNaN(amount) || amount <= 0) return null;
+    const option = stats.optionStats.find((opt) => opt.optionId === optionId);
+    if (!option) return null;
+    const result = calculatePotentialPayout(amount, option.pool, stats.totalPool, 0.0795);
+    return result.potentialProfit;
+  };
   
   // Fetch stats when market loads
   useEffect(() => {
@@ -141,10 +155,20 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
 
   const handleOptionPress = (optionId: string) => {
     Haptics.selectionAsync();
+    const amount = previewAmount ? parseFloat(previewAmount) : undefined;
     router.push({
         pathname: "/market/[id]",
-        params: { id: market.id, optionId: optionId }
+        params: { 
+          id: market.id, 
+          optionId: optionId,
+          ...(amount && !isNaN(amount) && amount > 0 ? { previewAmount: amount.toString() } : {})
+        }
     });
+  };
+
+  const handleQuickAmountSelect = (amount: number) => {
+    Haptics.selectionAsync();
+    setPreviewAmount(amount.toFixed(2));
   };
 
   return (
@@ -228,159 +252,119 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
             </Text>
         </TouchableOpacity>
 
-        {/* Simplified Probability Graph */}
-        {stats && stats.recentBets && stats.recentBets.length > 3 ? (
-             <View style={styles.graphContainer}>
-                {(() => {
-                    // Reconstruct history for ALL options
-                    const allOptions = stats.optionStats;
-                    const runningPools = new Map<string, number>();
-                    allOptions.forEach(o => runningPools.set(o.optionId, o.pool));
-                    
-                    let runningTotal = stats.totalPool;
-                    
-                    // Arrays to store history for each option
-                    const historyMap = new Map<string, { value: number }[]>();
-                    allOptions.forEach(o => historyMap.set(o.optionId, []));
-
-                    // Helper to record current state
-                    const recordState = () => {
-                        allOptions.forEach(o => {
-                            const pool = runningPools.get(o.optionId) || 0;
-                            const pct = runningTotal > 0 ? (pool / runningTotal) * 100 : 0;
-                            historyMap.get(o.optionId)?.push({ value: pct });
-                        });
-                    };
-
-                    // 1. Record final state (Current)
-                    recordState();
-
-                    // 2. Work backwards from newest bet to oldest
-                    // recentBets is Oldest -> Newest. So reverse to get Newest -> Oldest.
-                    stats.recentBets.slice().reverse().forEach((bet) => {
-                        runningTotal -= bet.amount;
-                        if (runningTotal <= 0) return; // Safety
-
-                        const currentOptPool = runningPools.get(bet.optionId) || 0;
-                        runningPools.set(bet.optionId, Math.max(0, currentOptPool - bet.amount));
-                        
-                        recordState();
-                    });
-
-                    // 3. Build dataSet for chart
-                    const dataSet = allOptions.map((opt, index) => {
-                        const history = historyMap.get(opt.optionId) || [];
-                        // history is Newest...Oldest. Reverse to get Oldest...Newest for chart.
-                        const data = history.reverse().map((pt, idx) => ({
-                            value: pt.value,
-                            hideDataPoint: idx !== history.length - 1, // Only show last point
-                            dataPointColor: VIBRANT_COLORS[index % VIBRANT_COLORS.length],
-                            dataPointRadius: 4,
-                            dataPointStrokeColor: "#fff",
-                            dataPointStrokeWidth: 2,
-                        }));
-                        
-                        // If only 1 point, duplicate it so line renders flat
-                        if (data.length === 1) {
-                            data.unshift({ ...data[0], hideDataPoint: true });
-                        }
-
-                        return {
-                            data: data,
-                            color: VIBRANT_COLORS[index % VIBRANT_COLORS.length],
-                            thickness: 1.5,
-                            curved: false,
-                            hideDataPoints: false,
-                        };
-                    });
-
-                    const axisLabelWidth = 40;
-                    const chartWidth = width - 110; // Extra room for axis and margins
-                    
-                    return (
-                        <View style={{ marginBottom: 24, paddingHorizontal: 24 }}>
-                            {/* Graph Container with height buffer */}
-                            <View style={{ height: 150, marginBottom: 16, paddingTop: 10, paddingBottom: 10 }} pointerEvents="none">
-                                <LineChart
-                                    dataSet={dataSet}
-                                    height={120} // Chart body
-                                    width={chartWidth}
-                                    adjustToWidth
-                                    initialSpacing={0}
-                                    endSpacing={10}
-                                    yAxisLabelWidth={axisLabelWidth}
-                                    yAxisSide={0}
-                                    color="transparent"
-                                    thickness={1.5}
-                                    hideRules
-                                    yAxisColor="transparent"
-                                    xAxisColor="transparent"
-                                    xAxisThickness={0}
-                                    yAxisThickness={0}
-                                    yAxisTextStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}
-                                    yAxisLabelSuffix="%"
-                                    maxValue={100}
-                                    noOfSections={2}
-                                    curveType={0} 
-                                    curved={false}
-                                    isAnimated
-                                    animationDuration={1000}
-                                    hideDataPoints
-                                />
-                            </View>
-
-                            <View style={styles.legendGrid}>
-                                {allOptions.slice(0, 4).map((opt, index) => { // Show top 4 options max
-                                    const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
-                                    return (
-                                        <TouchableOpacity
-                                            key={opt.optionId}
-                                            style={styles.legendItem}
-                                            onPress={() => handleOptionPress(opt.optionId)}
-                                        >
-                                            <View style={styles.legendLabelContainer}>
-                                                <View style={[styles.legendDot, { backgroundColor: color }]} />
-                                                <Text style={styles.legendLabel} numberOfLines={1}>{opt.label}</Text>
-                                            </View>
-                                            <Text style={[styles.legendPercent, { color: color }]}>
-                                                {Math.round(opt.percentage)}%
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        </View>
-                    );
-                })()}
-             </View>
-        ) : (
-             /* Fallback to Bars if not enough history */
-            <View style={styles.probContainer}>
-                {stats?.optionStats?.slice(0, 4).map((opt, index) => {
-                    const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
-                    return (
-                        <TouchableOpacity
-                            key={opt.optionId}
-                            style={styles.probRow}
-                            onPress={() => handleOptionPress(opt.optionId)}
-                        >
-                            <View style={styles.probInfo}>
-                                <View style={styles.probLabelContainer}>
-                                    <View style={[styles.probDot, { backgroundColor: color }]} />
-                                    <Text style={styles.probLabel} numberOfLines={1}>{opt.label}</Text>
-                                </View>
-                                <Text style={[styles.probPercent, { color: color }]}>{Math.round(opt.percentage)}%</Text>
-                            </View>
-                            <View style={styles.probBarTrack}>
-                                <View style={[styles.probBarFill, { width: `${opt.percentage}%`, backgroundColor: color }]} />
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
-                {!stats && loadingStats && (
-                    <ActivityIndicator size="small" color="#666" style={{ alignSelf: 'flex-start' }} />
-                )}
+        {/* Potential Gains Preview */}
+        {stats ? (
+          <View style={styles.potentialGainsContainer}>
+            {/* Quick Amount Selector */}
+            <View style={styles.amountInputRow}>
+              <View style={styles.quickAmounts}>
+                {[1, 5, 10, 25].map((amt) => (
+                  <TouchableOpacity
+                    key={amt}
+                    style={[
+                      styles.quickAmountChip,
+                      previewAmount === amt.toFixed(2) && styles.quickAmountChipActive
+                    ]}
+                    onPress={() => handleQuickAmountSelect(amt)}
+                  >
+                    <Text style={[
+                      styles.quickAmountText,
+                      previewAmount === amt.toFixed(2) && styles.quickAmountTextActive
+                    ]}>
+                      ${amt}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.customAmountContainer}>
+                <Text style={styles.dollarSign}>$</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  placeholder="0"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  value={previewAmount}
+                  onChangeText={setPreviewAmount}
+                  keyboardType="numeric"
+                  maxLength={6}
+                />
+              </View>
             </View>
+
+            {/* Potential Wins Header */}
+            {previewAmount && parseFloat(previewAmount) > 0 && (
+              <View style={styles.potentialWinsHeader}>
+                <IconSymbol name="sparkles" size={14} color="#FFD700" />
+                <Text style={styles.potentialWinsTitle}>Potential Win</Text>
+              </View>
+            )}
+
+            {/* Options with Potential Gains */}
+            <View style={styles.optionsGrid}>
+              {stats.optionStats.slice(0, 4).map((opt, index) => {
+                const color = VIBRANT_COLORS[index % VIBRANT_COLORS.length];
+                const amount = previewAmount ? parseFloat(previewAmount) : 0;
+                const potentialProfit = getPotentialProfit(opt.optionId, amount);
+                const hasAmount = amount > 0 && potentialProfit !== null;
+
+                return (
+                  <TouchableOpacity
+                    key={opt.optionId}
+                    style={[
+                      styles.optionPill,
+                      selectedPreviewOption === opt.optionId && styles.optionPillSelected,
+                      { borderColor: selectedPreviewOption === opt.optionId ? color : 'rgba(255,255,255,0.15)' }
+                    ]}
+                    onPress={() => {
+                      setSelectedPreviewOption(opt.optionId);
+                      handleOptionPress(opt.optionId);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {/* Background fill based on percentage */}
+                    <View style={[
+                      styles.optionPillFill,
+                      { width: `${opt.percentage}%`, backgroundColor: color, opacity: 0.2 }
+                    ]} />
+                    
+                    <View style={styles.optionPillContent}>
+                      <View style={styles.optionPillLeft}>
+                        <View style={[styles.optionDot, { backgroundColor: color }]} />
+                        <Text style={styles.optionLabel} numberOfLines={1}>{opt.label}</Text>
+                      </View>
+                      
+                      <View style={styles.optionPillRight}>
+                        {hasAmount ? (
+                          <View style={styles.profitBadge}>
+                            <Text style={[styles.profitText, { color: '#34C759' }]}>
+                              +{formatCurrency(potentialProfit!)}
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text style={[styles.percentText, { color }]}>
+                            {Math.round(opt.percentage)}%
+                          </Text>
+                        )}
+                        <IconSymbol name="chevron.right" size={14} color="rgba(255,255,255,0.4)" />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Call to Action */}
+            {previewAmount && parseFloat(previewAmount) > 0 && (
+              <Text style={styles.ctaText}>
+                Tap an option to place your bet →
+              </Text>
+            )}
+          </View>
+        ) : (
+          loadingStats && (
+            <View style={styles.probContainer}>
+              <ActivityIndicator size="small" color="#666" style={{ alignSelf: 'center' }} />
+            </View>
+          )
         )}
         
       </View>
@@ -545,7 +529,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 40,
+    marginBottom: 24,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
@@ -557,88 +541,150 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  probRow: {
+  // Potential Gains Preview Styles
+  potentialGainsContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+  quickAmounts: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  quickAmountChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  quickAmountChipActive: {
+    backgroundColor: 'rgba(0,209,255,0.2)',
+    borderColor: '#00D1FF',
+  },
+  quickAmountText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  quickAmountTextActive: {
+    color: '#00D1FF',
+  },
+  customAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    minWidth: 80,
+  },
+  dollarSign: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  amountInput: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    minWidth: 50,
+    padding: 0,
+  },
+  potentialWinsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+    justifyContent: 'center',
+  },
+  potentialWinsTitle: {
+    color: '#FFD700',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  optionsGrid: {
+    gap: 8,
     width: '100%',
   },
-  probInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-    alignItems: 'center',
+  optionPill: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  probLabelContainer: {
+  optionPillSelected: {
+    borderWidth: 2,
+  },
+  optionPillFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+  },
+  optionPillContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  optionPillLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  optionDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  optionLabel: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1,
+  },
+  optionPillRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flex: 1,
   },
-  probDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  profitBadge: {
+    backgroundColor: 'rgba(52, 199, 89, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  probLabel: {
-    color: '#eee',
-    fontSize: 18,
-    fontWeight: '400',
-    flex: 1, 
-  },
-  probPercent: {
-    color: '#fff',
-    fontSize: 15,
+  profitText: {
+    fontSize: 14,
     fontWeight: '700',
   },
-  probBarTrack: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 100,
-    overflow: 'hidden',
-  },
-  probBarFill: {
-    height: '100%',
-    borderRadius: 100,
-  },
-  graphContainer: {
-    paddingHorizontal: 0,
-    marginBottom: 30,
-  },
-  legendGrid: {
-    flexDirection: 'column',
-    gap: 10,
-    marginTop: 8,
-    width: '100%',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 100,
-    width: '100%',
-  },
-  legendLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-    marginRight: 10,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendLabel: {
-    color: '#ddd',
-    fontSize: 16,
-    fontWeight: '400',
-    flex: 1,
-  },
-  legendPercent: {
-    fontSize: 13,
+  percentText: {
+    fontSize: 14,
     fontWeight: '700',
+  },
+  ctaText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
 });
 

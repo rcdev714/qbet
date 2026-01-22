@@ -26,8 +26,8 @@ serve(async (req) => {
         }
 
         // Initialize Supabase Admin Client
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         // 1. Get user's wallet to check balance and get stripe_account_id
@@ -88,8 +88,8 @@ serve(async (req) => {
             // Create Account Link for Onboarding
             const accountLink = await stripe.accountLinks.create({
                 account: account.id,
-                refresh_url: "myapp://wallet", // Deep link to return to app
-                return_url: "myapp://wallet",
+                refresh_url: "qbet://wallet", // Deep link to return to app
+                return_url: "qbet://wallet",
                 type: "account_onboarding",
             });
 

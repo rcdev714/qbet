@@ -34,8 +34,8 @@ serve(async (req: Request) => {
             externalAccountToken
         } = await req.json();
 
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         // 1. Get Wallet to find Stripe Account ID
@@ -73,8 +73,8 @@ serve(async (req: Request) => {
                 ssn_last_4: ssnLast4,
             },
             business_profile: {
-                mcc: "5734", // Computer Software Stores (General digital goods) - Adjust as needed
-                url: "https://myapp.com", // Placeholder
+                mcc: "7999", // Recreation Services (betting/gaming)
+                url: "https://qbet.app", // TODO: Update to actual production URL
             },
         });
 

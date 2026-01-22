@@ -1,0 +1,59 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",
+        "EXPO_PUBLIC_SUPABASE_KEY": "YOUR_LOCAL_ANON_KEY",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_...",
+        "EXPO_PUBLIC_ADMIN_EMAIL": "admin@yourapp.com"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "YOUR_CLOUD_ANON_KEY",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_...",
+        "EXPO_PUBLIC_ADMIN_EMAIL": "admin@yourapp.com"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "YOUR_CLOUD_ANON_KEY",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_...",
+        "EXPO_PUBLIC_ADMIN_EMAIL": "admin@yourapp.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "your@email.com",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-services-key.json"
+      }
+    }
+  }
+}
+

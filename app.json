@@ -10,9 +10,17 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rcdev714.qbet"
+      "bundleIdentifier": "com.rcdev714.qbet",
+      "associatedDomains": [
+        "applinks:jweyqlcvvmdyyqgqcsjd.supabase.co"
+      ],
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan QR codes and capture profile photos",
+        "NSPhotoLibraryUsageDescription": "Used to select profile photos"
+      }
     },
     "android": {
+      "package": "com.rcdev714.qbet",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -20,7 +28,15 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "qbet" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -39,11 +55,23 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.rcdev714.qbet",
+          "enableGooglePay": true
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
     }
   }
 }

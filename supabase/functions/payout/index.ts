@@ -22,8 +22,8 @@ serve(async (req: Request) => {
     const { amount, userId } = await req.json(); // amount in cents
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("EXPO_PUBLIC_SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Get user's wallet to get stripe_account_id and check balance
@@ -90,13 +90,6 @@ serve(async (req: Request) => {
       throw new Error(`Stripe Transfer failed: ${stripeError.message}`);
     }
 
-    if (updateError) {
-      throw updateError;
-    }
-
-    return new Response(JSON.stringify({ payout }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error) {
     console.error("Error in payout:", error);
     return new Response(JSON.stringify({ error: error.message }), {
