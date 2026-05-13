@@ -1,0 +1,113 @@
+import React from "react";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { useTheme } from "@/contexts/ThemeContext";
+
+interface Segment<T extends string> {
+  value: T;
+  label: string;
+  description?: string;
+}
+
+interface SegmentedControlProps<T extends string> {
+  value: T;
+  segments: Segment<T>[];
+  onChange: (value: T) => void;
+}
+
+export function SegmentedControl<T extends string>({
+  value,
+  segments,
+  onChange,
+}: SegmentedControlProps<T>) {
+  const { theme } = useTheme();
+  const [focusedValue, setFocusedValue] = React.useState<T | null>(null);
+  const focusRing =
+    Platform.OS === "web"
+      ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as any)
+      : null;
+
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          borderRadius: theme.radius.md,
+          padding: theme.spacing.xs,
+        },
+      ]}
+    >
+      {segments.map((segment) => {
+        const isActive = segment.value === value;
+        const isFocused = focusedValue === segment.value;
+        return (
+          <TouchableOpacity
+            key={segment.value}
+            accessibilityLabel={segment.description ? `${segment.label}, ${segment.description}` : segment.label}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: isActive }}
+            onPress={() => onChange(segment.value)}
+            onBlur={() => setFocusedValue(null)}
+            onFocus={() => setFocusedValue(segment.value)}
+            activeOpacity={0.8}
+            style={[
+              styles.item,
+              { borderRadius: theme.radius.sm },
+              isActive && { backgroundColor: theme.primarySoft },
+              Platform.OS === "web" && ({ cursor: "pointer", touchAction: "manipulation" } as any),
+              isFocused && focusRing,
+            ]}
+          >
+            <Text
+              style={[
+                styles.label,
+                { color: isActive ? theme.primary : theme.textSecondary },
+              ]}
+            >
+              {segment.label}
+            </Text>
+            {segment.description ? (
+              <Text
+                style={[
+                  styles.description,
+                  { color: isActive ? theme.primary : theme.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {segment.description}
+              </Text>
+            ) : null}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  item: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  description: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "400",
+  },
+});

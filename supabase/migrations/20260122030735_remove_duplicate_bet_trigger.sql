@@ -1,0 +1,2 @@
+-- Applied in production: remove_duplicate_bet_trigger
+-- This is a placeholder to align local migration history with production.

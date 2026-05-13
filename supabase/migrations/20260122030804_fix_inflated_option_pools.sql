@@ -1,0 +1,2 @@
+-- Applied in production: fix_inflated_option_pools
+-- This is a placeholder to align local migration history with production.
