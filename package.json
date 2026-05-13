@@ -11,6 +11,9 @@
     "ios:build": "xcodebuild -workspace ios/qbet.xcworkspace -scheme qbet -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=18.6,name=iPhone 16 Pro' build",
     "ios:launch": "xcrun simctl install booted ~/Library/Developer/Xcode/DerivedData/qbet-hihpfwmvmztlysdzzqlwbaifmlqt/Build/Products/Debug-iphonesimulator/qbet.app && xcrun simctl launch booted com.rcdev714.qbet",
     "web": "expo start --web",
+    "web:export:prod": "expo export --platform web",
+    "web:deploy:prod": "eas deploy --prod --environment production",
+    "deploy:web:prod": "bash ./scripts/deploy-web-production.sh",
     "lint": "expo lint"
   },
   "dependencies": {
