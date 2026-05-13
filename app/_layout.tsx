@@ -15,10 +15,103 @@ import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { StripeProvider } from '@/lib/stripe-bridge';
+import { groupService } from '@/services/group.service';
 
 export const unstable_settings = {
   initialRouteName: 'index',
 };
+
+const PENDING_WEB_INVITE_KEY = 'anymarket:pending-web-invite';
+
+type PendingWebInvite = {
+  inviteCode: string;
+  groupId: string;
+  marketId?: string;
+  target: 'group' | 'market';
+  createdAt: number;
+};
+
+function getQueryParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseInviteIntent(url: string): PendingWebInvite | null {
+  try {
+    const parsed = Linking.parse(url);
+    const path = parsed.path ?? '';
+    const inviteCode = getQueryParam(parsed.queryParams?.invite);
+    const groupParam = getQueryParam(parsed.queryParams?.group);
+
+    if (!inviteCode) return null;
+
+    if (path.startsWith('share/group/') || path.startsWith('group/')) {
+      const groupId = path
+        .replace('share/group/', '')
+        .replace('group/', '');
+
+      if (!groupId) return null;
+
+      return {
+        inviteCode,
+        groupId,
+        target: 'group',
+        createdAt: Date.now(),
+      };
+    }
+
+    if ((path.startsWith('share/market/') || path.startsWith('market/')) && groupParam) {
+      const marketId = path
+        .replace('share/market/', '')
+        .replace('market/', '');
+
+      if (!marketId) return null;
+
+      return {
+        inviteCode,
+        groupId: groupParam,
+        marketId,
+        target: 'market',
+        createdAt: Date.now(),
+      };
+    }
+  } catch (error) {
+    console.error('[InviteLink] Error parsing invite URL:', error);
+  }
+
+  return null;
+}
+
+function getCurrentWebInviteIntent() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  return parseInviteIntent(window.location.href);
+}
+
+function storePendingWebInvite(invite: PendingWebInvite) {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return;
+  sessionStorage.setItem(PENDING_WEB_INVITE_KEY, JSON.stringify(invite));
+}
+
+function readPendingWebInvite() {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return null;
+
+  try {
+    const raw = sessionStorage.getItem(PENDING_WEB_INVITE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as PendingWebInvite;
+    if (!parsed.inviteCode || !parsed.groupId) return null;
+
+    return parsed;
+  } catch (error) {
+    console.error('[InviteLink] Error reading pending invite:', error);
+    return null;
+  }
+}
+
+function clearPendingWebInvite() {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return;
+  sessionStorage.removeItem(PENDING_WEB_INVITE_KEY);
+}
 
 function RootLayoutNav() {
   const { user, loading } = useAuthContext();
@@ -35,6 +128,7 @@ function RootLayoutNav() {
     tabSegment === 'profile';
   const initialUrlHandled = useRef(false);
   const pendingDeepLink = useRef<string | null>(null);
+  const consumingInvite = useRef(false);
 
   // Handle deep links
   useEffect(() => {
@@ -43,6 +137,13 @@ function RootLayoutNav() {
       try {
         const parsed = Linking.parse(url);
         console.log('[DeepLink] Parsed URL:', parsed);
+        const inviteIntent = parseInviteIntent(url);
+
+        if (inviteIntent && !user) {
+          storePendingWebInvite(inviteIntent);
+          router.replace('/login?mode=signup' as any);
+          return true;
+        }
 
         // Handle market deep links: qbet://market/{id} or /share/market/{id}
         if (parsed.path?.startsWith('market/') || parsed.path?.startsWith('share/market/')) {
@@ -52,8 +153,9 @@ function RootLayoutNav() {
           if (marketId) {
             console.log('[DeepLink] Navigating to market:', marketId);
             const groupId = parsed.queryParams?.group;
+            const inviteCode = parsed.queryParams?.invite;
             router.push(groupId
-              ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId) } } as any)
+              ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId), invite: inviteCode ? String(inviteCode) : undefined } } as any)
               : (`/market/${marketId}` as any));
             return true;
           }
@@ -66,7 +168,10 @@ function RootLayoutNav() {
             .replace('group/', '');
           if (groupId) {
             console.log('[DeepLink] Navigating to group:', groupId);
-            router.push(`/group/${groupId}` as any);
+            const inviteCode = parsed.queryParams?.invite;
+            router.push(inviteCode
+              ? ({ pathname: '/group/[id]', params: { id: groupId, invite: String(inviteCode) } } as any)
+              : (`/group/${groupId}` as any));
             return true;
           }
         }
@@ -127,14 +232,23 @@ function RootLayoutNav() {
       setTimeout(() => {
         try {
           const parsed = Linking.parse(url);
+          const inviteIntent = parseInviteIntent(url);
+
+          if (inviteIntent && !user) {
+            storePendingWebInvite(inviteIntent);
+            router.replace('/login?mode=signup' as any);
+            return;
+          }
+
           if (parsed.path?.startsWith('market/') || parsed.path?.startsWith('share/market/')) {
             const marketId = parsed.path
               .replace('share/market/', '')
               .replace('market/', '');
             if (marketId) {
               const groupId = parsed.queryParams?.group;
+              const inviteCode = parsed.queryParams?.invite;
               router.push(groupId
-                ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId) } } as any)
+                ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId), invite: inviteCode ? String(inviteCode) : undefined } } as any)
                 : (`/market/${marketId}` as any));
             }
           } else if (parsed.path?.startsWith('group/') || parsed.path?.startsWith('share/group/')) {
@@ -142,7 +256,10 @@ function RootLayoutNav() {
               .replace('share/group/', '')
               .replace('group/', '');
             if (groupId) {
-              router.push(`/group/${groupId}` as any);
+              const inviteCode = parsed.queryParams?.invite;
+              router.push(inviteCode
+                ? ({ pathname: '/group/[id]', params: { id: groupId, invite: String(inviteCode) } } as any)
+                : (`/group/${groupId}` as any));
             }
           }
         } catch (error) {
@@ -150,7 +267,39 @@ function RootLayoutNav() {
         }
       }, 100);
     }
-  }, [loading, router]);
+  }, [loading, router, user]);
+
+  useEffect(() => {
+    if (loading || !user || consumingInvite.current) return;
+
+    const pendingInvite = readPendingWebInvite();
+    if (!pendingInvite) return;
+
+    consumingInvite.current = true;
+
+    const consumeInvite = async () => {
+      try {
+        const { error } = await groupService.joinGroupByCode(pendingInvite.inviteCode);
+        if (error) {
+          console.warn('[InviteLink] Failed to auto-join group:', error.message);
+        }
+      } finally {
+        clearPendingWebInvite();
+        consumingInvite.current = false;
+
+        if (pendingInvite.target === 'market' && pendingInvite.marketId) {
+          router.replace({
+            pathname: '/market/[id]',
+            params: { id: pendingInvite.marketId, group: pendingInvite.groupId },
+          } as any);
+        } else {
+          router.replace(`/group/${pendingInvite.groupId}` as any);
+        }
+      }
+    };
+
+    consumeInvite();
+  }, [loading, router, user]);
 
   useEffect(() => {
     if (loading) return;
@@ -158,7 +307,19 @@ function RootLayoutNav() {
     const segment = segments[0];
     const isLanding = segment === undefined;
     const isLogin = segment === 'login';
+    const inviteIntent = getCurrentWebInviteIntent();
+    const hasPendingInvite = Boolean(readPendingWebInvite());
     const isPublicRoute = isLanding || isLogin || segment === 'market' || segment === 'profile';
+
+    if (!user && inviteIntent) {
+      storePendingWebInvite(inviteIntent);
+      router.replace('/login?mode=signup' as any);
+      return;
+    }
+
+    if (user && hasPendingInvite) {
+      return;
+    }
 
     if (!user && !isPublicRoute) {
       // Redirect to landing if not authenticated and not a public route

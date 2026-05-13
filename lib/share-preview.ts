@@ -82,6 +82,15 @@ function absoluteUrl(value: string | null | undefined) {
   return `${APP_URL}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
+function withQuery(url: string, params: Record<string, string | null | undefined>) {
+  const query = Object.entries(params)
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&");
+
+  return query ? `${url}?${query}` : url;
+}
+
 function imageMimeType(value: string) {
   const pathname = (() => {
     try {
@@ -208,9 +217,10 @@ export async function getMarketSharePreview(
   const predictions = leadingPredictions(market?.options);
   const pool = totalPool(market?.options);
   const inviteCode = group?.share_code ?? null;
-  const canonicalUrl = `${APP_URL}/share/market/${encodeURIComponent(marketId)}${
-    resolvedGroupId ? `?group=${encodeURIComponent(resolvedGroupId)}` : ""
-  }${inviteCode ? `${resolvedGroupId ? "&" : "?"}invite=${encodeURIComponent(inviteCode)}` : ""}`;
+  const canonicalUrl = withQuery(
+    `${APP_URL}/share/market/${encodeURIComponent(marketId)}`,
+    { group: resolvedGroupId, invite: inviteCode },
+  );
   const question = market?.question || "Predict the futures with friends";
   const groupSuffix = group ? ` in ${group.name}` : "";
 
@@ -229,10 +239,14 @@ export async function getMarketSharePreview(
       ? `${group.name} group prediction preview`
       : `${SITE_NAME} prediction market preview`,
     canonicalUrl,
-    deepLink: `${APP_SCHEME}://market/${encodeURIComponent(marketId)}${
-      resolvedGroupId ? `?group=${encodeURIComponent(resolvedGroupId)}` : ""
-    }`,
-    appUrl: `${APP_URL}/market/${encodeURIComponent(marketId)}`,
+    deepLink: withQuery(`${APP_SCHEME}://market/${encodeURIComponent(marketId)}`, {
+      group: resolvedGroupId,
+      invite: inviteCode,
+    }),
+    appUrl: withQuery(`${APP_URL}/market/${encodeURIComponent(marketId)}`, {
+      group: resolvedGroupId,
+      invite: inviteCode,
+    }),
     eyebrow: group?.name || market?.category || "Prediction",
     primaryLabel: question,
     poolLabel: moneyLabel(pool),
@@ -253,13 +267,14 @@ export async function getGroupSharePreview(
     fetchGroupPool(supabase, groupId),
   ]);
   const inviteCode = group?.share_code ?? null;
-  const groupName = group?.name || "AnyMarket group";
-  const canonicalUrl = `${APP_URL}/share/group/${encodeURIComponent(groupId)}${
-    inviteCode ? `?invite=${encodeURIComponent(inviteCode)}` : ""
-  }`;
+  const groupName = group?.name || "this group";
+  const canonicalUrl = withQuery(
+    `${APP_URL}/share/group/${encodeURIComponent(groupId)}`,
+    { invite: inviteCode },
+  );
 
   return {
-    title: `Join ${groupName} on ${SITE_NAME}`,
+    title: `Join ${groupName}`,
     description: joinDescription([
       memberCount ? `${memberCount.toLocaleString()} members.` : null,
       moneyLabel(pool),
@@ -269,8 +284,12 @@ export async function getGroupSharePreview(
     imageUrl: absoluteUrl(group?.avatar_url),
     imageAlt: `${groupName} group invite preview`,
     canonicalUrl,
-    deepLink: `${APP_SCHEME}://group/${encodeURIComponent(groupId)}`,
-    appUrl: `${APP_URL}/group/${encodeURIComponent(groupId)}`,
+    deepLink: withQuery(`${APP_SCHEME}://group/${encodeURIComponent(groupId)}`, {
+      invite: inviteCode,
+    }),
+    appUrl: withQuery(`${APP_URL}/group/${encodeURIComponent(groupId)}`, {
+      invite: inviteCode,
+    }),
     eyebrow: "Group invite",
     primaryLabel: groupName,
     poolLabel: moneyLabel(pool),

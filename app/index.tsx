@@ -54,21 +54,9 @@ const EXAMPLE_MARKETS = [
 ];
 
 const HOW_IT_WORKS_STEPS = [
-  {
-    icon: 'people-circle-outline',
-    title: 'Invite friends',
-    copy: 'Create a private market.',
-  },
-  {
-    icon: 'trending-up-outline',
-    title: 'Predict',
-    copy: 'Back the outcome you see coming.',
-  },
-  {
-    icon: 'trophy-outline',
-    title: 'Get rewarded',
-    copy: 'Settle results together.',
-  },
+  { icon: 'people-circle-outline', title: 'Invite your group' },
+  { icon: 'trending-up-outline', title: 'Back an outcome' },
+  { icon: 'trophy-outline', title: 'Settle together' },
 ];
 
 export default function LandingPage() {
@@ -124,7 +112,7 @@ export default function LandingPage() {
     <View style={styles.container}>
       <SEO
         title="Predict the futures with friends"
-        description="AnyMarket is a social prediction market platform where friends create private markets, back predictions, and get rewarded for seeing what comes next."
+        description="Prediction markets with friends on AnyMarket—invite, predict, settle."
         image="/og-image.svg"
         imageAlt="AnyMarket lets friends predict future outcomes together"
         url="/"
@@ -153,12 +141,11 @@ export default function LandingPage() {
 
           <View style={[styles.main, { minHeight: heroSectionMinHeight }, isWide && styles.mainWide]}>
             <View style={[styles.copy, isWide && styles.copyWide]}>
-              <Text style={styles.kicker}>Social Prediction Market Platform</Text>
               <Text style={[styles.title, isWide && styles.titleWide, isCompact && styles.titleCompact]}>
                 Predict the futures with friends
               </Text>
               <Text style={styles.subtitle}>
-                AnyMarket rewards people for predicting the future with their friends. Create private markets, back your predictions, and prove who sees what is coming next.
+                Private markets with friends—invite, predict, settle in one place.
               </Text>
 
               <View style={styles.ctaRow}>
@@ -177,22 +164,7 @@ export default function LandingPage() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.proofRow}>
-                <View style={styles.proofPill}>
-                  <Text style={styles.proofValue}>Private</Text>
-                  <Text style={styles.proofLabel}>invite codes</Text>
-                </View>
-                <View style={styles.proofPill}>
-                  <Text style={styles.proofValue}>Social</Text>
-                  <Text style={styles.proofLabel}>markets</Text>
-                </View>
-                <View style={styles.proofPill}>
-                  <Text style={styles.proofValue}>Settled</Text>
-                  <Text style={styles.proofLabel}>together</Text>
-                </View>
-              </View>
-
-              <Text style={styles.footerLine}>Create clear outcomes, invite friends to back their predictions, and keep every result in one trusted place.</Text>
+              <Text style={styles.trustLine}>Private · Invite codes · Settle with your group</Text>
             </View>
 
             <View style={[styles.visualPanel, isWide && styles.visualPanelWide, isCompact && styles.visualPanelCompact]}>
@@ -241,8 +213,7 @@ export default function LandingPage() {
           </View>
 
           <View style={styles.stepsSection}>
-            <Text style={styles.stepsEyebrow}>Made for bets between friends</Text>
-            <Text style={styles.stepsTitle}>From group idea to final result</Text>
+            <Text style={styles.stepsTitle}>How it works</Text>
             <View style={[styles.stepsGraph, isWide && styles.stepsGraphWide]}>
               {HOW_IT_WORKS_STEPS.map((step, index) => {
                 const translateY = stepsAnim.interpolate({
@@ -273,7 +244,6 @@ export default function LandingPage() {
                       </Animated.View>
                       <View style={styles.stepTextWrap}>
                         <Text style={styles.stepTitle}>{step.title}</Text>
-                        <Text style={styles.stepCopy}>{step.copy}</Text>
                       </View>
                     </Animated.View>
                     {index < HOW_IT_WORKS_STEPS.length - 1 ? (
@@ -381,36 +351,29 @@ const styles = StyleSheet.create({
   main: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: 30,
-    paddingVertical: 30,
+    gap: 24,
+    paddingVertical: 24,
   },
   mainWide: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 52,
-    paddingVertical: 40,
+    gap: 48,
+    paddingVertical: 32,
   },
   copy: {
-    gap: 15,
+    gap: 18,
   },
   copyWide: {
     flex: 1,
-  },
-  kicker: {
-    alignSelf: 'flex-start',
-    color: BRAND_ACCENT_BLUE,
-    fontSize: 13,
-    fontWeight: '400',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    maxWidth: 560,
   },
   title: {
     color: BRAND_DEEP_BLUE,
     fontSize: 42,
-    lineHeight: 44,
+    lineHeight: 46,
     fontWeight: '300',
     letterSpacing: -1.5,
-    maxWidth: 760,
+    maxWidth: 720,
   },
   titleWide: {
     fontSize: 60,
@@ -424,15 +387,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#4F5F72',
-    fontSize: 18,
-    lineHeight: 27,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '400',
-    maxWidth: 650,
+    maxWidth: 520,
   },
   ctaRow: {
     flexDirection: 'row',
     gap: 12,
-    paddingTop: 8,
+    paddingTop: 4,
     flexWrap: 'wrap',
   },
   primaryButton: {
@@ -477,38 +440,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '400',
   },
-  proofRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingTop: 4,
-  },
-  proofPill: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.76)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15, 23, 42, 0.08)',
-    minWidth: 96,
-  },
-  proofValue: {
-    color: BRAND_DEEP_BLUE,
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  proofLabel: {
-    color: '#718096',
-    fontSize: 12,
-    fontWeight: '400',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  footerLine: {
+  trustLine: {
     color: '#718096',
     fontSize: 13,
-    lineHeight: 19,
-    paddingTop: 4,
+    lineHeight: 18,
+    letterSpacing: 0.15,
+    marginTop: 4,
   },
   visualPanel: {
     height: 460,
@@ -694,27 +631,22 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   stepsSection: {
-    paddingBottom: 20,
-    paddingTop: 2,
-    gap: 8,
-  },
-  stepsEyebrow: {
-    color: BRAND_ACCENT_BLUE,
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    paddingBottom: 28,
+    paddingTop: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(15, 23, 42, 0.08)',
+    gap: 14,
   },
   stepsTitle: {
     color: BRAND_DEEP_BLUE,
-    fontSize: 22,
-    lineHeight: 27,
-    fontWeight: '400',
-    letterSpacing: -0.4,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '600',
+    letterSpacing: -0.3,
   },
   stepsGraph: {
     gap: 8,
-    marginTop: 6,
+    marginTop: 0,
   },
   stepsGraphWide: {
     flexDirection: 'row',
@@ -760,9 +692,9 @@ const styles = StyleSheet.create({
   },
   stepCard: {
     flex: 1,
-    minHeight: 92,
+    minHeight: 72,
     borderRadius: 20,
-    padding: 14,
+    padding: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(42, 91, 255, 0.16)',

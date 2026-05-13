@@ -282,9 +282,10 @@ export function GroupScreen() {
 
   const handleCopyInviteCode = async () => {
     if (shareCode) {
+      const groupName = group?.name || "this group";
       const shareUrl = shareService.getGroupInviteShareUrl(groupId, shareCode);
-      const title = `Join ${group?.name || "my group"} on AnyMarket`;
-      const message = `Join ${group?.name || "my group"} on AnyMarket with invite code ${shareCode}.`;
+      const title = groupName;
+      const message = `Join ${groupName} with invite code ${shareCode}.`;
 
       await Clipboard.setStringAsync(shareUrl);
 
