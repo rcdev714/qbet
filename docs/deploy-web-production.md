@@ -1,6 +1,7 @@
 # Web production deploy (Expo/EAS)
 
-This project uses Expo Router static web export plus EAS deploy for production web releases.
+This project uses Expo Router server web export plus EAS deploy for production web releases.
+Server output is required so `https://anymarket.expo.app/share/...` can render per-link Open Graph HTML for social crawlers.
 
 ## One-time setup
 
@@ -19,13 +20,25 @@ Use the single command:
 
 This command does:
 
-1. `expo export --platform web` (creates `dist/`)
-2. `eas deploy --prod --environment production --export-dir dist`
+1. `npm run typecheck` (`tsc --noEmit`)
+2. `npm run lint`
+3. `expo export --platform web` (creates `dist/` with server routes)
+4. `eas deploy --prod --environment production --export-dir dist`
 
 ## Optional direct commands
 
 - `npm run web:export:prod`
+- `npm run check:web:prod`
 - `npm run web:deploy:prod`
+
+## Required production environment
+
+Set these in the EAS production environment before deploying:
+
+- `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app`
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server route only; do not expose this in client code). `SERVICE_ROLE_KEY` is also accepted for local compatibility.
 
 ## Rollback
 

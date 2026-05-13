@@ -19,13 +19,29 @@ const DARK_THEME_COLOR = '#1A2C38';
 const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || 'https://anymarket.expo.app').replace(/\/$/, '');
 const DEFAULT_TITLE = 'AnyMarket | Predict the futures with friends';
 const DEFAULT_DESCRIPTION = 'AnyMarket is a social prediction market platform where friends create private markets, back predictions, and get rewarded for seeing what comes next.';
-const DEFAULT_IMAGE = '/og-image.svg';
+const DEFAULT_IMAGE = '/og-image.png';
 const DEFAULT_IMAGE_ALT = 'AnyMarket social prediction market preview';
 const DEFAULT_KEYWORDS = 'AnyMarket, social prediction market, predict with friends, private prediction markets, future predictions, prediction rewards, group predictions';
 
 function absoluteUrl(value: string) {
   if (/^https?:\/\//i.test(value)) return value;
   return `${APP_URL}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
+function imageMimeType(value: string) {
+  const pathname = (() => {
+    try {
+      return new URL(value).pathname;
+    } catch {
+      return value;
+    }
+  })().toLowerCase();
+
+  if (pathname.endsWith('.png')) return 'image/png';
+  if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg';
+  if (pathname.endsWith('.webp')) return 'image/webp';
+  if (pathname.endsWith('.gif')) return 'image/gif';
+  return undefined;
 }
 
 export function SEO({
@@ -41,6 +57,7 @@ export function SEO({
   const fullTitle = title === DEFAULT_TITLE ? title : `${title} | AnyMarket`;
   const canonicalUrl = absoluteUrl(url);
   const imageUrl = absoluteUrl(image);
+  const imageType = imageMimeType(imageUrl);
   
   return (
     <Head>
@@ -60,10 +77,13 @@ export function SEO({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:url" content={imageUrl} />
       <meta property="og:image:secure_url" content={imageUrl} />
       <meta property="og:image:alt" content={imageAlt} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      {imageType && <meta property="og:image:type" content={imageType} />}
+      <meta itemProp="image" content={imageUrl} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -71,6 +91,7 @@ export function SEO({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
+      <meta name="twitter:image:src" content={imageUrl} />
       <meta name="twitter:image:alt" content={imageAlt} />
 
       {/* PWA / Mobile */}
@@ -87,7 +108,7 @@ export function SEO({
       
       {/* Favicon - Ensure these paths match your actual assets */}
       <link rel="icon" type="image/svg+xml" href="/og-image.svg" />
-      <link rel="apple-touch-icon" href="/og-image.svg" />
+      <link rel="apple-touch-icon" href="/og-image.png" />
     </Head>
   );
 }

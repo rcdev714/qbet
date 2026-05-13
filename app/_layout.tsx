@@ -44,19 +44,26 @@ function RootLayoutNav() {
         const parsed = Linking.parse(url);
         console.log('[DeepLink] Parsed URL:', parsed);
 
-        // Handle market deep links: qbet://market/{id}
-        if (parsed.path?.startsWith('market/')) {
-          const marketId = parsed.path.replace('market/', '');
+        // Handle market deep links: qbet://market/{id} or /share/market/{id}
+        if (parsed.path?.startsWith('market/') || parsed.path?.startsWith('share/market/')) {
+          const marketId = parsed.path
+            .replace('share/market/', '')
+            .replace('market/', '');
           if (marketId) {
             console.log('[DeepLink] Navigating to market:', marketId);
-            router.push(`/market/${marketId}` as any);
+            const groupId = parsed.queryParams?.group;
+            router.push(groupId
+              ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId) } } as any)
+              : (`/market/${marketId}` as any));
             return true;
           }
         }
 
-        // Handle group deep links: qbet://group/{id}
-        if (parsed.path?.startsWith('group/')) {
-          const groupId = parsed.path.replace('group/', '');
+        // Handle group deep links: qbet://group/{id} or /share/group/{id}
+        if (parsed.path?.startsWith('group/') || parsed.path?.startsWith('share/group/')) {
+          const groupId = parsed.path
+            .replace('share/group/', '')
+            .replace('group/', '');
           if (groupId) {
             console.log('[DeepLink] Navigating to group:', groupId);
             router.push(`/group/${groupId}` as any);
@@ -120,13 +127,20 @@ function RootLayoutNav() {
       setTimeout(() => {
         try {
           const parsed = Linking.parse(url);
-          if (parsed.path?.startsWith('market/')) {
-            const marketId = parsed.path.replace('market/', '');
+          if (parsed.path?.startsWith('market/') || parsed.path?.startsWith('share/market/')) {
+            const marketId = parsed.path
+              .replace('share/market/', '')
+              .replace('market/', '');
             if (marketId) {
-              router.push(`/market/${marketId}` as any);
+              const groupId = parsed.queryParams?.group;
+              router.push(groupId
+                ? ({ pathname: '/market/[id]', params: { id: marketId, group: String(groupId) } } as any)
+                : (`/market/${marketId}` as any));
             }
-          } else if (parsed.path?.startsWith('group/')) {
-            const groupId = parsed.path.replace('group/', '');
+          } else if (parsed.path?.startsWith('group/') || parsed.path?.startsWith('share/group/')) {
+            const groupId = parsed.path
+              .replace('share/group/', '')
+              .replace('group/', '');
             if (groupId) {
               router.push(`/group/${groupId}` as any);
             }

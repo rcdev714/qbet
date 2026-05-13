@@ -112,7 +112,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const colorScheme = useColorScheme();
-    const [mode, setModeState] = React.useState<ThemeMode>("dark");
+    const [mode, setModeState] = React.useState<ThemeMode>("light");
 
     useEffect(() => {
         let mounted = true;
@@ -125,7 +125,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 }
             })
             .catch(() => {
-                // Keep the dark default if stored preferences cannot be read.
+                // Keep the light default if stored preferences cannot be read.
             });
 
         return () => {

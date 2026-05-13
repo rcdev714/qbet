@@ -2,9 +2,19 @@ import { Platform, Share } from "react-native";
 import { supabase } from "../lib/supabase";
 import type { Market } from "../types/market";
 
-const APP_URL = process.env.EXPO_PUBLIC_APP_URL || "https://anymarket.expo.app";
+const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || "https://anymarket.expo.app")
+    .replace(/\/$/, "");
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const SHARE_REDIRECT_URL = `${SUPABASE_URL}/functions/v1/share-redirect`;
+
+function withQuery(url: string, params: Record<string, string | null | undefined>) {
+    const query = Object.entries(params)
+        .filter((entry): entry is [string, string] => Boolean(entry[1]))
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+        .join("&");
+
+    return query ? `${url}?${query}` : url;
+}
 
 /**
  * Share service
@@ -14,24 +24,44 @@ export const shareService = {
     /**
      * Generate a shareable URL for a market
      */
-    getShareUrl(marketId: string): string {
-        // Use the redirector to generate dynamic OG tags for social previews
-        return `${SHARE_REDIRECT_URL}?market=${marketId}`;
+    getShareUrl(marketId: string, groupId?: string | null, inviteCode?: string | null): string {
+        return withQuery(`${APP_URL}/share/market/${encodeURIComponent(marketId)}`, {
+            group: groupId,
+            invite: inviteCode,
+        });
     },
 
     /**
      * Generate a shareable URL for a profile
      */
     getProfileShareUrl(userId: string): string {
-        return `${APP_URL}/profile/${userId}`;
+        return `${APP_URL}/profile/${encodeURIComponent(userId)}`;
     },
 
     /**
      * Generate a shareable URL for a market with group context
      */
-    getGroupShareUrl(marketId: string, groupId: string): string {
-        // Use redirect for complex params to ensure OG tags and deep linking work correclty
-        return `${SHARE_REDIRECT_URL}?market=${marketId}&group=${groupId}`;
+    getGroupShareUrl(marketId: string, groupId: string, inviteCode?: string | null): string {
+        return this.getShareUrl(marketId, groupId, inviteCode);
+    },
+
+    /**
+     * Generate a shareable group invite URL with rich previews.
+     */
+    getGroupInviteShareUrl(groupId: string, inviteCode?: string | null): string {
+        return withQuery(`${APP_URL}/share/group/${encodeURIComponent(groupId)}`, {
+            invite: inviteCode,
+        });
+    },
+
+    /**
+     * Legacy Supabase redirect URL for old links and fallback diagnostics.
+     */
+    getLegacyShareRedirectUrl(marketId: string, groupId?: string | null): string {
+        return withQuery(SHARE_REDIRECT_URL, {
+            market: marketId,
+            group: groupId,
+        });
     },
 
     /**
@@ -72,7 +102,7 @@ export const shareService = {
         market: Market,
     ): Promise<{ success: boolean; error: Error | null }> {
         try {
-            const shareUrl = this.getShareUrl(market.id);
+            const shareUrl = this.getShareUrl(market.id, market.group_id);
 
             // Track the share first (don't wait for it)
             this.trackShare(market.id, "market", Platform.OS).catch(

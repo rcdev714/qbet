@@ -16,6 +16,7 @@ import {
     Platform,
     SafeAreaView,
     ScrollView,
+    Share,
     StatusBar,
     StyleSheet,
     Text,
@@ -281,8 +282,27 @@ export function GroupScreen() {
 
   const handleCopyInviteCode = async () => {
     if (shareCode) {
-      await Clipboard.setStringAsync(shareCode);
-      setStatusBanner("Invite code copied.");
+      const shareUrl = shareService.getGroupInviteShareUrl(groupId, shareCode);
+      const title = `Join ${group?.name || "my group"} on AnyMarket`;
+      const message = `Join ${group?.name || "my group"} on AnyMarket with invite code ${shareCode}.`;
+
+      await Clipboard.setStringAsync(shareUrl);
+
+      try {
+        await Share.share(
+          Platform.OS === "ios"
+            ? { message, url: shareUrl }
+            : { message: `${message}\n\n${shareUrl}`, title },
+          {
+            dialogTitle: "Share group invite",
+            subject: title,
+          },
+        );
+        setStatusBanner("Invite link shared.");
+      } catch (error) {
+        console.error("Error sharing invite link:", error);
+        setStatusBanner("Invite link copied.");
+      }
     } else {
       Alert.alert("Invite code unavailable", "Open group info again or refresh this group, then try copying the invite code.");
     }

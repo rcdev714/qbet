@@ -16,7 +16,7 @@ const APP_SCHEME = "qbet";
 const APP_URL = (Deno.env.get("EXPO_PUBLIC_APP_URL") ||
   Deno.env.get("APP_URL") || "https://anymarket.expo.app").replace(/\/$/, "");
 const SITE_NAME = "AnyMarket";
-const DEFAULT_OG_IMAGE = `${APP_URL}/og-image.svg`;
+const DEFAULT_OG_IMAGE = `${APP_URL}/og-image.png`;
 
 interface MarketOption {
   id: string;
@@ -135,6 +135,9 @@ serve(async (req: Request) => {
 
     // Deep link URL
     const groupId = url.searchParams.get("group");
+    const canonicalUrl = `${APP_URL}/share/market/${encodeURIComponent(marketId)}${
+      groupId ? `?group=${encodeURIComponent(groupId)}` : ""
+    }`;
     const deepLink = `${APP_SCHEME}://market/${marketId}${
       groupId ? `?group=${groupId}` : ""
     }`;
@@ -152,7 +155,7 @@ serve(async (req: Request) => {
       oddsDisplay,
       deepLink,
       storeUrl,
-      url.href,
+      canonicalUrl,
       isIOS,
       isAndroid,
     );
@@ -204,6 +207,7 @@ function generateRedirectHTML(
   const imageAlt = `${SITE_NAME} prediction market preview`;
   const category = escapeHtml(market.category) || "Prediction";
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
+  const imageType = imageMimeType(market.image_url || DEFAULT_OG_IMAGE);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -221,9 +225,13 @@ function generateRedirectHTML(
   <meta property="og:title" content="${title} | ${SITE_NAME}">
   <meta property="og:description" content="${description}">
   <meta property="og:image" content="${imageUrl}">
+  <meta property="og:image:url" content="${imageUrl}">
+  <meta property="og:image:secure_url" content="${imageUrl}">
   <meta property="og:image:alt" content="${imageAlt}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  ${imageType ? `<meta property="og:image:type" content="${imageType}">` : ""}
+  <meta itemprop="image" content="${imageUrl}">
   <meta property="og:site_name" content="${SITE_NAME}">
   <meta property="og:locale" content="en_US">
   
@@ -232,6 +240,7 @@ function generateRedirectHTML(
   <meta name="twitter:title" content="${title} | ${SITE_NAME}">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${imageUrl}">
+  <meta name="twitter:image:src" content="${imageUrl}">
   <meta name="twitter:image:alt" content="${imageAlt}">
   
   <!-- App Links (for Facebook/Instagram) -->
@@ -391,14 +400,8 @@ function generateRedirectHTML(
     </div>
     
     <a href="${deepLink}" class="cta-btn">Open in AnyMarket</a>
-    <a href="${storeUrl}" class="cta-btn" style="background: rgba(42,91,255,0.12); color:#1A2F5C; box-shadow:none;">
-        ${
-    isIOS
-      ? "Get AnyMarket on App Store"
-      : isAndroid
-      ? "Get AnyMarket on Play Store"
-      : "Continue to AnyMarket"
-  }
+    <a href="${safeCanonicalUrl}" class="cta-btn" style="background: rgba(42,91,255,0.12); color:#1A2F5C; box-shadow:none;">
+        Continue to AnyMarket
     </a>
     
     <div class="footer">
@@ -411,7 +414,29 @@ function generateRedirectHTML(
     setTimeout(function() {
       document.location.href = "${deepLink}"; 
     }, 1000);
+    setTimeout(function() {
+      document.location.href = "${safeCanonicalUrl}";
+    }, 1800);
   </script>
 </body>
 </html>`;
+}
+
+function imageMimeType(value: string | null) {
+  if (!value) return null;
+  const pathname = (() => {
+    try {
+      return new URL(value).pathname;
+    } catch {
+      return value;
+    }
+  })().toLowerCase();
+
+  if (pathname.endsWith(".png")) return "image/png";
+  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  return null;
 }

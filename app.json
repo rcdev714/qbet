@@ -14,7 +14,7 @@
       "buildNumber": "1",
       "associatedDomains": [
         "applinks:jweyqlcvvmdyyqgqcsjd.supabase.co",
-        "applinks:jweyqlcvvmdyyqgqcsjd.supabase.co"
+        "applinks:anymarket.expo.app"
       ],
       "infoPlist": {
         "NSCameraUsageDescription": "Used to scan QR codes and capture profile photos",
@@ -61,11 +61,26 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "anymarket.expo.app",
+              "pathPrefix": "/share"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
     "web": {
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/favicon.png",
       "backgroundColor": "#1A2F5C"
     },

@@ -13,8 +13,8 @@ if ! npx eas whoami >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Exporting static web build to dist/..."
-npx expo export --platform web
+echo "Running pre-deploy checks (tsc, lint, web build export)..."
+npm run check:web:prod
 
 echo "Deploying dist/ to Expo production..."
 npx eas deploy --prod --environment production --export-dir dist
