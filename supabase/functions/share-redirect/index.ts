@@ -75,7 +75,7 @@ serve(async (req: Request) => {
 
     const marketData: MarketData = (market as unknown as MarketData) || {
       id: marketId,
-      question: "Predict the futures with friends",
+      question: "Predict the Future with friends",
       description:
         "Create private prediction markets with friends and get rewarded for seeing what comes next.",
       image_url: null,
@@ -196,7 +196,7 @@ function generateRedirectHTML(
   };
 
   const title = escapeHtml(market.question) ||
-    "AnyMarket | Predict the futures with friends";
+    "AnyMarket | Predict the Future with friends";
   const rawDesc = market.description ||
     "Predict future outcomes with friends on AnyMarket.";
   // Only show odds if public
@@ -405,7 +405,7 @@ function generateRedirectHTML(
     </a>
     
     <div class="footer">
-        Predict the futures with friends
+        Predict the Future with friends
     </div>
   </div>
 

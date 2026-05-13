@@ -113,15 +113,20 @@ function clearPendingWebInvite() {
   sessionStorage.removeItem(PENDING_WEB_INVITE_KEY);
 }
 
+function isLandingSegment(segment: string | undefined) {
+  return segment === undefined || segment === 'index';
+}
+
 function RootLayoutNav() {
-  const { user, loading } = useAuthContext();
+  const { hasSession, loading } = useAuthContext();
   const { isDark, theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const currentSegment = segments[0];
   const tabSegment = segments[1];
+  const isLanding = isLandingSegment(currentSegment);
   const hasPageLevelSeo =
-    currentSegment === undefined ||
+    isLanding ||
     currentSegment === 'market' ||
     currentSegment === 'profile' ||
     tabSegment === 'feed' ||
@@ -139,7 +144,7 @@ function RootLayoutNav() {
         console.log('[DeepLink] Parsed URL:', parsed);
         const inviteIntent = parseInviteIntent(url);
 
-        if (inviteIntent && !user) {
+        if (inviteIntent && !hasSession) {
           storePendingWebInvite(inviteIntent);
           router.replace('/login?mode=signup' as any);
           return true;
@@ -207,7 +212,7 @@ function RootLayoutNav() {
     // Handle URL events (app already open)
     const subscription = Linking.addEventListener('url', (event) => {
       console.log('[DeepLink] URL event:', event.url);
-      if (!loading && user) {
+      if (!loading && hasSession) {
         handleDeepLink(event.url);
       } else {
         pendingDeepLink.current = event.url;
@@ -219,7 +224,7 @@ function RootLayoutNav() {
     return () => {
       subscription.remove();
     };
-  }, [router, loading, user]);
+  }, [router, loading, hasSession]);
 
   // Handle pending deep link after auth loads
   useEffect(() => {
@@ -234,7 +239,7 @@ function RootLayoutNav() {
           const parsed = Linking.parse(url);
           const inviteIntent = parseInviteIntent(url);
 
-          if (inviteIntent && !user) {
+          if (inviteIntent && !hasSession) {
             storePendingWebInvite(inviteIntent);
             router.replace('/login?mode=signup' as any);
             return;
@@ -267,10 +272,10 @@ function RootLayoutNav() {
         }
       }, 100);
     }
-  }, [loading, router, user]);
+  }, [loading, router, hasSession]);
 
   useEffect(() => {
-    if (loading || !user || consumingInvite.current) return;
+    if (loading || !hasSession || consumingInvite.current) return;
 
     const pendingInvite = readPendingWebInvite();
     if (!pendingInvite) return;
@@ -299,36 +304,37 @@ function RootLayoutNav() {
     };
 
     consumeInvite();
-  }, [loading, router, user]);
+  }, [loading, router, hasSession]);
 
   useEffect(() => {
     if (loading) return;
 
     const segment = segments[0];
-    const isLanding = segment === undefined;
+    const isLanding = isLandingSegment(segment);
     const isLogin = segment === 'login';
+    const isAuthenticated = hasSession;
     const inviteIntent = getCurrentWebInviteIntent();
     const hasPendingInvite = Boolean(readPendingWebInvite());
     const isPublicRoute = isLanding || isLogin || segment === 'market' || segment === 'profile';
 
-    if (!user && inviteIntent) {
+    if (!isAuthenticated && inviteIntent) {
       storePendingWebInvite(inviteIntent);
       router.replace('/login?mode=signup' as any);
       return;
     }
 
-    if (user && hasPendingInvite) {
+    if (isAuthenticated && hasPendingInvite) {
       return;
     }
 
-    if (!user && !isPublicRoute) {
+    if (!isAuthenticated && !isPublicRoute) {
       // Redirect to landing if not authenticated and not a public route
       router.replace('/');
-    } else if (user && (isLanding || isLogin)) {
+    } else if (isAuthenticated && (isLanding || isLogin)) {
       // Redirect authenticated users into the main app
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments, router]);
+  }, [hasSession, loading, segments, router]);
 
   if (loading) {
     return <AnyMarketLoader message="Preparing AnyMarket..." />;
@@ -337,7 +343,7 @@ function RootLayoutNav() {
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <PremiumNavigationProvider>
-        {!user && currentSegment !== undefined && currentSegment !== 'login' && <SignupBanner />}
+        {!hasSession && !isLanding && currentSegment !== 'login' && <SignupBanner />}
         {!hasPageLevelSeo && <SEO />}
         <Stack
           screenOptions={{
@@ -367,7 +373,7 @@ const LANDING_PAGE_BACKGROUND = '#F5F7FB';
 
 function WebShell({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
-  const isLanding = segments[0] === undefined;
+  const isLanding = isLandingSegment(segments[0]);
   const shellBackgroundColor =
     Platform.OS === 'web' && isLanding ? LANDING_PAGE_BACKGROUND : undefined;
 

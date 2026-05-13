@@ -111,12 +111,12 @@ export default function LandingPage() {
   return (
     <View style={styles.container}>
       <SEO
-        title="Predict the futures with friends"
+        title="Predict the Future with friends"
         description="Prediction markets with friends on AnyMarket—invite, predict, settle."
         image="/og-image.svg"
         imageAlt="AnyMarket lets friends predict future outcomes together"
         url="/"
-        keywords="AnyMarket, social prediction market platform, predict the futures with friends, private prediction markets, prediction rewards"
+        keywords="AnyMarket, social prediction market platform, predict the Future with friends, private prediction markets, prediction rewards"
       />
       <View style={styles.glowOne} />
       <View style={styles.glowTwo} />
@@ -142,7 +142,7 @@ export default function LandingPage() {
           <View style={[styles.main, { minHeight: heroSectionMinHeight }, isWide && styles.mainWide]}>
             <View style={[styles.copy, isWide && styles.copyWide]}>
               <Text style={[styles.title, isWide && styles.titleWide, isCompact && styles.titleCompact]}>
-                Predict the futures with friends
+                Predict the Future with friends
               </Text>
               <Text style={styles.subtitle}>
                 Private markets with friends—invite, predict, settle in one place.

@@ -221,7 +221,7 @@ export async function getMarketSharePreview(
     `${APP_URL}/share/market/${encodeURIComponent(marketId)}`,
     { group: resolvedGroupId, invite: inviteCode },
   );
-  const question = market?.question || "Predict the futures with friends";
+  const question = market?.question || "Predict the Future with friends";
   const groupSuffix = group ? ` in ${group.name}` : "";
 
   return {

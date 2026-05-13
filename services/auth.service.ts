@@ -23,6 +23,9 @@ const getAuthRedirectUrl = () => {
   return Linking.createURL("/");
 };
 
+const isAbortError = (error: unknown) =>
+  error instanceof Error && error.name === "AbortError";
+
 /**
  * Authentication service
  * Handles user sign up, sign in, sign out, and session management
@@ -138,9 +141,17 @@ export const authService = {
 
       const fetchUser = async (): Promise<User | null> => {
         const ensureWallet = async () => {
-          const wallet = await walletService.getWallet(session.user.id);
-          if (!wallet) {
-            await walletService.createWallet(session.user.id);
+          try {
+            const wallet = await walletService.getWallet(session.user.id);
+            if (!wallet) {
+              await walletService.createWallet(session.user.id);
+            }
+          } catch (walletError) {
+            if (isAbortError(walletError)) {
+              console.warn("[AuthService] Wallet ensure aborted");
+              return;
+            }
+            console.warn("[AuthService] Wallet ensure failed:", walletError);
           }
         };
 
@@ -151,7 +162,11 @@ export const authService = {
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching user:", error);
+          if (isAbortError(error)) {
+            console.warn("[AuthService] User profile fetch aborted");
+          } else {
+            console.error("Error fetching user:", error);
+          }
           return null;
         }
 
@@ -179,13 +194,14 @@ export const authService = {
             return null;
           }
 
-          // CRITICAL: Ensure wallet exists (fallback if trigger failed)
-          await ensureWallet();
+          // Ensure wallet existence in the background; auth should not block on it.
+          void ensureWallet();
 
           return newUser as User;
         }
 
-        await ensureWallet();
+        // Ensure wallet existence in the background; auth should not block on it.
+        void ensureWallet();
 
         return user as User;
       };
@@ -197,7 +213,11 @@ export const authService = {
 
       return currentUser;
     } catch (error) {
-      console.error("Error getting current user:", error);
+      if (isAbortError(error)) {
+        console.warn("[AuthService] getCurrentUser aborted");
+      } else {
+        console.error("Error getting current user:", error);
+      }
       return null;
     }
   },

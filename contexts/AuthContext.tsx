@@ -4,6 +4,7 @@ import type { User } from "../types/user";
 
 interface AuthContextType {
   user: User | null;
+  hasSession: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: Error | null }>;
   signUp: (email: string, password: string, username?: string) => Promise<{ user: User | null; error: Error | null }>;

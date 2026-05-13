@@ -1,11 +1,13 @@
 import * as Linking from "expo-linking";
 import { useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { supabase } from "../lib/supabase";
 import { authService } from "../services/auth.service";
 import type { User } from "../types/user";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
+  const [hasSession, setHasSession] = useState(false);
   const [loading, setLoading] = useState(true);
   const initDone = useRef(false);
 
@@ -46,6 +48,10 @@ export function useAuth() {
 
       const code = params.get("code");
       if (code) {
+        if (Platform.OS === "web") {
+          // detectSessionInUrl handles web PKCE redirects automatically.
+          return;
+        }
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           console.error("Error exchanging auth code from deep link:", error);
@@ -64,6 +70,8 @@ export function useAuth() {
 
         if (error) {
           console.error("Error setting session from deep link:", error);
+        } else if (mounted) {
+          setHasSession(true);
         }
       }
     };
@@ -91,6 +99,11 @@ export function useAuth() {
         event === "TOKEN_REFRESHED"
       ) {
         if (session?.user) {
+          if (mounted) {
+            setHasSession(true);
+            setLoading(false);
+            initDone.current = true;
+          }
           // Use setTimeout to avoid Supabase deadlock warning:
           // "Using the user object as returned from supabase.auth.getSession()
           //  or from some supabase.auth.onAuthStateChange() events could be insecure."
@@ -99,22 +112,19 @@ export function useAuth() {
             try {
               const currentUser = await authService.getCurrentUser();
               if (mounted) {
-                setUser(currentUser);
-                setLoading(false);
-                initDone.current = true;
+                // Keep the authenticated session even if profile hydration fails.
+                if (currentUser) {
+                  setUser(currentUser);
+                }
               }
             } catch (err) {
               console.error("[useAuth] Error fetching user profile:", err);
-              if (mounted) {
-                setUser(null);
-                setLoading(false);
-                initDone.current = true;
-              }
             }
           }, 0);
         } else {
           // INITIAL_SESSION with no session = not logged in
           if (mounted) {
+            setHasSession(false);
             setUser(null);
             setLoading(false);
             initDone.current = true;
@@ -122,6 +132,7 @@ export function useAuth() {
         }
       } else if (event === "SIGNED_OUT") {
         if (mounted) {
+          setHasSession(false);
           setUser(null);
           setLoading(false);
         }
@@ -135,6 +146,7 @@ export function useAuth() {
         console.warn(
           "[useAuth] Auth initialization timed out after 8s, proceeding as unauthenticated",
         );
+        setHasSession(false);
         setLoading(false);
       }
     }, 8000);
@@ -154,7 +166,10 @@ export function useAuth() {
       password,
     });
     if (!error) {
-      setUser(signedInUser);
+      setHasSession(true);
+      if (signedInUser) {
+        setUser(signedInUser);
+      }
     }
     setLoading(false);
     return { user: signedInUser, error };
@@ -172,7 +187,10 @@ export function useAuth() {
       username,
     });
     if (!error) {
-      setUser(signedUpUser);
+      setHasSession(true);
+      if (signedUpUser) {
+        setUser(signedUpUser);
+      }
     }
     setLoading(false);
     return { user: signedUpUser, error };
@@ -181,6 +199,10 @@ export function useAuth() {
   const signOut = async () => {
     setLoading(true);
     const { error } = await authService.signOut();
+    if (!error) {
+      setHasSession(false);
+      setUser(null);
+    }
     setLoading(false);
     return { error };
   };
@@ -197,6 +219,7 @@ export function useAuth() {
 
   return {
     user,
+    hasSession,
     loading,
     signIn,
     signUp,
@@ -206,6 +229,6 @@ export function useAuth() {
       const currentUser = await authService.getCurrentUser();
       setUser(currentUser);
     },
-    isAuthenticated: !!user,
+    isAuthenticated: hasSession,
   };
 }
