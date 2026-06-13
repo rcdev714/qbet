@@ -2,6 +2,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
+import { assertComplianceGate } from "../_shared/compliance.ts";
+import {
+  buildAllowedOrigins,
+  parsePositiveIntegerCents,
+  resolveAllowedUrl,
+} from "../_shared/payment-hardening.ts";
 
 const createLogger = (functionName: string) => {
   const log = (
@@ -49,6 +55,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function allowedOrigins() {
+  return buildAllowedOrigins([
+    Deno.env.get("EXPO_PUBLIC_APP_URL"),
+    Deno.env.get("APP_URL"),
+    "https://anymarket.expo.app",
+  ]);
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -61,20 +75,12 @@ serve(async (req: Request) => {
       successUrl,
       cancelUrl,
     } = await req.json();
+    const amountCents = parsePositiveIntegerCents(amount);
 
     logger.info("📥 Request received", {
-      amount: amount / 100,
+      amount: amountCents / 100,
       requestedUserId,
     });
-
-    if (!amount) {
-      logger.error("Missing required fields", {
-        hasAmount: !!amount,
-      });
-      throw new Error(
-        "Missing required field: amount is required",
-      );
-    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -84,10 +90,13 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get("authorization") ??
       req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: authData, error: authError } = await supabase.auth.getUser(
@@ -109,6 +118,13 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await assertComplianceGate(supabase, {
+      userId,
+      action: "stripe_deposit",
+      amount: amountCents / 100,
+      provider: "stripe",
+    });
 
     // Verify user exists
     const { data: wallet } = await supabase
@@ -161,14 +177,24 @@ serve(async (req: Request) => {
     }
 
     // Determine return URLs
-    const origin = successUrl?.split("/topup")[0] ||
-      Deno.env.get("EXPO_PUBLIC_APP_URL") ||
+    const origin = Deno.env.get("EXPO_PUBLIC_APP_URL") ||
       Deno.env.get("APP_URL") ||
       "https://anymarket.expo.app";
 
-    const finalSuccessUrl = successUrl ||
+    const defaultSuccessUrl =
       `${origin}/topup?success=true&session_id={CHECKOUT_SESSION_ID}`;
-    const finalCancelUrl = cancelUrl || `${origin}/topup?canceled=true`;
+    const defaultCancelUrl = `${origin}/topup?canceled=true`;
+    const origins = allowedOrigins();
+    const finalSuccessUrl = resolveAllowedUrl(
+      successUrl,
+      defaultSuccessUrl,
+      origins,
+    );
+    const finalCancelUrl = resolveAllowedUrl(
+      cancelUrl,
+      defaultCancelUrl,
+      origins,
+    );
 
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -182,7 +208,7 @@ serve(async (req: Request) => {
               name: "Wallet Top Up",
               description: "Add funds to your Qbet wallet",
             },
-            unit_amount: amount,
+            unit_amount: amountCents,
           },
           quantity: 1,
         },
@@ -207,7 +233,7 @@ serve(async (req: Request) => {
 
     logger.info("✅ Created Checkout Session", {
       sessionId: session.id,
-      amount: amount / 100,
+      amount: amountCents / 100,
       livemode: session.livemode,
     });
 

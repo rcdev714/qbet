@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
+import { assertComplianceGate } from "../_shared/compliance.ts";
+import { parsePositiveIntegerCents } from "../_shared/payment-hardening.ts";
 
 // ============================================================================
 // LOGGER
@@ -72,24 +74,17 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { amount, email, userId: requestedUserId, requestId } = await req.json();
+    const { amount, email, userId: requestedUserId, requestId } = await req
+      .json();
+    const amountCents = parsePositiveIntegerCents(amount);
     const idempotencyKey = requestId ?? crypto.randomUUID();
 
     logger.info("📥 Request received", {
-      amount: amount / 100,
+      amount: amountCents / 100,
       email,
       requestedUserId,
       requestId: idempotencyKey,
     });
-
-    if (!amount) {
-      logger.error("Missing required fields", {
-        hasAmount: !!amount,
-      });
-      throw new Error(
-        "Missing required field: amount is required",
-      );
-    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -99,10 +94,13 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get("authorization") ??
       req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: authData, error: authError } = await supabase.auth.getUser(
@@ -128,6 +126,13 @@ serve(async (req: Request) => {
     if (!resolvedEmail) {
       throw new Error("Unable to determine user email");
     }
+
+    await assertComplianceGate(supabase, {
+      userId,
+      action: "stripe_deposit",
+      amount: amountCents / 100,
+      provider: "stripe",
+    });
 
     // 1. Get or create Stripe Customer
     const { data: wallet } = await supabase
@@ -209,7 +214,7 @@ serve(async (req: Request) => {
 
     // 3. Create PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
+      amount: amountCents,
       currency: "usd",
       customer: customerId,
       setup_future_usage: "off_session", // Save the card for future use

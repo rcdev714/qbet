@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
+import { isOutboundPaymentFailureEvent } from "../_shared/payment-hardening.ts";
 
 // ============================================================================
 // STRIPE LOGGER - Centralized logging for payment operations
@@ -164,6 +165,176 @@ const assertNoRpcError = (
   }
 };
 
+const getStripeObjectId = (value: unknown) => {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && "id" in value) {
+    return String((value as { id?: string }).id ?? "");
+  }
+  return null;
+};
+
+const getUserIdForRefund = async (refund: Stripe.Refund) => {
+  const chargeId = getStripeObjectId(refund.charge);
+  const paymentIntentId = getStripeObjectId((refund as any).payment_intent);
+
+  let charge: Stripe.Charge | null = null;
+  if (chargeId) {
+    charge = await stripe.charges.retrieve(chargeId);
+    if (charge.metadata?.userId) {
+      return {
+        userId: charge.metadata.userId,
+        chargeId,
+        paymentIntentId: getStripeObjectId(charge.payment_intent) ??
+          paymentIntentId,
+        charge,
+      };
+    }
+  }
+
+  const resolvedPaymentIntentId = paymentIntentId ??
+    getStripeObjectId(charge?.payment_intent);
+  if (!resolvedPaymentIntentId) {
+    return { userId: null, chargeId, paymentIntentId: null, charge };
+  }
+
+  const paymentIntent = await stripe.paymentIntents.retrieve(
+    resolvedPaymentIntentId,
+  );
+  return {
+    userId: paymentIntent.metadata?.userId ?? null,
+    chargeId,
+    paymentIntentId: resolvedPaymentIntentId,
+    charge,
+  };
+};
+
+const applyRefundByRefundId = async (
+  refund: Stripe.Refund,
+  event: Stripe.Event,
+) => {
+  if (refund.status && refund.status !== "succeeded") {
+    logger.info("Refund not settled, skipping wallet debit", {
+      refundId: refund.id,
+      status: refund.status,
+      eventType: event.type,
+    });
+    return;
+  }
+
+  const refundAmount = refund.amount / 100;
+  if (refundAmount <= 0) return;
+
+  const { userId, chargeId, paymentIntentId } = await getUserIdForRefund(
+    refund,
+  );
+  if (!userId) {
+    logger.warn("Refund without userId metadata", {
+      refundId: refund.id,
+      chargeId,
+      paymentIntentId,
+    });
+    return;
+  }
+
+  const metadata = {
+    stripe_refund_id: refund.id,
+    stripe_charge_id: chargeId,
+    stripe_payment_intent_id: paymentIntentId,
+    refund: true,
+    refund_status: refund.status,
+    event_type: event.type,
+    livemode: refund.livemode,
+    stripe_event_id: event.id,
+  };
+  const rpcEventId = event.type === "charge.refunded"
+    ? `${event.id}:${refund.id}`
+    : event.id;
+
+  const { error: refundError } = await supabase.rpc(
+    "apply_wallet_refund",
+    {
+      p_user_id: userId,
+      p_amount: refundAmount,
+      p_reference_id: refund.id,
+      p_event_id: rpcEventId,
+      p_metadata: metadata,
+    },
+  );
+
+  assertNoRpcError("Wallet refund", refundError);
+  logger.balance("debit", refundAmount, userId, {
+    refundId: refund.id,
+    chargeId,
+    reason: "refund",
+    livemode: refund.livemode,
+  });
+};
+
+const maybeHandleOutboundPaymentFailure = async (event: Stripe.Event) => {
+  if (!isOutboundPaymentFailureEvent(event.type)) {
+    return false;
+  }
+
+  const shouldProcess = await recordStripeEvent(
+    event.id,
+    event.type,
+    event.livemode ?? null,
+  );
+  if (!shouldProcess) {
+    return true;
+  }
+
+  const outboundPayment = event.data.object as Record<string, any>;
+  const metadata = outboundPayment.metadata ?? {};
+  const referenceId = getReferenceIdFromMetadata(
+    metadata,
+    outboundPayment.id,
+  );
+  const failureCode = outboundPayment.failure_code ??
+    outboundPayment.status_details?.code ??
+    "outbound_payment_failed";
+  const failureMessage = outboundPayment.failure_message ??
+    outboundPayment.status_details?.message ??
+    outboundPayment.status ??
+    event.type;
+
+  logger.warn("Outbound payment failed", {
+    outboundPaymentId: outboundPayment.id,
+    eventType: event.type,
+    referenceId,
+    failureCode,
+    failureMessage,
+    livemode: outboundPayment.livemode ?? event.livemode,
+  });
+
+  if (!referenceId) {
+    logger.warn("Outbound payment failed without reference metadata", {
+      outboundPaymentId: outboundPayment.id,
+      eventType: event.type,
+    });
+    return true;
+  }
+
+  const { error: failureError } = await supabase.rpc(
+    "fail_wallet_withdrawal",
+    {
+      p_reference_id: referenceId,
+      p_failure_code: String(failureCode),
+      p_failure_message: failureMessage ? String(failureMessage) : null,
+      p_metadata: {
+        stripe_outbound_payment_id: outboundPayment.id,
+        stripe_event_id: event.id,
+        event_type: event.type,
+        livemode: outboundPayment.livemode ?? event.livemode,
+      },
+    },
+  );
+
+  assertNoRpcError("Outbound payment failure reconciliation", failureError);
+  return true;
+};
+
 // ============================================================================
 // WEBHOOK HANDLER
 // ============================================================================
@@ -201,6 +372,10 @@ serve(async (req: Request) => {
   logger.event(event.type, event.id, event.livemode ?? false);
 
   try {
+    if (await maybeHandleOutboundPaymentFailure(event)) {
+      return jsonResponse({ received: true });
+    }
+
     switch (event.type) {
       // ======================================================================
       // PAYMENT INTENT EVENTS
@@ -382,18 +557,33 @@ serve(async (req: Request) => {
         break;
       }
 
+      case "refund.created":
+      case "refund.updated": {
+        const refund = event.data.object as Stripe.Refund;
+        await applyRefundByRefundId(refund, event);
+        break;
+      }
+
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
-        const refundAmount = (charge.amount_refunded ?? 0) / 100;
+        const refundObjects = charge.refunds?.data ?? [];
+        if (refundObjects.length > 0) {
+          for (const refund of refundObjects) {
+            await applyRefundByRefundId(refund as Stripe.Refund, event);
+          }
+          break;
+        }
+
+        const cumulativeRefundAmount = (charge.amount_refunded ?? 0) / 100;
 
         logger.info("Charge refunded", {
           chargeId: charge.id,
-          refundAmount,
+          refundAmount: cumulativeRefundAmount,
           paymentIntentId: charge.payment_intent,
           livemode: charge.livemode,
         });
 
-        if (refundAmount <= 0) break;
+        if (cumulativeRefundAmount <= 0) break;
 
         const paymentIntentId = charge.payment_intent as string | null;
         let userId = charge.metadata?.userId;
@@ -416,6 +606,9 @@ serve(async (req: Request) => {
           stripe_charge_id: charge.id,
           stripe_payment_intent_id: paymentIntentId,
           refund: true,
+          refund_is_cumulative: true,
+          refund_total_amount: cumulativeRefundAmount,
+          event_type: event.type,
           livemode: charge.livemode,
           stripe_event_id: event.id,
         };
@@ -424,15 +617,15 @@ serve(async (req: Request) => {
           "apply_wallet_refund",
           {
             p_user_id: userId,
-            p_amount: refundAmount,
-            p_reference_id: charge.id,
+            p_amount: cumulativeRefundAmount,
+            p_reference_id: event.id,
             p_event_id: event.id,
             p_metadata: metadata,
           },
         );
 
         assertNoRpcError("Wallet refund", refundError);
-        logger.balance("debit", refundAmount, userId, {
+        logger.balance("debit", cumulativeRefundAmount, userId, {
           chargeId: charge.id,
           reason: "refund",
           livemode: charge.livemode,
@@ -541,18 +734,21 @@ serve(async (req: Request) => {
         const { error: withdrawalFailureError } = await supabase.rpc(
           "fail_wallet_withdrawal",
           {
-          p_reference_id: referenceId,
-          p_failure_code: transfer.reversals?.data?.[0]?.failure_code ??
-            "transfer_reversed",
-          p_failure_message: transfer.reversals?.data?.[0]?.failure_message ??
-            null,
-          p_metadata: {
-            stripe_transfer_id: transfer.id,
-            livemode: transfer.livemode,
-          },
+            p_reference_id: referenceId,
+            p_failure_code: transfer.reversals?.data?.[0]?.failure_code ??
+              "transfer_reversed",
+            p_failure_message: transfer.reversals?.data?.[0]?.failure_message ??
+              null,
+            p_metadata: {
+              stripe_transfer_id: transfer.id,
+              livemode: transfer.livemode,
+            },
           },
         );
-        assertNoRpcError("Transfer reversal reconciliation", withdrawalFailureError);
+        assertNoRpcError(
+          "Transfer reversal reconciliation",
+          withdrawalFailureError,
+        );
         break;
       }
 
@@ -629,13 +825,13 @@ serve(async (req: Request) => {
         const { error: payoutFailureError } = await supabase.rpc(
           "fail_wallet_withdrawal",
           {
-          p_reference_id: referenceId,
-          p_failure_code: payout.failure_code ?? "payout_failed",
-          p_failure_message: payout.failure_message ?? null,
-          p_metadata: {
-            stripe_payout_id: payout.id,
-            livemode: payout.livemode,
-          },
+            p_reference_id: referenceId,
+            p_failure_code: payout.failure_code ?? "payout_failed",
+            p_failure_message: payout.failure_message ?? null,
+            p_metadata: {
+              stripe_payout_id: payout.id,
+              livemode: payout.livemode,
+            },
           },
         );
         assertNoRpcError("Payout failure reconciliation", payoutFailureError);

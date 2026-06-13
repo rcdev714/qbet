@@ -424,12 +424,18 @@ export const walletService = {
   /**
    * Create an account link for onboarding
    */
-  async createAccountLink(userId: string): Promise<{ url: string } | null> {
+  async createAccountLink(
+    userId: string,
+    options?: { returnUrl?: string; refreshUrl?: string },
+  ): Promise<{ url: string } | null> {
     try {
       const { data, error } = await supabase.functions.invoke(
         "create-account-link",
         {
-          body: {},
+          body: {
+            returnUrl: options?.returnUrl,
+            refreshUrl: options?.refreshUrl,
+          },
         },
       );
 
@@ -510,10 +516,11 @@ export const walletService = {
   async startOnboarding(
     userId: string,
     email: string,
+    linkOptions?: { returnUrl?: string; refreshUrl?: string },
   ): Promise<{ url: string } | null> {
     const account = await this.createConnectAccount(userId, email);
     if (!account) return null;
-    return this.createAccountLink(userId);
+    return this.createAccountLink(userId, linkOptions);
   },
 
   async lookupRecipient(query: string): Promise<WalletRecipient | null> {
@@ -582,21 +589,11 @@ export const walletService = {
     amount: number,
     userId: string,
   ): Promise<{ success: boolean; payoutRequest?: any } | null> {
-    try {
-      const { data, error } = await supabase.functions.invoke("payout", {
-        body: { amount },
-      });
-
-      if (error) {
-        console.error("Error initiating payout:", error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Error initiating payout:", error);
-      return null;
-    }
+    console.warn(
+      "[WalletService] Legacy payout() is disabled; use withdrawToStripe().",
+      { amount, userId },
+    );
+    return null;
   },
 
   /**
@@ -631,10 +628,14 @@ export const walletService = {
         ? cryptoApi.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+      const returnPath = typeof window !== "undefined" && window.location?.pathname
+        ? window.location.pathname
+        : "/wallet";
+
       const { data, error } = await supabase.functions.invoke(
         "stripe-withdrawal",
         {
-          body: { amount, requestId },
+          body: { amount, requestId, returnPath },
           headers: { "idempotency-key": requestId },
         },
       );
@@ -672,6 +673,61 @@ export const walletService = {
       console.error("[WalletService] Exception withdrawing to Stripe:", error);
       console.error("[WalletService] Error name:", error?.name);
       console.error("[WalletService] Error message:", error?.message);
+      return { success: false, error: error.message || "Unknown error" };
+    }
+  },
+
+  /**
+   * Withdraw USD ledger funds as a BTC payout through the configured provider.
+   */
+  async withdrawToBitcoin(
+    amount: number,
+    btcAddress: string,
+  ): Promise<
+    {
+      success: boolean;
+      transferId?: string;
+      btcAmount?: number | null;
+      error?: string;
+    }
+  > {
+    try {
+      const cryptoApi =
+        (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+      const requestId = cryptoApi?.randomUUID
+        ? cryptoApi.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const { data, error } = await supabase.functions.invoke(
+        "btc-withdrawal",
+        {
+          body: { amount, btcAddress, requestId },
+          headers: { "idempotency-key": requestId },
+        },
+      );
+
+      if (error) {
+        console.error("[WalletService] Error withdrawing to BTC:", error);
+        if (error.context) {
+          try {
+            const errorBody = await error.context.json();
+            return { success: false, error: errorBody?.error || error.message };
+          } catch {}
+        }
+        return { success: false, error: error.message || "Network error" };
+      }
+
+      if (data?.error) {
+        return { success: false, error: data.error };
+      }
+
+      return {
+        success: true,
+        transferId: data?.transferId,
+        btcAmount: data?.btcAmount ?? null,
+      };
+    } catch (error: any) {
+      console.error("[WalletService] Exception withdrawing to BTC:", error);
       return { success: false, error: error.message || "Unknown error" };
     }
   },

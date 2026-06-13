@@ -1,6 +1,8 @@
 // @ts-nocheck: Stripe Global Payouts v2 API for cross-border withdrawals
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { assertComplianceGate } from "../_shared/compliance.ts";
+import { parsePositiveIntegerCents } from "../_shared/payment-hardening.ts";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 const STRIPE_API_VERSION = "2026-01-28.preview"; // Required for v2 API
@@ -52,6 +54,7 @@ serve(async (req) => {
 
   let idempotencyKey: string | null = null;
   let reservedWithdrawal = false;
+  let outboundPaymentAccepted = false;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -64,19 +67,22 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { userId: requestedUserId, amount, requestId } = await req.json(); // amount in cents
+    const { userId: requestedUserId, amount, requestId, returnPath } = await req
+      .json(); // amount in cents
+    const amountCents = parsePositiveIntegerCents(amount);
     idempotencyKey = req.headers.get("idempotency-key") ?? requestId ??
       crypto.randomUUID();
+    const normalizedReturnPath =
+      typeof returnPath === "string" && returnPath.startsWith("/")
+        ? returnPath
+        : "/wallet";
+    const returnBase = `${appUrl}${normalizedReturnPath}`;
 
     console.log("[stripe-withdrawal] Request received:", {
       requestedUserId,
       amount,
       requestId: idempotencyKey,
     });
-
-    if (!amount) {
-      throw new Error("Missing amount");
-    }
 
     // Initialize Supabase Admin Client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -99,6 +105,13 @@ serve(async (req) => {
       return jsonResponse({ error: "User mismatch", authedUserId }, 403);
     }
     const userId = authedUserId;
+
+    await assertComplianceGate(supabase, {
+      userId,
+      action: "withdrawal",
+      amount: amountCents / 100,
+      provider: "stripe",
+    });
 
     // 1. Get user's wallet
     const { data: wallet, error: walletError } = await supabase
@@ -124,7 +137,6 @@ serve(async (req) => {
     // Check Balance
     // Use integers (cents) for comparison to avoid floating point issues
     const balanceCents = Math.round(Number(wallet.balance) * 100);
-    const amountCents = Number(amount);
 
     if (balanceCents < amountCents) {
       throw new Error(
@@ -141,6 +153,12 @@ serve(async (req) => {
       .eq("reference_id", idempotencyKey)
       .eq("type", "withdrawal")
       .maybeSingle();
+
+    if (existingTx.error) {
+      throw new Error(
+        `Failed to check existing withdrawal: ${existingTx.error.message}`,
+      );
+    }
 
     if (existingTx.data?.status === "completed") {
       const transferId = existingTx.data.metadata?.stripe_transfer_id ?? null;
@@ -220,8 +238,8 @@ serve(async (req) => {
             type: "account_onboarding",
             account_onboarding: {
               configurations: ["recipient"],
-              return_url: `${appUrl}/topup?onboarding=complete`,
-              refresh_url: `${appUrl}/topup?onboarding=refresh`,
+              return_url: `${returnBase}?onboarding=complete`,
+              refresh_url: `${returnBase}?onboarding=refresh`,
             },
           },
         },
@@ -324,8 +342,8 @@ serve(async (req) => {
             type: "account_update",
             account_update: {
               configurations: ["recipient"],
-              return_url: `${appUrl}/topup?onboarding=complete`,
-              refresh_url: `${appUrl}/topup?onboarding=refresh`,
+              return_url: `${returnBase}?onboarding=complete`,
+              refresh_url: `${returnBase}?onboarding=refresh`,
             },
           },
         },
@@ -347,8 +365,8 @@ serve(async (req) => {
               type: "account_onboarding",
               account_onboarding: {
                 configurations: ["recipient"],
-                return_url: `${appUrl}/topup?onboarding=complete`,
-                refresh_url: `${appUrl}/topup?onboarding=refresh`,
+                return_url: `${returnBase}?onboarding=complete`,
+                refresh_url: `${returnBase}?onboarding=refresh`,
               },
             },
           },
@@ -412,8 +430,8 @@ serve(async (req) => {
             type: "account_onboarding",
             account_onboarding: {
               configurations: ["recipient"],
-              return_url: `${appUrl}/topup?onboarding=complete`,
-              refresh_url: `${appUrl}/topup?onboarding=refresh`,
+              return_url: `${returnBase}?onboarding=complete`,
+              refresh_url: `${returnBase}?onboarding=refresh`,
             },
           },
         },
@@ -445,31 +463,38 @@ serve(async (req) => {
     );
 
     // Fee calculation (same as before)
-    const amountDollars = amount / 100;
+    const amountDollars = amountCents / 100;
     const rawFeePercent = 0.41 / Math.pow(amountDollars, 0.44);
     const feePercentage = Math.min(0.15, Math.max(0.02, rawFeePercent));
 
-    let feeAmount = Math.round(amount * feePercentage);
-    if (feeAmount > amount) {
-      feeAmount = amount;
+    let feeAmount = Math.round(amountCents * feePercentage);
+    if (feeAmount > amountCents) {
+      feeAmount = amountCents;
     }
 
-    const netTransferAmount = amount - feeAmount;
+    const netTransferAmount = amountCents - feeAmount;
     const feeAmountDollars = feeAmount / 100;
     const netTransferAmountDollars = netTransferAmount / 100;
 
     // Reserve the withdrawal in the database
-    const { data: reserved } = await supabase.rpc("reserve_wallet_withdrawal", {
-      p_user_id: userId,
-      p_amount: amountDollars,
-      p_reference_id: idempotencyKey,
-      p_metadata: {
-        request_id: idempotencyKey,
-        fee_amount: feeAmountDollars,
-        net_amount: netTransferAmountDollars,
-        fee_percentage: feePercentage,
+    const { data: reserved, error: reserveError } = await supabase.rpc(
+      "reserve_wallet_withdrawal",
+      {
+        p_user_id: userId,
+        p_amount: amountDollars,
+        p_reference_id: idempotencyKey,
+        p_metadata: {
+          request_id: idempotencyKey,
+          fee_amount: feeAmountDollars,
+          net_amount: netTransferAmountDollars,
+          fee_percentage: feePercentage,
+        },
       },
-    });
+    );
+
+    if (reserveError) {
+      throw new Error(`Withdrawal reservation failed: ${reserveError.message}`);
+    }
 
     if (reserved === false) {
       return jsonResponse(
@@ -494,7 +519,7 @@ serve(async (req) => {
         metadata: {
           userId: userId,
           type: "withdrawal",
-          originalAmount: amount.toString(),
+          originalAmount: amountCents.toString(),
           feeAmount: feeAmount.toString(),
           feePercentage: `${(feePercentage * 100).toFixed(2)}%`,
           requestId: idempotencyKey,
@@ -511,18 +536,40 @@ serve(async (req) => {
     }
 
     const payment = await paymentResponse.json();
+    outboundPaymentAccepted = true;
 
-    await supabase.rpc("finalize_wallet_withdrawal", {
-      p_reference_id: idempotencyKey,
-      p_transfer_id: payment.id,
-      p_fee_amount: feeAmountDollars,
-      p_net_amount: netTransferAmountDollars,
-      p_metadata: {
-        stripe_payment_id: payment.id,
-        destination: wallet.global_recipient_id,
-        fee_percentage: feePercentage,
+    const { error: finalizeError } = await supabase.rpc(
+      "finalize_wallet_withdrawal",
+      {
+        p_reference_id: idempotencyKey,
+        p_transfer_id: payment.id,
+        p_fee_amount: feeAmountDollars,
+        p_net_amount: netTransferAmountDollars,
+        p_metadata: {
+          stripe_payment_id: payment.id,
+          destination: wallet.global_recipient_id,
+          fee_percentage: feePercentage,
+        },
       },
-    });
+    );
+
+    if (finalizeError) {
+      console.error(
+        "[stripe-withdrawal] Finalization failed after Stripe accepted payout:",
+        {
+          requestId: idempotencyKey,
+          stripePaymentId: payment.id,
+          error: finalizeError.message,
+        },
+      );
+      return jsonResponse({
+        error:
+          "Withdrawal sent but local finalization failed; reconciliation required.",
+        code: "withdrawal_finalize_failed",
+        transferId: payment.id,
+        requestId: idempotencyKey,
+      }, 500);
+    }
 
     return jsonResponse({
       status: "sent",
@@ -534,13 +581,25 @@ serve(async (req) => {
     const errorMessage = error instanceof Error
       ? error.message
       : "Unknown error";
-    if (reservedWithdrawal && idempotencyKey && supabase) {
-      await supabase.rpc("fail_wallet_withdrawal", {
-        p_reference_id: idempotencyKey,
-        p_failure_code: "transfer_failed",
-        p_failure_message: errorMessage,
-        p_metadata: { failure_source: "stripe-withdrawal" },
-      });
+    if (
+      reservedWithdrawal && !outboundPaymentAccepted && idempotencyKey &&
+      supabase
+    ) {
+      const { error: failError } = await supabase.rpc(
+        "fail_wallet_withdrawal",
+        {
+          p_reference_id: idempotencyKey,
+          p_failure_code: "transfer_failed",
+          p_failure_message: errorMessage,
+          p_metadata: { failure_source: "stripe-withdrawal" },
+        },
+      );
+      if (failError) {
+        console.error("[stripe-withdrawal] Failed to mark withdrawal failed:", {
+          requestId: idempotencyKey,
+          error: failError.message,
+        });
+      }
     }
     return jsonResponse({ error: errorMessage }, 400);
   }

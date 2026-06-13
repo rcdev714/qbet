@@ -2,6 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
+import {
+  buildAllowedOrigins,
+  resolveAllowedUrl,
+} from "../_shared/payment-hardening.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   apiVersion: "2022-11-15",
@@ -10,8 +14,18 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
+
+function allowedOrigins(supabaseUrl: string) {
+  return buildAllowedOrigins([
+    Deno.env.get("EXPO_PUBLIC_APP_URL"),
+    Deno.env.get("APP_URL"),
+    supabaseUrl,
+    "https://anymarket.expo.app",
+  ]);
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -19,7 +33,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { userId: requestedUserId } = await req.json();
+    const { userId: requestedUserId, returnUrl, refreshUrl } = await req.json();
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -28,10 +42,13 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get("authorization") ??
       req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: authData, error: authError } = await supabase.auth.getUser(
@@ -62,15 +79,34 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     if (walletError || !wallet?.stripe_account_id) {
-      console.error("Wallet error or missing stripe_account_id:", walletError, wallet);
+      console.error(
+        "Wallet error or missing stripe_account_id:",
+        walletError,
+        wallet,
+      );
       throw new Error("Stripe account not found for user.");
     }
 
     // 2. Create Account Link for onboarding
+    const defaultRefreshUrl =
+      `${supabaseUrl}/functions/v1/onboarding-callback?status=refresh`;
+    const defaultReturnUrl =
+      `${supabaseUrl}/functions/v1/onboarding-callback?status=return`;
+    const origins = allowedOrigins(supabaseUrl);
     const accountLink = await stripe.accountLinks.create({
       account: wallet.stripe_account_id,
-      refresh_url: `${supabaseUrl}/functions/v1/onboarding-callback?status=refresh`,
-      return_url: `${supabaseUrl}/functions/v1/onboarding-callback?status=return`,
+      refresh_url: resolveAllowedUrl(
+        refreshUrl,
+        defaultRefreshUrl,
+        origins,
+        "Account link return URL is not allowed",
+      ),
+      return_url: resolveAllowedUrl(
+        returnUrl,
+        defaultReturnUrl,
+        origins,
+        "Account link return URL is not allowed",
+      ),
       type: "account_onboarding",
     });
 
@@ -85,4 +121,3 @@ serve(async (req: Request) => {
     });
   }
 });
-
