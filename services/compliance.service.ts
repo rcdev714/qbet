@@ -1,5 +1,7 @@
-import type { ComplianceProvider, ComplianceStatus, PolicyKind } from "../lib/compliance/policy";
-import { supabase } from "../lib/supabase";
+import type { ComplianceJurisdiction } from "@/lib/compliance/jurisdiction";
+import { DEFAULT_JURISDICTION } from "@/lib/compliance/jurisdiction";
+import type { PolicyKind } from "@/lib/compliance/policy";
+import { supabase } from "@/lib/supabase";
 
 export interface PolicyVersion {
   id: string;
@@ -9,12 +11,13 @@ export interface PolicyVersion {
   url: string | null;
   content_hash: string;
   effective_at: string;
+  jurisdiction?: string;
 }
 
 export interface ComplianceProfile {
   user_id: string;
-  kyc_provider: ComplianceProvider | string;
-  kyc_status: ComplianceStatus;
+  kyc_provider: string;
+  kyc_status: string;
   jurisdiction: string;
   age_verified: boolean;
   live_wallet_enabled: boolean;
@@ -22,6 +25,24 @@ export interface ComplianceProfile {
   risk_tier: "standard" | "elevated" | "restricted" | "prohibited";
   review_status: "not_started" | "pending" | "approved" | "rejected" | "frozen";
   restriction_reason?: string | null;
+}
+
+export interface UserResidence {
+  country_of_residence: string | null;
+  phone_e164: string | null;
+  phone_country_code: string | null;
+  residence_set_at: string | null;
+  jurisdiction: ComplianceJurisdiction;
+  country_name?: string | null;
+}
+
+export interface SupportedCountryRow {
+  country_code: string;
+  name: string;
+  dial_code: string;
+  default_jurisdiction: ComplianceJurisdiction;
+  is_launch_enabled: boolean;
+  sort_order: number;
 }
 
 export interface MoonPaySessionInput {
@@ -34,12 +55,104 @@ export interface MoonPaySessionInput {
   refundWalletAddress?: string;
 }
 
+async function resolveUserJurisdiction(userId?: string): Promise<ComplianceJurisdiction> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const targetUserId = userId || user?.id;
+  if (!targetUserId) return DEFAULT_JURISDICTION;
+
+  const { data, error } = await (supabase as any).rpc("get_user_compliance_jurisdiction", {
+    p_user_id: targetUserId,
+  });
+  if (error || !data) return DEFAULT_JURISDICTION;
+  return data === "EC" ? "EC" : "US";
+}
+
 export const complianceService = {
-  async getRequiredPolicies(): Promise<PolicyVersion[]> {
+  async getSupportedCountries(): Promise<SupportedCountryRow[]> {
+    const { data, error } = await (supabase as any)
+      .from("supported_residence_countries")
+      .select("*")
+      .eq("is_launch_enabled", true)
+      .order("sort_order")
+      .order("name");
+
+    if (error) throw error;
+    return (data || []) as SupportedCountryRow[];
+  },
+
+  async getUserResidence(userId?: string): Promise<UserResidence | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return null;
+
+    const { data: userRow, error: userError } = await supabase
+      .from("users")
+      .select("country_of_residence, phone_e164, phone_country_code, residence_set_at")
+      .eq("id", targetUserId)
+      .maybeSingle();
+
+    if (userError) throw userError;
+    if (!userRow) return null;
+
+    const jurisdiction = await resolveUserJurisdiction(targetUserId);
+
+    let country_name: string | null = null;
+    if (userRow.country_of_residence) {
+      const { data: countryRow } = await (supabase as any)
+        .from("supported_residence_countries")
+        .select("name")
+        .eq("country_code", userRow.country_of_residence)
+        .maybeSingle();
+      country_name = countryRow?.name ?? userRow.country_of_residence;
+    }
+
+    return {
+      ...userRow,
+      jurisdiction,
+      country_name,
+    };
+  },
+
+  async hasSetResidence(userId?: string): Promise<boolean> {
+    const residence = await this.getUserResidence(userId);
+    return Boolean(residence?.country_of_residence);
+  },
+
+  async setUserResidence(input: {
+    country: string;
+    phoneE164?: string | null;
+  }): Promise<{ jurisdiction: ComplianceJurisdiction; country: string }> {
+    const { data, error } = await (supabase as any).rpc("set_user_residence", {
+      p_country: input.country,
+      p_phone_e164: input.phoneE164 ?? null,
+    });
+
+    if (error) {
+      if (error.message?.includes("residence_locked")) {
+        throw new Error("Country of residence is already set and cannot be changed in the app.");
+      }
+      throw error;
+    }
+
+    const result = data as { jurisdiction: ComplianceJurisdiction; country: string };
+    return result;
+  },
+
+  async updateUserPhone(phoneE164: string | null): Promise<void> {
+    const { error } = await (supabase as any).rpc("update_user_phone", {
+      p_phone_e164: phoneE164,
+    });
+    if (error) throw error;
+  },
+
+  async getRequiredPolicies(jurisdiction?: ComplianceJurisdiction): Promise<PolicyVersion[]> {
+    const targetJurisdiction = jurisdiction || (await resolveUserJurisdiction());
+
     const { data, error } = await (supabase as any)
       .from("policy_versions")
       .select("*")
       .eq("is_required", true)
+      .eq("jurisdiction", targetJurisdiction)
       .is("retired_at", null)
       .lte("effective_at", new Date().toISOString())
       .order("kind")
@@ -56,11 +169,11 @@ export const complianceService = {
     return Array.from(latestByKind.values());
   },
 
-  async acceptCurrentPolicies(source: string = "signup") {
+  async acceptCurrentPolicies(source: string = "signup", jurisdiction?: ComplianceJurisdiction) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.id) throw new Error("Not authenticated");
 
-    const policies = await this.getRequiredPolicies();
+    const policies = await this.getRequiredPolicies(jurisdiction);
     if (policies.length === 0) return;
 
     const rows = policies.map((policy) => ({
@@ -77,6 +190,19 @@ export const complianceService = {
       .upsert(rows, { onConflict: "user_id,policy_version_id" });
 
     if (error) throw error;
+  },
+
+  async hasAcceptedCurrentPolicies(userId?: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return false;
+
+    const { data, error } = await supabase.rpc("has_current_policy_acceptances", {
+      p_user_id: targetUserId,
+    });
+
+    if (error) throw error;
+    return data === true;
   },
 
   async getProfile(userId?: string): Promise<ComplianceProfile | null> {

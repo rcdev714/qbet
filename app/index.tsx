@@ -262,6 +262,25 @@ export default function LandingPage() {
               })}
             </View>
           </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerCopy}>© {new Date().getFullYear()} AnyMarket</Text>
+            <View style={styles.footerLinks}>
+              <TouchableOpacity
+                onPress={() => router.push('/privacy')}
+                style={Platform.OS === 'web' && ({ cursor: 'pointer' } as any)}
+              >
+                <Text style={styles.footerLink}>Privacy Policy</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerDivider}>·</Text>
+              <TouchableOpacity
+                onPress={() => router.push('/terms')}
+                style={Platform.OS === 'web' && ({ cursor: 'pointer' } as any)}
+              >
+                <Text style={styles.footerLink}>Terms of Service</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -736,5 +755,32 @@ const styles = StyleSheet.create({
     color: '#526173',
     fontSize: 13,
     lineHeight: 17,
+  },
+  footer: {
+    marginTop: 8,
+    paddingTop: 24,
+    paddingBottom: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(15, 23, 42, 0.08)',
+  },
+  footerCopy: {
+    color: '#718096',
+    fontSize: 13,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  footerLink: {
+    color: BRAND_DEEP_BLUE,
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
+  footerDivider: {
+    color: '#718096',
+    fontSize: 13,
   },
 });

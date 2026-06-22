@@ -518,7 +518,9 @@ export const walletService = {
     email: string,
     linkOptions?: { returnUrl?: string; refreshUrl?: string },
   ): Promise<{ url: string } | null> {
-    const account = await this.createConnectAccount(userId, email);
+    const wallet = await this.getWallet(userId);
+    const country = wallet?.country ?? "US";
+    const account = await this.createConnectAccount(userId, email, country);
     if (!account) return null;
     return this.createAccountLink(userId, linkOptions);
   },

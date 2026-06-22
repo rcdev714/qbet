@@ -7,7 +7,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { isAdminEmail } from '@/lib/admin';
+import { isAppAdmin } from '@/lib/admin';
 
 const ICON_SIZE = Platform.OS === 'ios' ? 22 : 32;
 const AVATAR_SIZE = Platform.OS === 'ios' ? 22 : 32;
@@ -19,7 +19,7 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
   const { theme: colors } = useTheme();
   const { user } = useAuthContext();
   const router = useRouter();
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const renderIcon = (routeName: string, color: string) => {

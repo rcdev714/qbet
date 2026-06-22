@@ -1,21 +1,21 @@
-import { isAdminEmail } from "@/lib/admin";
+import { isAppAdmin } from "@/lib/admin";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Linking,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { RulesModal } from "../components/profile/RulesModal";
@@ -46,7 +46,7 @@ export function TopUpScreen() {
   const [amount, setAmount] = useState<string>("");
   const [transactionLimit, setTransactionLimit] = useState(10);
 
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
   const MIN_DEPOSIT = isAdmin ? 1 : 10;
   const MIN_WITHDRAWAL = isAdmin ? 1 : 15;
   const [loading, setLoading] = useState(false);

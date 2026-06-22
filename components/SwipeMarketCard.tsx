@@ -4,7 +4,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
-import { isAdminEmail } from "@/lib/admin";
+import { isAppAdmin } from "@/lib/admin";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "@/lib/parimutuel";
 import { supabase } from "@/lib/supabase";
@@ -332,7 +332,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
     return () => clearInterval(interval);
   }, [market.closes_at]);
 
-  const isAdmin = user?.is_admin || isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
 
   const handlePress = () => {
     if (isDragging) return;

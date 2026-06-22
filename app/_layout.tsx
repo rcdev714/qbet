@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@rea
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
@@ -15,6 +15,7 @@ import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { StripeProvider } from '@/lib/stripe-bridge';
+import { complianceService } from '@/services/compliance.service';
 import { groupService } from '@/services/group.service';
 
 export const unstable_settings = {
@@ -117,23 +118,92 @@ function isLandingSegment(segment: string | undefined) {
   return segment === undefined || segment === 'index';
 }
 
+const LEGAL_SEGMENTS = new Set([
+  'terms',
+  'privacy',
+  'risk',
+  'market-rules',
+  'aml-kyc',
+  'prohibited-markets',
+]);
+
+function isLegalSegment(segment: string | undefined) {
+  return segment != null && LEGAL_SEGMENTS.has(segment);
+}
+
+function isPublicSegment(segment: string | undefined) {
+  return (
+    isLandingSegment(segment) ||
+    segment === 'login' ||
+    segment === 'market' ||
+    segment === 'profile' ||
+    segment === 'share' ||
+    segment === 'onboarding' ||
+    isLegalSegment(segment)
+  );
+}
+
 function RootLayoutNav() {
-  const { hasSession, loading } = useAuthContext();
+  const { hasSession, loading, user } = useAuthContext();
   const { isDark, theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const currentSegment = segments[0];
   const tabSegment = (segments as string[])[1];
   const isLanding = isLandingSegment(currentSegment);
+  const [policyCheckDone, setPolicyCheckDone] = useState(!hasSession);
+  const [hasPolicyAcceptances, setHasPolicyAcceptances] = useState(true);
+  const [hasResidence, setHasResidence] = useState(true);
   const hasPageLevelSeo =
     isLanding ||
     currentSegment === 'market' ||
     currentSegment === 'profile' ||
     tabSegment === 'feed' ||
-    tabSegment === 'profile';
+    tabSegment === 'profile' ||
+    isLegalSegment(currentSegment);
   const initialUrlHandled = useRef(false);
   const pendingDeepLink = useRef<string | null>(null);
   const consumingInvite = useRef(false);
+
+  useEffect(() => {
+    if (loading || !hasSession) {
+      setPolicyCheckDone(true);
+      setHasPolicyAcceptances(true);
+      setHasResidence(true);
+      return;
+    }
+
+    let mounted = true;
+    setPolicyCheckDone(false);
+
+    const verifyOnboarding = async () => {
+      try {
+        const residenceSet = await complianceService.hasSetResidence(user?.id);
+        const accepted = residenceSet
+          ? await complianceService.hasAcceptedCurrentPolicies(user?.id)
+          : false;
+
+        if (mounted) {
+          setHasResidence(residenceSet);
+          setHasPolicyAcceptances(accepted);
+          setPolicyCheckDone(true);
+        }
+      } catch (error) {
+        console.warn('[Auth] Onboarding check failed:', error);
+        if (mounted) {
+          setHasResidence(false);
+          setHasPolicyAcceptances(false);
+          setPolicyCheckDone(true);
+        }
+      }
+    };
+
+    void verifyOnboarding();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, hasSession, user?.id]);
 
   // Handle deep links
   useEffect(() => {
@@ -307,15 +377,23 @@ function RootLayoutNav() {
   }, [loading, router, hasSession]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !policyCheckDone) return;
 
     const segment = segments[0];
     const isLanding = isLandingSegment(segment);
     const isLogin = segment === 'login';
+    const onboardingSegment = (segments as string[])[1];
+    const isPolicyOnboarding = segment === 'onboarding' && onboardingSegment === 'policies';
+    const isResidenceOnboarding = segment === 'onboarding' && (onboardingSegment === 'residence' || !onboardingSegment);
     const isAuthenticated = hasSession;
     const inviteIntent = getCurrentWebInviteIntent();
     const hasPendingInvite = Boolean(readPendingWebInvite());
-    const isPublicRoute = isLanding || isLogin || segment === 'market' || segment === 'profile';
+    const isPublicRoute = isPublicSegment(segment);
+    const canBrowseWhileOnboarding =
+      isLegalSegment(segment) ||
+      isPolicyOnboarding ||
+      isResidenceOnboarding ||
+      segment === 'share';
 
     if (!isAuthenticated && inviteIntent) {
       storePendingWebInvite(inviteIntent);
@@ -327,23 +405,36 @@ function RootLayoutNav() {
       return;
     }
 
+    if (isAuthenticated && !hasResidence && !canBrowseWhileOnboarding) {
+      router.replace('/onboarding/residence' as any);
+      return;
+    }
+
+    if (isAuthenticated && hasResidence && !hasPolicyAcceptances && !canBrowseWhileOnboarding) {
+      router.replace('/onboarding/policies' as any);
+      return;
+    }
+
+    if (isAuthenticated && hasResidence && hasPolicyAcceptances && (isPolicyOnboarding || isResidenceOnboarding)) {
+      router.replace('/(tabs)');
+      return;
+    }
+
     if (!isAuthenticated && !isPublicRoute) {
-      // Redirect to landing if not authenticated and not a public route
       router.replace('/');
-    } else if (isAuthenticated && (isLanding || isLogin)) {
-      // Redirect authenticated users into the main app
+    } else if (isAuthenticated && hasResidence && hasPolicyAcceptances && (isLanding || isLogin)) {
       router.replace('/(tabs)');
     }
-  }, [hasSession, loading, segments, router]);
+  }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence]);
 
-  if (loading) {
+  if (loading || (hasSession && !policyCheckDone)) {
     return <AnyMarketLoader message="Preparing AnyMarket..." />;
   }
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <PremiumNavigationProvider>
-        {!hasSession && !isLanding && currentSegment !== 'login' && <SignupBanner />}
+        {!hasSession && !isLanding && currentSegment !== 'login' && !isLegalSegment(currentSegment) && <SignupBanner />}
         {!hasPageLevelSeo && <SEO />}
         <Stack
           screenOptions={{
@@ -356,6 +447,14 @@ function RootLayoutNav() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="login" />
+          <Stack.Screen name="terms" />
+          <Stack.Screen name="privacy" />
+          <Stack.Screen name="risk" />
+          <Stack.Screen name="market-rules" />
+          <Stack.Screen name="aml-kyc" />
+          <Stack.Screen name="prohibited-markets" />
+          <Stack.Screen name="onboarding/residence" />
+          <Stack.Screen name="onboarding/policies" />
           <Stack.Screen name="group/[id]" />
           <Stack.Screen name="market/[id]" />
           <Stack.Screen name="bet/[id]" />
@@ -373,9 +472,10 @@ const LANDING_PAGE_BACKGROUND = '#F5F7FB';
 
 function WebShell({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
-  const isLanding = isLandingSegment(segments[0]);
-  const shellBackgroundColor =
-    Platform.OS === 'web' && isLanding ? LANDING_PAGE_BACKGROUND : undefined;
+  const segment = segments[0];
+  const useLandingBackground =
+    Platform.OS === 'web' && (isLandingSegment(segment) || isLegalSegment(segment));
+  const shellBackgroundColor = useLandingBackground ? LANDING_PAGE_BACKGROUND : undefined;
 
   return (
     <WebContainer shellBackgroundColor={shellBackgroundColor}>

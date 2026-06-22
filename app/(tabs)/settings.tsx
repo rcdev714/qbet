@@ -1,6 +1,8 @@
 import React from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { DeleteAccountSection } from '@/components/legal/DeleteAccountSection';
+import { ResidenceSettingsSection } from '@/components/profile/ResidenceSettingsSection';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { ThemeMode, useTheme } from '@/contexts/ThemeContext';
 
@@ -61,6 +63,18 @@ export default function SettingsScreen() {
           })}
         </View>
       </View>
+
+      <ResidenceSettingsSection theme={theme} />
+
+      <DeleteAccountSection
+        theme={theme}
+        onDeleted={async () => {
+          const { error } = await signOut();
+          if (error) {
+            Alert.alert('Signed out with issue', error.message);
+          }
+        }}
+      />
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Session</Text>

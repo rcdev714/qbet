@@ -38,7 +38,10 @@ Set these in the EAS production environment before deploying:
 - `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app`
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_KEY`
+- `EXPO_PUBLIC_ADMIN_EMAIL=admin@example.com` (comma-separated for multiple admins; controls admin UI visibility on web)
 - `SUPABASE_SERVICE_ROLE_KEY` (server route only; do not expose this in client code). `SERVICE_ROLE_KEY` is also accepted for local compatibility.
+
+Admin resolve/delete actions also require `users.is_admin = true` in the production Supabase database. Use `supabase/scripts/grant_app_admin.sql` in the SQL Editor if admin UI works but resolve/delete fail.
 
 ## Rollback
 

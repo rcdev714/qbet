@@ -72,7 +72,7 @@ export const socialService = {
             // 1. Get user details
             const { data: userData, error: userError } = await supabase
                 .from("users")
-                .select("id, email, username, avatar_url")
+                .select("id, username, avatar_url")
                 .eq("id", targetUserId)
                 .single();
 

@@ -115,6 +115,74 @@ export const authService = {
     }
   },
 
+  async checkCanDeleteAccount(): Promise<{
+    allowed: boolean;
+    message?: string;
+    reason?: string;
+    error: Error | null;
+  }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        return {
+          allowed: false,
+          message: "You must be signed in to delete your account.",
+          reason: "not_authenticated",
+          error: null,
+        };
+      }
+
+      const { data, error } = await (supabase as any).rpc("check_user_can_delete_account", {
+        p_user_id: user.id,
+      });
+
+      if (error) {
+        return { allowed: false, error };
+      }
+
+      const result = data as {
+        allowed?: boolean;
+        message?: string;
+        reason?: string;
+      };
+
+      return {
+        allowed: result?.allowed === true,
+        message: result?.message,
+        reason: result?.reason,
+        error: null,
+      };
+    } catch (error) {
+      return { allowed: false, error: error as Error };
+    }
+  },
+
+  async deleteAccount(): Promise<{ error: Error | null; message?: string }> {
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user-account", {
+        body: {},
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      if (data?.error) {
+        return {
+          error: new Error(String(data.error)),
+          message: typeof data.error === "string" ? data.error : undefined,
+        };
+      }
+
+      await this.signOut();
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  },
+
   /**
    * Get the current authenticated user
    */

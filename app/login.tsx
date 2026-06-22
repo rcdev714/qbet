@@ -5,7 +5,6 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Linking,
     Platform,
     SafeAreaView,
     StatusBar,
@@ -13,22 +12,17 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 import { useAuthContext } from "../contexts/AuthContext";
-
-
 
 export default function LoginScreen() {
   const { signIn, signUp, signInWithGoogle } = useAuthContext();
   const params = useLocalSearchParams();
-  // const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [acceptedAgreement, setAcceptedAgreement] = useState(false);
-  // Default to sign up if mode is 'signup', otherwise login
-  const [isLogin, setIsLogin] = useState(params.mode !== 'signup');
+  const [isLogin, setIsLogin] = useState(params.mode !== "signup");
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
   const handleAuth = async () => {
@@ -37,15 +31,9 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!isLogin) {
-      if (password !== confirmPassword) {
-        Alert.alert("Check password", "Both password fields need to match.");
-        return;
-      }
-      if (!acceptedAgreement) {
-        Alert.alert("Agreement required", "Accept the Terms and Privacy Policy to create your account.");
-        return;
-      }
+    if (!isLogin && password !== confirmPassword) {
+      Alert.alert("Check password", "Both password fields need to match.");
+      return;
     }
 
     setAuthSubmitting(true);
@@ -61,7 +49,7 @@ export default function LoginScreen() {
           Alert.alert(
             "Check your email",
             "We have sent you a verification email. Please click the link in the email to verify your account.",
-            [{ text: "OK", onPress: () => setIsLogin(true) }]
+            [{ text: "OK", onPress: () => setIsLogin(true) }],
           );
         }
       }
@@ -85,10 +73,6 @@ export default function LoginScreen() {
     } finally {
       setAuthSubmitting(false);
     }
-  };
-
-  const openLink = (url: string) => {
-    Linking.openURL(url).catch((err) => Alert.alert("Error", "Couldn't load page"));
   };
 
   return (
@@ -119,16 +103,16 @@ export default function LoginScreen() {
               </Text>
               {!isLogin && (
                 <Text style={styles.helperText}>
-                  Start with practice credits and keep real-money wallet actions separate.
+                  After signup you will set your country of residence and accept the policies that apply to you.
                 </Text>
               )}
             </View>
 
             <View style={styles.form}>
-              {Platform.OS === 'web' && (
+              {Platform.OS === "web" && (
                 <View style={styles.googleSection}>
                   <TouchableOpacity
-                    style={[styles.googleButton, authSubmitting && styles.buttonDisabled, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
+                    style={[styles.googleButton, authSubmitting && styles.buttonDisabled, Platform.OS === "web" && { cursor: "pointer" } as any]}
                     onPress={async () => {
                       setAuthSubmitting(true);
                       const { error } = await signInWithGoogle();
@@ -136,7 +120,6 @@ export default function LoginScreen() {
                         Alert.alert("Error", error.message);
                         setAuthSubmitting(false);
                       }
-                      // If no error, we are redirecting, so don't stop loading
                     }}
                     disabled={authSubmitting}
                     activeOpacity={0.85}
@@ -174,29 +157,14 @@ export default function LoginScreen() {
               />
 
               {!isLogin && (
-                <>
-                  <TextInput
-                    style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                    placeholder="Confirm password"
-                    placeholderTextColor="rgba(219, 231, 255, 0.55)"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.agreementContainer, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
-                    onPress={() => setAcceptedAgreement(!acceptedAgreement)}
-                    activeOpacity={0.75}
-                  >
-                    <View style={[styles.checkbox, acceptedAgreement && styles.checkboxChecked]}>
-                      {acceptedAgreement && <Ionicons name="checkmark" size={14} color="#fff" />}
-                    </View>
-                    <Text style={styles.checkboxLabel}>
-                      I accept the <Text style={styles.linkText} onPress={(e) => { e.stopPropagation(); openLink("https://anymarket.netlify.app/terms"); }}>Terms of Service</Text> and <Text style={styles.linkText} onPress={(e) => { e.stopPropagation(); openLink("https://anymarket.netlify.app/privacy"); }}>Privacy Policy</Text>
-                    </Text>
-                  </TouchableOpacity>
-                </>
+                <TextInput
+                  style={[styles.input, Platform.OS === "web" && { cursor: "text" } as any]}
+                  placeholder="Confirm password"
+                  placeholderTextColor="rgba(219, 231, 255, 0.55)"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
               )}
 
               <TouchableOpacity

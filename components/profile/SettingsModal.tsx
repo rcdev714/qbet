@@ -1,3 +1,5 @@
+import { DeleteAccountSection } from '@/components/legal/DeleteAccountSection';
+import { ResidenceSettingsSection } from '@/components/profile/ResidenceSettingsSection';
 import { RulesModal } from '@/components/profile/RulesModal';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -116,6 +118,8 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
               </View>
             </View>
 
+            <ResidenceSettingsSection theme={theme} style={styles.section} />
+
             <View style={styles.section}> 
               <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>About</Text>
               <TouchableOpacity 
@@ -127,6 +131,8 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
                   <Text style={{ fontSize: 16, color: theme.textSecondary, marginLeft: 'auto' }}>→</Text>
               </TouchableOpacity>
             </View>
+
+            <DeleteAccountSection theme={theme} style={styles.section} onDeleted={onSignOut} />
 
             <TouchableOpacity style={[styles.saveButton, { backgroundColor: isDark ? theme.surface : theme.primary, borderColor: isDark ? theme.primary : 'transparent', borderWidth: isDark ? 1 : 0 }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={handleSave}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.saveButtonText, { color: isDark ? theme.primary : '#fff' }]}>Save Changes</Text>}

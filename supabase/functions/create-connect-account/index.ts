@@ -61,9 +61,21 @@ serve(async (req: Request) => {
     // 1. Check if user already has a connected account
     const { data: wallet, error: walletError } = await supabase
       .from("wallets")
-      .select("stripe_account_id")
+      .select("stripe_account_id, country")
       .eq("user_id", userId)
       .maybeSingle();
+
+    if (walletError) throw walletError;
+
+    let connectCountry = (wallet?.country || "").toUpperCase();
+    if (!connectCountry) {
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("country_of_residence")
+        .eq("id", userId)
+        .maybeSingle();
+      connectCountry = (userRow?.country_of_residence || "US").toUpperCase();
+    }
 
     if (wallet?.stripe_account_id) {
       return new Response(JSON.stringify({ accountId: wallet.stripe_account_id }), {
@@ -74,7 +86,7 @@ serve(async (req: Request) => {
     // 2. Create Connect Express Account
     const account = await stripe.accounts.create({
       type: "express",
-      country: "US", // Adjust as needed
+      country: connectCountry,
       email: resolvedEmail,
       capabilities: {
         card_payments: { requested: true },
@@ -94,7 +106,8 @@ serve(async (req: Request) => {
           user_id: userId,
           stripe_account_id: account.id,
           balance: 0,
-          is_virtual: true
+          is_virtual: true,
+          country: connectCountry,
         });
 
       if (insertError) throw insertError;
@@ -102,7 +115,7 @@ serve(async (req: Request) => {
       // Update existing wallet
       const { error: updateError } = await supabase
         .from("wallets")
-        .update({ stripe_account_id: account.id })
+        .update({ stripe_account_id: account.id, country: connectCountry })
         .eq("user_id", userId);
 
       if (updateError) throw updateError;

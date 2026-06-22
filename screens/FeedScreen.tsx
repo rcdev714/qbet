@@ -8,7 +8,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
-import { isAdminEmail } from "@/lib/admin";
+import { isAppAdmin } from "@/lib/admin";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { formatCurrency } from "@/lib/parimutuel";
 import { feedService } from "@/services/feed.service";
@@ -253,7 +253,7 @@ export default function FeedScreen() {
     }
   }, [user, markets.length]);
 
-  const isAdmin = user?.is_admin || isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
   const categories = useMemo(() => {
     const unique = Array.from(new Set(markets.map((market) => market.category || "General")));
     return ["All", ...unique.slice(0, 8)];

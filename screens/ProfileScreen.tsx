@@ -16,7 +16,7 @@ import { SEO } from "../components/SEO";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
-import { isAdminEmail } from "../lib/admin";
+import { isAppAdmin } from "../lib/admin";
 import { supabase } from "../lib/supabase";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
@@ -333,7 +333,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       </View>
       
       {/* Admin Dashboard Entry Point */}
-      {isOwnProfile && isAdminEmail(currentUser?.email) && (
+      {isOwnProfile && isAppAdmin(currentUser) && (
         <TouchableOpacity 
             style={{ 
                 backgroundColor: theme.surface, 

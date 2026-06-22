@@ -125,10 +125,10 @@ serve(async (req) => {
       throw new Error("Wallet not found");
     }
 
-    // Get email from auth user data
     const email = authData.user?.email;
     const userName = authData.user?.user_metadata?.full_name ||
       authData.user?.user_metadata?.name || email?.split("@")[0] || "User";
+    const payoutCountry = (wallet.country || "US").toLowerCase();
 
     if (!email) {
       throw new Error("User email not found");
@@ -183,7 +183,7 @@ serve(async (req) => {
           contact_email: email,
           display_name: userName,
           identity: {
-            country: "ec", // Ecuador - currently hardcoded for MVP, should be dynamic later
+            country: payoutCountry,
 
             entity_type: "individual",
           },

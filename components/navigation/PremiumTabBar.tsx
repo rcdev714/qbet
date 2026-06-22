@@ -5,13 +5,13 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useNavigationLayout } from '@/contexts/NavigationLayoutContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { isAdminEmail } from '@/lib/admin';
+import { isAppAdmin } from '@/lib/admin';
 import { formatCurrency } from '@/lib/parimutuel';
 
 const MOBILE_ICON_SIZE = Platform.OS === 'ios' ? 22 : 24;
@@ -192,7 +192,7 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
   const { balance } = useWalletContext();
   const router = useRouter();
   const { sidebarCollapsed, setSidebarCollapsed } = useNavigationLayout();
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
   const isAuthenticated = Boolean(user);
 
   const navigateRoute = (routeName: string, routeKey: string, routeParams: object | undefined, focused: boolean) => {

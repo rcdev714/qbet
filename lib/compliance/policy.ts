@@ -92,7 +92,18 @@ export const JURISDICTION_RULES = {
     note:
       "Ecuador launch posture: no public sports markets, progressive KYC, full ledger exports, and manual review for sensitive categories.",
   },
+  US: {
+    defaultCurrency: "USD",
+    publicSportsMarketsAllowed: true,
+    realMoneyRequiresKyc: true,
+    cryptoRailsRequireProviderKyc: true,
+    requiresTaxAndAmlExport: true,
+    note:
+      "United States launch posture: standard KYC, ledger exports, and manual review for sensitive categories.",
+  },
 } as const;
+
+export type ComplianceJurisdiction = keyof typeof JURISDICTION_RULES;
 
 export function normalizeMarketCategory(label: string) {
   return label

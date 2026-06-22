@@ -1471,6 +1471,7 @@ export type Database = {
           effective_at: string
           id: string
           is_required: boolean
+          jurisdiction: string
           kind: string
           retired_at: string | null
           title: string
@@ -1483,6 +1484,7 @@ export type Database = {
           effective_at?: string
           id?: string
           is_required?: boolean
+          jurisdiction?: string
           kind: string
           retired_at?: string | null
           title: string
@@ -1495,11 +1497,39 @@ export type Database = {
           effective_at?: string
           id?: string
           is_required?: boolean
+          jurisdiction?: string
           kind?: string
           retired_at?: string | null
           title?: string
           url?: string | null
           version?: string
+        }
+        Relationships: []
+      }
+      supported_residence_countries: {
+        Row: {
+          country_code: string
+          default_jurisdiction: string
+          dial_code: string
+          is_launch_enabled: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          country_code: string
+          default_jurisdiction: string
+          dial_code: string
+          is_launch_enabled?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          country_code?: string
+          default_jurisdiction?: string
+          dial_code?: string
+          is_launch_enabled?: boolean
+          name?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -1928,28 +1958,40 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          country_of_residence: string | null
           created_at: string
           email: string | null
           id: string
           is_admin: boolean | null
+          phone_country_code: string | null
+          phone_e164: string | null
+          residence_set_at: string | null
           stripe_customer_id: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          country_of_residence?: string | null
           created_at?: string
           email?: string | null
           id: string
           is_admin?: boolean | null
+          phone_country_code?: string | null
+          phone_e164?: string | null
+          residence_set_at?: string | null
           stripe_customer_id?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          country_of_residence?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_admin?: boolean | null
+          phone_country_code?: string | null
+          phone_e164?: string | null
+          residence_set_at?: string | null
           stripe_customer_id?: string | null
           username?: string | null
         }
@@ -2298,6 +2340,10 @@ export type Database = {
         }
       }
       get_unread_notification_count: { Args: never; Returns: number }
+      get_user_compliance_jurisdiction: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       has_current_policy_acceptances: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -2488,6 +2534,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      set_user_residence: {
+        Args: { p_country: string; p_phone_e164?: string | null }
+        Returns: Json
       }
       resolve_dispute: {
         Args: {
@@ -2747,6 +2797,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      update_user_phone: {
+        Args: { p_phone_e164: string | null }
+        Returns: undefined
       }
       upsert_crypto_transaction: {
         Args: {

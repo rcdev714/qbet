@@ -3,29 +3,29 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { decode } from "base64-arraybuffer";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../lib/supabase";
 import { adminService } from "../services/admin.service";
 import {
-  FEED_CATEGORIES,
-  type FeedCategory,
-  feedService,
+    FEED_CATEGORIES,
+    type FeedCategory,
+    feedService,
 } from "../services/feed.service";
 import type { Market } from "../types/market";
 
@@ -35,6 +35,23 @@ interface AdminFeedManagerProps {
 }
 
 type Tab = "promote" | "create" | "manage" | "resolve";
+
+type ManageStatusFilter = "all" | "open" | "closed" | "resolved";
+
+const ADMIN_MARKET_LIMIT = 200;
+
+function formatActionError(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (
+    err &&
+    typeof err === "object" &&
+    "message" in err &&
+    typeof (err as { message: unknown }).message === "string"
+  ) {
+    return (err as { message: string }).message;
+  }
+  return fallback;
+}
 
 interface MarketOption {
   id: string;
@@ -80,6 +97,13 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceNotes, setEvidenceNotes] = useState("");
+  const [manageStatusFilter, setManageStatusFilter] =
+    useState<ManageStatusFilter>("all");
+
+  const filteredManageMarkets = useMemo(() => {
+    if (manageStatusFilter === "all") return activeMarkets;
+    return activeMarkets.filter((market) => market.status === manageStatusFilter);
+  }, [activeMarkets, manageStatusFilter]);
 
   // Fetch recent private markets that are candidates for the feed
   const fetchCandidates = async () => {
@@ -111,7 +135,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
         .select("*")
         .eq("is_public", true)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(ADMIN_MARKET_LIMIT);
 
       if (error) throw error;
       setActiveMarkets(data as Market[]);
@@ -129,9 +153,9 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
         .from("markets")
         .select("*")
         .eq("is_public", true)
-        .eq("status", "open")
+        .in("status", ["open", "closed"])
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(ADMIN_MARKET_LIMIT);
 
       if (error) throw error;
       setOpenMarketsForResolve(data as Market[]);
@@ -202,7 +226,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               console.error("Error resolving market:", err);
               Alert.alert(
                 "Error",
-                "Failed to resolve market. Please try again.",
+                formatActionError(err, "Failed to resolve market. Please try again."),
               );
             } finally {
               setResolving(false);
@@ -440,7 +464,10 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               Alert.alert("Success", "Market deleted successfully");
             } catch (err) {
               console.error("Error deleting market:", err);
-              Alert.alert("Error", "Failed to delete market");
+              Alert.alert(
+                "Error",
+                formatActionError(err, "Failed to delete market"),
+              );
             } finally {
               setProcessingId(null);
             }
@@ -672,6 +699,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
                 {item.question}
               </Text>
               <Text style={[styles.itemMeta, { color: theme.textSecondary }]}>
+                {(item.status || "open").toUpperCase()} •{" "}
                 {new Date(item.created_at || "").toLocaleDateString()} •{" "}
                 {item.category || "General"}
               </Text>
@@ -721,6 +749,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           {item.question}
         </Text>
         <Text style={[styles.itemMeta, { color: theme.textSecondary }]}>
+          {(item.status || "open").toUpperCase()} •{" "}
           {new Date(item.created_at || "").toLocaleDateString()} •{" "}
           {item.category || "General"}
         </Text>
@@ -1170,6 +1199,49 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
     </ScrollView>
   );
 
+  const renderManageStatusFilter = () => {
+    const filters: { id: ManageStatusFilter; label: string }[] = [
+      { id: "all", label: "All" },
+      { id: "open", label: "Open" },
+      { id: "closed", label: "Closed" },
+      { id: "resolved", label: "Resolved" },
+    ];
+
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.manageFilterRow}
+      >
+        {filters.map((filter) => {
+          const active = manageStatusFilter === filter.id;
+          return (
+            <TouchableOpacity
+              key={filter.id}
+              style={[
+                styles.manageFilterChip,
+                {
+                  backgroundColor: active ? theme.primary : theme.surface,
+                  borderColor: active ? theme.primary : theme.border,
+                },
+              ]}
+              onPress={() => setManageStatusFilter(filter.id)}
+            >
+              <Text
+                style={{
+                  color: active ? "#071018" : theme.textSecondary,
+                  fontWeight: active ? "600" : "400",
+                }}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -1283,7 +1355,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           )
           : (
             <FlatList
-              data={activeTab === "manage" ? activeMarkets : candidates}
+              data={activeTab === "manage" ? filteredManageMarkets : candidates}
               renderItem={(props) =>
                 renderMarketItem({
                   ...props,
@@ -1295,11 +1367,14 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               onRefresh={activeTab === "manage"
                 ? fetchActiveMarkets
                 : fetchCandidates}
+              ListHeaderComponent={activeTab === "manage"
+                ? renderManageStatusFilter
+                : undefined}
               ListEmptyComponent={
                 <View style={styles.center}>
                   <Text style={{ color: theme.textSecondary }}>
                     {activeTab === "manage"
-                      ? "No active public markets"
+                      ? "No public markets match this filter"
                       : "No candidates found"}
                   </Text>
                 </View>
@@ -1351,6 +1426,17 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 16,
     gap: 12,
+  },
+  manageFilterRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  manageFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
   },
   itemContainer: {
     flexDirection: "row",

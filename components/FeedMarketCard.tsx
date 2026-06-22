@@ -3,7 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletContext } from "@/contexts/WalletContext";
-import { isAdminEmail } from "@/lib/admin";
+import { isAppAdmin } from "@/lib/admin";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "@/lib/parimutuel";
 import { supabase } from "@/lib/supabase";
@@ -226,7 +226,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
     return () => clearInterval(interval);
   }, [market.closes_at]);
 
-  const isAdmin = user?.is_admin || isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
 
   const handlePress = () => {
     Haptics.selectionAsync();

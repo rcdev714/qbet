@@ -4,7 +4,7 @@ import React from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { isAdminEmail } from "../lib/admin";
+import { isAppAdmin } from "../lib/admin";
 import { IconSymbol } from "./ui/icon-symbol";
 // Removed RootStackParamList import
 
@@ -24,7 +24,7 @@ export function BottomNavBar({ router }: BottomNavBarProps) {
     return null;
   }
 
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAppAdmin(user);
 
   return (
     <View style={[styles.bottomBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>

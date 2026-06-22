@@ -64,7 +64,7 @@ serve(async (req: Request) => {
         // 1. Get Wallet to find Stripe Account ID
         const { data: wallet, error: walletError } = await supabase
             .from("wallets")
-            .select("stripe_account_id")
+            .select("stripe_account_id, country")
             .eq("user_id", userId)
             .maybeSingle();
 
@@ -73,6 +73,7 @@ serve(async (req: Request) => {
         }
 
         const accountId = wallet.stripe_account_id;
+        const addressCountry = (wallet.country || "US").toUpperCase();
 
         console.log(`Updating account ${accountId} with KYC data...`);
 
@@ -91,7 +92,7 @@ serve(async (req: Request) => {
                     city: city,
                     state: state,
                     postal_code: postalCode,
-                    country: "US",
+                    country: addressCountry,
                 },
                 ssn_last_4: ssnLast4,
             },

@@ -1,15 +1,13 @@
+import { getPublicEnv } from "./public-env";
+
 /**
  * Checks if the provided email is in the list of admin emails.
- * The output depends on the EXPO_PUBLIC_ADMIN_EMAIL environment variable,
- * which can be a single email or a comma-separated list of emails.
- *
- * @param email The user's email to check
- * @returns true if the email is in the admin list, false otherwise
+ * Reads from app.config.js extra via getPublicEnv() so web production export works.
  */
 export const isAdminEmail = (email?: string | null): boolean => {
     if (!email) return false;
 
-    const adminEmailsVar = process.env.EXPO_PUBLIC_ADMIN_EMAIL;
+    const adminEmailsVar = getPublicEnv().adminEmail;
     if (!adminEmailsVar) return false;
 
     const adminEmails = adminEmailsVar.split(",").map((e: string) =>
@@ -17,3 +15,12 @@ export const isAdminEmail = (email?: string | null): boolean => {
     );
     return adminEmails.includes(email.trim().toLowerCase());
 };
+
+/**
+ * True when the user is an app admin via DB flag or configured admin email.
+ */
+export function isAppAdmin(
+    user?: { email?: string | null; is_admin?: boolean | null } | null,
+): boolean {
+    return user?.is_admin === true || isAdminEmail(user?.email);
+}
