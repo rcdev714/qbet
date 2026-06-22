@@ -13,7 +13,7 @@ if ! npx eas whoami >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Running pre-deploy checks (tsc, lint, web build export)..."
+echo "Running pre-deploy checks and export with EAS production env..."
 npx eas env:exec production "npm run check:web:prod"
 
 echo "Deploying dist/ to Expo production..."

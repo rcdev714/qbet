@@ -3,9 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 
 import type { Database } from "../types/database";
+import { getPublicEnv } from "./public-env";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
 
 if (!supabaseUrl) {
   throw new Error("Missing EXPO_PUBLIC_SUPABASE_URL");
