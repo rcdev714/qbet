@@ -10,3 +10,16 @@ export const FontWeight = {
 } as const;
 
 export type FontWeightKey = keyof typeof FontWeight;
+
+/** Shared text presets for compliance and navigation UI. */
+export const Typography = {
+  label: {
+    fontWeight: FontWeight.semibold,
+  },
+  emphasis: {
+    fontWeight: FontWeight.semibold,
+  },
+  heading: {
+    fontWeight: FontWeight.regular,
+  },
+} as const;

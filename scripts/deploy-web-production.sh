@@ -14,7 +14,7 @@ if ! npx eas whoami >/dev/null 2>&1; then
 fi
 
 echo "Running pre-deploy checks (tsc, lint, web build export)..."
-npm run check:web:prod
+npx eas env:exec production -- npm run check:web:prod
 
 echo "Deploying dist/ to Expo production..."
 npx eas deploy --prod --environment production --export-dir dist

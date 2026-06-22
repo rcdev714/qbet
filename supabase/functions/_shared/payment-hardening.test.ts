@@ -1,13 +1,16 @@
 import {
-  assert,
-  assertEquals,
-  assertThrows,
+    assert,
+    assertEquals,
+    assertThrows,
 } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import {
-  buildAllowedOrigins,
-  isOutboundPaymentFailureEvent,
-  parsePositiveIntegerCents,
-  resolveAllowedUrl,
+    buildAllowedOrigins,
+    computeCumulativeRefundDelta,
+    getReferenceIdFromMetadata,
+    getStripeObjectId,
+    isOutboundPaymentFailureEvent,
+    parsePositiveIntegerCents,
+    resolveAllowedUrl,
 } from "./payment-hardening.ts";
 
 Deno.test("parsePositiveIntegerCents accepts integer cents", () => {
@@ -88,4 +91,29 @@ Deno.test("isOutboundPaymentFailureEvent ignores successful or unrelated events"
     isOutboundPaymentFailureEvent("payment_intent.succeeded"),
     false,
   );
+});
+
+Deno.test("getReferenceIdFromMetadata prefers requestId metadata", () => {
+  assertEquals(
+    getReferenceIdFromMetadata({ requestId: "req_123" }, "fallback"),
+    "req_123",
+  );
+  assertEquals(
+    getReferenceIdFromMetadata({ request_id: "req_legacy" }, "fallback"),
+    "req_legacy",
+  );
+  assertEquals(getReferenceIdFromMetadata({}, "fallback"), "fallback");
+});
+
+Deno.test("getStripeObjectId resolves string and object ids", () => {
+  assertEquals(getStripeObjectId("pi_123"), "pi_123");
+  assertEquals(getStripeObjectId({ id: "re_456" }), "re_456");
+  assertEquals(getStripeObjectId(null), null);
+});
+
+Deno.test("computeCumulativeRefundDelta debits only incremental refund amount", () => {
+  assertEquals(computeCumulativeRefundDelta(10, 0), 10);
+  assertEquals(computeCumulativeRefundDelta(15, 10), 5);
+  assertEquals(computeCumulativeRefundDelta(15, 15), 0);
+  assertEquals(computeCumulativeRefundDelta(10, 12), 0);
 });

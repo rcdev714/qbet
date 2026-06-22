@@ -2,6 +2,8 @@ import { Platform, Share } from "react-native";
 import { supabase } from "../lib/supabase";
 import type { Market } from "../types/market";
 
+export type ShareEntityType = "profile" | "group" | "bets" | "bet";
+
 const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || "https://anymarket.expo.app")
     .replace(/\/$/, "");
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
@@ -62,6 +64,30 @@ export const shareService = {
             market: marketId,
             group: groupId,
         });
+    },
+
+    /**
+     * Build a share URL with a tracked referral code appended.
+     */
+    async buildTrackedUrl(
+        baseUrl: string,
+        entityId: string,
+        entityType: ShareEntityType,
+    ): Promise<string> {
+        try {
+            const { data, error } = await supabase.rpc("track_entity_share", {
+                p_entity_type: entityType,
+                p_entity_id: entityId,
+                p_platform: Platform.OS,
+            });
+
+            if (error) throw error;
+            const shareCode = (data as unknown as string) || null;
+            return shareCode ? withQuery(baseUrl, { ref: shareCode }) : baseUrl;
+        } catch (error) {
+            console.error("Error building tracked share URL:", error);
+            return baseUrl;
+        }
     },
 
     /**

@@ -50,3 +50,30 @@ export function isOutboundPaymentFailureEvent(eventType: string) {
       normalized.includes("revers")
     );
 }
+
+export function getReferenceIdFromMetadata(
+  metadata?: Record<string, string | undefined | null>,
+  fallbackId?: string,
+) {
+  return metadata?.requestId || metadata?.request_id || fallbackId;
+}
+
+export function getStripeObjectId(value: unknown) {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && "id" in value) {
+    return String((value as { id?: string }).id ?? "");
+  }
+  return null;
+}
+
+export function computeCumulativeRefundDelta(
+  cumulativeAmount: number,
+  previouslyRefunded: number | null | undefined,
+) {
+  const previous = previouslyRefunded ?? 0;
+  if (cumulativeAmount <= previous) {
+    return 0;
+  }
+  return cumulativeAmount - previous;
+}

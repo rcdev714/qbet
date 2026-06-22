@@ -123,7 +123,7 @@ function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
   const currentSegment = segments[0];
-  const tabSegment = segments[1];
+  const tabSegment = (segments as string[])[1];
   const isLanding = isLandingSegment(currentSegment);
   const hasPageLevelSeo =
     isLanding ||

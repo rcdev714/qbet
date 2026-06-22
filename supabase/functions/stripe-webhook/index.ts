@@ -4,7 +4,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
-import { isOutboundPaymentFailureEvent } from "../_shared/payment-hardening.ts";
+import {
+    getReferenceIdFromMetadata,
+    getStripeObjectId,
+    isOutboundPaymentFailureEvent,
+} from "../_shared/payment-hardening.ts";
 
 // ============================================================================
 // STRIPE LOGGER - Centralized logging for payment operations
@@ -131,13 +135,6 @@ const recordStripeEvent = async (
   return true;
 };
 
-const getReferenceIdFromMetadata = (
-  metadata?: Record<string, string | undefined | null>,
-  fallbackId?: string,
-) => {
-  return metadata?.requestId || metadata?.request_id || fallbackId;
-};
-
 const getTransactionByReference = async (referenceId: string) => {
   const { data, error } = await supabase
     .from("transactions")
@@ -163,15 +160,6 @@ const assertNoRpcError = (
   if (error) {
     throw new Error(`${operation}: ${error.message}`);
   }
-};
-
-const getStripeObjectId = (value: unknown) => {
-  if (!value) return null;
-  if (typeof value === "string") return value;
-  if (typeof value === "object" && "id" in value) {
-    return String((value as { id?: string }).id ?? "");
-  }
-  return null;
 };
 
 const getUserIdForRefund = async (refund: Stripe.Refund) => {

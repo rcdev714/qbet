@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.rcdev714.qbet",
+        "paths": [
+          "/share/*",
+          "/market/*",
+          "/profile/*",
+          "/group/*",
+          "/bet/*"
+        ]
+      }
+    ]
+  }
+}

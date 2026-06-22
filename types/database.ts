@@ -545,6 +545,7 @@ export type Database = {
           id: string;
           image_url: string | null;
           is_public: boolean | null;
+          market_type: string | null;
           question: string;
           resolved_at: string | null;
           status: Database["public"]["Enums"]["market_status"];
@@ -563,6 +564,7 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           is_public?: boolean | null;
+          market_type?: string | null;
           question: string;
           resolved_at?: string | null;
           status?: Database["public"]["Enums"]["market_status"];
@@ -581,6 +583,7 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           is_public?: boolean | null;
+          market_type?: string | null;
           question?: string;
           resolved_at?: string | null;
           status?: Database["public"]["Enums"]["market_status"];
@@ -1644,6 +1647,14 @@ export type Database = {
       toggle_user_follow: { Args: { p_target_user_id: string }; Returns: Json };
       track_market_share: {
         Args: { p_market_id: string; p_platform?: string };
+        Returns: string;
+      };
+      track_entity_share: {
+        Args: {
+          p_entity_type: string;
+          p_entity_id: string;
+          p_platform?: string;
+        };
         Returns: string;
       };
       update_category: {

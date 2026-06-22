@@ -22,6 +22,7 @@ const MAPPING = {
   'person': 'person-outline',
   'person.fill': 'person',
   'person.2.fill': 'people',
+  'person.3': 'groups',
   'person.3.fill': 'groups',
   'gearshape': 'settings',
   'chevron.left.forwardslash.chevron.right': 'code',
@@ -58,7 +59,7 @@ const MAPPING = {
   'arrow.right': 'arrow-forward',
 } as const;
 
-type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

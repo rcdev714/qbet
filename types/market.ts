@@ -4,7 +4,10 @@ export type MarketStatus = Database["public"]["Enums"]["market_status"];
 
 export type MarketType = "binary" | "multi_option";
 
-export type Market = Database["public"]["Tables"]["markets"]["Row"] & {
+export type Market = Omit<
+    Database["public"]["Tables"]["markets"]["Row"],
+    "market_type"
+> & {
     creator?: { username: string | null; avatar_url: string | null } | null;
     market_type?: MarketType | null;
 };

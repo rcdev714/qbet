@@ -12,7 +12,7 @@ export const isAdminEmail = (email?: string | null): boolean => {
     const adminEmailsVar = process.env.EXPO_PUBLIC_ADMIN_EMAIL;
     if (!adminEmailsVar) return false;
 
-    const adminEmails = adminEmailsVar.split(",").map((e) =>
+    const adminEmails = adminEmailsVar.split(",").map((e: string) =>
         e.trim().toLowerCase()
     );
     return adminEmails.includes(email.trim().toLowerCase());

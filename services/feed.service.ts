@@ -106,7 +106,7 @@ export const feedService = {
                 return a.recency - b.recency;
             });
 
-            return scoredMarkets.slice(0, limit).map((s) => s.market);
+            return scoredMarkets.slice(0, limit).map((s) => s.market as Market);
         } catch (error) {
             console.error("Error fetching recommended markets:", error);
             return this.getPublicMarkets(limit);
@@ -230,7 +230,7 @@ export const feedService = {
             }
 
             // Create market (no group, is_public = true)
-            const marketInsert: MarketInsert & { market_type: string } = {
+            const marketInsert: MarketInsert = {
                 creator_id: user.id,
                 group_id: null, // Public markets don't belong to a group
                 question: data.question,
