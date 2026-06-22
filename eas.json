@@ -32,12 +32,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "your@email.com",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID"
+        "appleId": "rcdev714@gmail.com"
       },
-      "android": {
-        "serviceAccountKeyPath": "./google-services-key.json"
-      }
+      "android": {}
     }
   }
 }
