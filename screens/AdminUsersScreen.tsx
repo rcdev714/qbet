@@ -1,7 +1,13 @@
 import { AdminShell, useAdminLayoutMetrics } from "@/components/admin/AdminShell";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatActionError } from "@/lib/admin-action-errors";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import {
     betaAccessService,
     type BetaAccessRequest,
@@ -17,7 +23,6 @@ import {
     RefreshControl,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
@@ -52,11 +57,13 @@ export default function AdminUsersScreen() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [notesById, setNotesById] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<{ tone: "success" | "error"; message: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadRequests = useCallback(async (showLoader = false, statusOverride?: BetaAccessRequestStatus) => {
     const activeStatus = statusOverride ?? status;
     if (showLoader) setLoading(true);
     try {
+      setLoadError(null);
       const [list, pending] = await Promise.all([
         betaAccessService.listRequests(activeStatus),
         activeStatus === "pending" ? Promise.resolve([]) : betaAccessService.listRequests("pending"),
@@ -68,7 +75,7 @@ export default function AdminUsersScreen() {
         setPendingCount(pending.length);
       }
     } catch {
-      Alert.alert(t("actionFailed"), t("loadFailed"));
+      setLoadError(t("loadFailed"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -123,7 +130,7 @@ export default function AdminUsersScreen() {
       const message = formatActionError(error);
       setBanner({ tone: "error", message: `${t("emailFailedBody")} (${message})` });
       if (Platform.OS !== "web") {
-        Alert.alert(t("emailFailed"), t("emailFailedBody"));
+        showAppAlertRaw(t("emailFailed"), t("emailFailedBody"));
       }
     } finally {
       setActionId(null);
@@ -169,7 +176,7 @@ export default function AdminUsersScreen() {
       const message = formatActionError(error);
       setBanner({ tone: "error", message: `${t("actionFailed")}: ${message}` });
       if (Platform.OS !== "web") {
-        Alert.alert(t("actionFailed"), message);
+        showAppAlertRaw(t("actionFailed"), message);
       }
     } finally {
       setActionId(null);
@@ -192,27 +199,31 @@ export default function AdminUsersScreen() {
       >
         <View style={[styles.cardBody, isWide && showActions && styles.cardBodyWide]}>
           <View style={styles.rowMain}>
-            <Text style={[styles.email, { color: theme.text }]}>{item.email}</Text>
+            <AppText variant="bodySm" style={{ fontWeight: "600" }}>{item.email}</AppText>
             {item.full_name ? (
-              <Text style={[styles.name, { color: theme.textSecondary }]}>{item.full_name}</Text>
+              <AppText variant="bodySm" color="secondary">{item.full_name}</AppText>
             ) : null}
-            <Text style={[styles.meta, { color: theme.textSecondary }]}>
+            <AppText variant="caption" color="secondary">
               {item.country_code} · {t("submitted")} {formatDate(item.created_at)}
-            </Text>
+            </AppText>
             {item.message ? (
-              <Text style={[styles.message, { color: theme.textSecondary }]}>{item.message}</Text>
+              <AppText variant="bodySm" color="secondary" style={{ marginTop: 4, lineHeight: 18 }}>
+                {item.message}
+              </AppText>
             ) : null}
             {item.user_id ? (
               <View style={[styles.linkedBadge, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.linkedBadgeText, { color: theme.primary }]}>{t("linkedAccount")}</Text>
+                <AppText variant="caption" color="primary" style={{ fontWeight: "600" }}>
+                  {t("linkedAccount")}
+                </AppText>
               </View>
             ) : null}
             {status === "approved" ? (
-              <Text style={[styles.meta, { color: theme.textSecondary }]}>
+              <AppText variant="caption" color="secondary">
                 {item.approval_email_sent_at
                   ? t("emailSent", { date: formatDate(item.approval_email_sent_at) })
                   : t("emailNotSent")}
-              </Text>
+              </AppText>
             ) : null}
           </View>
 
@@ -228,7 +239,7 @@ export default function AdminUsersScreen() {
                 {isActing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.approveBtnText}>{t("approve")}</Text>
+                  <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: "600" }}>{t("approve")}</AppText>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -237,7 +248,7 @@ export default function AdminUsersScreen() {
                 style={[styles.declineBtn, styles.actionBtnWide, isActing && styles.btnDisabled]}
                 activeOpacity={0.85}
               >
-                <Text style={styles.declineBtnText}>{t("decline")}</Text>
+                <AppText variant="bodySm" color="destructive" style={{ fontWeight: "600" }}>{t("decline")}</AppText>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -260,7 +271,7 @@ export default function AdminUsersScreen() {
             ]}
           />
         ) : item.admin_notes ? (
-          <Text style={[styles.adminNotes, { color: theme.textSecondary }]}>{item.admin_notes}</Text>
+          <AppText variant="caption" color="secondary" style={{ fontStyle: "italic" }}>{item.admin_notes}</AppText>
         ) : null}
 
         {status === "approved" ? (
@@ -273,7 +284,7 @@ export default function AdminUsersScreen() {
             {isActing ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : (
-              <Text style={[styles.resendBtnText, { color: theme.primary }]}>{t("resendApprovalEmail")}</Text>
+              <AppText variant="bodySm" color="primary" style={{ fontWeight: "600" }}>{t("resendApprovalEmail")}</AppText>
             )}
           </TouchableOpacity>
         ) : null}
@@ -290,7 +301,7 @@ export default function AdminUsersScreen() {
               {isActing ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.approveBtnText}>{t("approve")}</Text>
+                <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: "600" }}>{t("approve")}</AppText>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -299,7 +310,7 @@ export default function AdminUsersScreen() {
               style={[styles.declineBtn, styles.actionBtnMobile, isActing && styles.btnDisabled]}
               activeOpacity={0.85}
             >
-              <Text style={styles.declineBtnText}>{t("decline")}</Text>
+              <AppText variant="bodySm" color="destructive" style={{ fontWeight: "600" }}>{t("decline")}</AppText>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -311,86 +322,99 @@ export default function AdminUsersScreen() {
     <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <AdminShell title={t("accessRequests")} badge={pendingCount}>
-        <View style={styles.content}>
-          <SegmentedControl
-            value={status}
-            onChange={setStatus}
-            segments={[
-              { value: "pending", label: t("pending") },
-              { value: "approved", label: t("approved") },
-              { value: "declined", label: t("declined") },
-            ]}
-          />
-
-          {banner ? (
-            <View
-              style={[
-                styles.banner,
-                {
-                  backgroundColor: banner.tone === "success" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
-                  borderColor: banner.tone === "success" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)",
-                },
+        <AppScreen maxWidth="wide" style={styles.adminScreen}>
+          <View style={styles.content}>
+            <SegmentedControl
+              value={status}
+              onChange={setStatus}
+              segments={[
+                { value: "pending", label: t("pending") },
+                { value: "approved", label: t("approved") },
+                { value: "declined", label: t("declined") },
               ]}
-            >
-              <Text
+            />
+
+            {loadError ? (
+              <ErrorBanner
+                message={loadError}
+                onRetry={() => void loadRequests(true)}
+                retryLabel={t("retry", { ns: "common", defaultValue: "Retry" })}
+              />
+            ) : null}
+
+            {banner ? (
+              <View
                 style={[
-                  styles.bannerText,
-                  { color: banner.tone === "success" ? "#059669" : "#DC2626" },
+                  styles.banner,
+                  {
+                    backgroundColor: banner.tone === "success" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
+                    borderColor: banner.tone === "success" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)",
+                  },
                 ]}
               >
-                {banner.message}
-              </Text>
-            </View>
-          ) : null}
+                <AppText
+                  variant="bodySm"
+                  style={{
+                    color: banner.tone === "success" ? "#059669" : "#DC2626",
+                    fontWeight: "500",
+                    lineHeight: 20,
+                  }}
+                >
+                  {banner.message}
+                </AppText>
+              </View>
+            ) : null}
 
-          {loading && !refreshing ? (
-            <ActivityIndicator size="large" color={theme.primary} style={styles.loader} />
-          ) : (
-            <FlatList
-              style={styles.list}
-              data={requests}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-              }
-              contentContainerStyle={requests.length === 0 ? styles.emptyList : styles.listContent}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>{t("noRequests")}</Text>
-              }
-            />
-          )}
-        </View>
+            {loading && !refreshing ? (
+              <View style={styles.skeletonStack}>
+                <AppSkeleton variant="row" />
+                <AppSkeleton variant="row" />
+                <AppSkeleton variant="row" />
+              </View>
+            ) : (
+              <FlatList
+                style={styles.list}
+                data={requests}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                refreshControl={
+                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
+                }
+                contentContainerStyle={requests.length === 0 ? styles.emptyList : styles.listContent}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                ListEmptyComponent={<EmptyState icon="mail-outline" title={t("noRequests")} />}
+              />
+            )}
+          </View>
+        </AppScreen>
       </AdminShell>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  adminScreen: {
+    flex: 1,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
+  },
   content: {
     flex: 1,
     gap: 16,
     minHeight: 0,
   },
+  skeletonStack: { gap: 10, marginTop: 8 },
   list: {
     flex: 1,
   },
   listContent: {
     paddingBottom: 24,
   },
-  loader: {
-    marginTop: 48,
-  },
   emptyList: {
     flexGrow: 1,
     justifyContent: "center",
     paddingBottom: 24,
-  },
-  emptyText: {
-    textAlign: "center",
-    fontSize: 15,
-    paddingVertical: 48,
   },
   separator: {
     height: 10,
@@ -417,31 +441,12 @@ const styles = StyleSheet.create({
     gap: 4,
     minWidth: 0,
   },
-  email: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  name: {
-    fontSize: 14,
-  },
-  meta: {
-    fontSize: 12,
-  },
-  message: {
-    fontSize: 13,
-    marginTop: 4,
-    lineHeight: 18,
-  },
   linkedBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     marginTop: 6,
-  },
-  linkedBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
   },
   notesInput: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -450,10 +455,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 13,
     minHeight: 36,
-  },
-  adminNotes: {
-    fontSize: 12,
-    fontStyle: "italic",
   },
   actionsWide: {
     width: 120,
@@ -479,11 +480,6 @@ const styles = StyleSheet.create({
     minHeight: 38,
     justifyContent: "center",
   },
-  approveBtnText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "600",
-  },
   declineBtn: {
     backgroundColor: "rgba(239,68,68,0.12)",
     borderRadius: 8,
@@ -494,11 +490,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(239,68,68,0.35)",
-  },
-  declineBtnText: {
-    color: "#EF4444",
-    fontSize: 13,
-    fontWeight: "600",
   },
   btnDisabled: {
     opacity: 0.6,
@@ -512,19 +503,10 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: "center",
   },
-  resendBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
   banner: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  bannerText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "500",
   },
 });

@@ -1,0 +1,15 @@
+{
+  "title": "Mercado",
+  "notFound": "Mercado no encontrado",
+  "placeBet": "Apostar",
+  "opening": "Abriendo mercado…",
+  "betDistribution": "Distribución de apuestas",
+  "loadingActivity": "Cargando actividad del mercado…",
+  "noBetsYet": "Aún no hay apuestas",
+  "beFirstToPredict": "Sé el primero en hacer una predicción",
+  "probabilityHistory": "Historial de probabilidad",
+  "totalPool": "{{amount}} total",
+  "noBetsOnOption": "No hay apuestas en esta opción",
+  "participants_one": "{{count}} participante",
+  "participants_other": "{{count}} participantes"
+}

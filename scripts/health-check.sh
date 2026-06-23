@@ -48,8 +48,12 @@ if command -v deno >/dev/null 2>&1; then
   step "Beta approval email helpers (Deno)"
   npm run test:beta-approval-email --silent
   pass "beta-approval-email Deno tests"
+
+  step "Bet contract email helpers (Deno)"
+  npm run test:bet-contract-email --silent
+  pass "bet-contract-email Deno tests"
 else
-  warn "deno not installed — skipping test:beta-approval-email"
+  warn "deno not installed — skipping Deno email helper tests"
   WARNINGS=$((WARNINGS + 1))
 fi
 

@@ -3,25 +3,39 @@ import {
     ActivityIndicator,
     Platform,
     StyleSheet,
-    Text,
     TouchableOpacity,
+    View,
     type TouchableOpacityProps,
 } from "react-native";
 
+import { ACTIVE_OPACITY, DISABLED_OPACITY } from "@/constants/motion";
 import { useTheme } from "@/contexts/ThemeContext";
 
-type AppButtonVariant = "primary" | "secondary" | "ghost";
+import { AppText } from "./AppText";
+
+type AppButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+type AppButtonSize = "sm" | "md" | "lg";
 
 interface AppButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: AppButtonVariant;
+  size?: AppButtonSize;
   loading?: boolean;
+  icon?: React.ReactNode;
 }
+
+const SIZE_STYLES: Record<AppButtonSize, { minHeight: number; px: number }> = {
+  sm: { minHeight: 40, px: 12 },
+  md: { minHeight: 50, px: 16 },
+  lg: { minHeight: 56, px: 20 },
+};
 
 export function AppButton({
   title,
   variant = "primary",
+  size = "md",
   loading = false,
+  icon,
   disabled,
   accessibilityLabel,
   accessibilityRole,
@@ -35,10 +49,23 @@ export function AppButton({
   const isDisabled = disabled || loading;
   const isPrimary = variant === "primary";
   const isSecondary = variant === "secondary";
+  const isDestructive = variant === "destructive";
+  const sizeStyle = SIZE_STYLES[size];
+
   const focusRing =
     Platform.OS === "web" && isFocused && !isDisabled
-      ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as any)
+      ? ({ boxShadow: `0 0 0 3px ${theme.ring}` } as object)
       : null;
+
+  const backgroundColor = isPrimary
+    ? theme.primary
+    : isDestructive
+      ? theme.destructive
+      : isSecondary
+        ? theme.surface
+        : "transparent";
+
+  const labelColor = isPrimary || isDestructive ? theme.onPrimary : isSecondary ? theme.text : theme.primary;
 
   return (
     <TouchableOpacity
@@ -47,7 +74,7 @@ export function AppButton({
       accessibilityRole={accessibilityRole ?? "button"}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      activeOpacity={0.85}
+      activeOpacity={ACTIVE_OPACITY}
       onBlur={(event) => {
         setIsFocused(false);
         onBlur?.(event);
@@ -60,39 +87,36 @@ export function AppButton({
         styles.button,
         {
           borderRadius: theme.radius.md,
-          backgroundColor: isPrimary
+          backgroundColor,
+          borderColor: isPrimary
             ? theme.primary
-            : isSecondary
-              ? theme.surface
-              : "transparent",
-          borderColor: isPrimary ? theme.primary : theme.border,
+            : isDestructive
+              ? theme.destructive
+              : theme.border,
+          minHeight: sizeStyle.minHeight,
+          paddingHorizontal: sizeStyle.px,
+          opacity: isDisabled ? DISABLED_OPACITY : 1,
         },
         variant !== "ghost" && styles.withBorder,
-        isDisabled && styles.disabled,
         Platform.OS === "web" &&
           ({
             cursor: isDisabled ? "default" : "pointer",
             touchAction: "manipulation",
-          } as any),
+          } as object),
         focusRing,
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={isPrimary ? theme.onPrimary : theme.primary} /> : null}
-      <Text
-        style={[
-          styles.label,
-          {
-            color: isPrimary
-              ? theme.onPrimary
-              : isSecondary
-                ? theme.text
-                : theme.primary,
-          },
-        ]}
-      >
-        {loading ? `${title}…` : title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={labelColor} />
+      ) : (
+        <>
+          {icon ? <View style={styles.iconSlot}>{icon}</View> : null}
+          <AppText variant={size === "sm" ? "label" : "body"} style={{ color: labelColor, fontWeight: "600" }}>
+            {title}
+          </AppText>
+        </>
+      )}
     </TouchableOpacity>
   );
 }
@@ -101,19 +125,14 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",
     gap: 8,
-    minHeight: 50,
-    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   withBorder: {
     borderWidth: StyleSheet.hairlineWidth,
   },
-  disabled: {
-    opacity: 0.55,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
+  iconSlot: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

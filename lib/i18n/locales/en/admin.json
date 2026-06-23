@@ -60,6 +60,7 @@
   "usersLabel": "users",
   "fraudMonitor": "Fraud monitor",
   "noFraudAlerts": "No suspicious activity detected.",
+  "noChartData": "No data available",
   "transactionsLinkSub": "Full ledger with filters",
   "reportsLinkSub": "{{count}} open reports",
   "searchTransactions": "Search user, reference, or ID…",

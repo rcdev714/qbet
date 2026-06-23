@@ -6,18 +6,20 @@ import {
     formatAdminCurrency,
 } from "@/components/admin/AdminChartPanel";
 import { AdminShell, useAdminLayoutMetrics } from "@/components/admin/AdminShell";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     Platform,
     RefreshControl,
-    ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     useWindowDimensions,
     View,
@@ -133,26 +135,48 @@ export default function AdminDashboardScreen() {
     <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <AdminShell>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-          }
+        <AppScreen
+          maxWidth="wide"
+          scroll
+          style={styles.adminScreen}
+          scrollProps={{
+            showsVerticalScrollIndicator: false,
+            refreshControl: (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
+            ),
+            contentContainerStyle: styles.scrollContent,
+          }}
         >
           {loading && !refreshing ? (
-            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
+            <View style={styles.skeletonStack}>
+              <AppSkeleton variant="text" width="55%" height={24} />
+              <AppSkeleton variant="text" width="75%" />
+              <View style={styles.row}>
+                <AppSkeleton variant="card" style={{ flex: 1, minWidth: 140 }} />
+                <AppSkeleton variant="card" style={{ flex: 1, minWidth: 140 }} />
+              </View>
+              <View style={styles.row}>
+                <AppSkeleton variant="card" style={{ flex: 1, minWidth: 140 }} />
+                <AppSkeleton variant="card" style={{ flex: 1, minWidth: 140 }} />
+              </View>
+              <AppSkeleton variant="card" height={200} />
+            </View>
           ) : (
             <>
               <View style={styles.heroRow}>
-                <Text style={[styles.heroTitle, { color: theme.text }]}>{t("commandCenter")}</Text>
-                <Text style={[styles.heroSub, { color: theme.textSecondary }]}>{t("commandCenterSub")}</Text>
+                <AppText variant="title2">{t("commandCenter")}</AppText>
+                <AppText variant="bodySm" color="secondary" style={{ marginTop: 4 }}>
+                  {t("commandCenterSub")}
+                </AppText>
               </View>
 
               {loadError ? (
-                <View style={[styles.errorBanner, { backgroundColor: theme.error + "20", borderColor: theme.error }]}>
-                  <Text style={[styles.errorBannerText, { color: theme.error }]}>{loadError}</Text>
+                <View style={{ marginBottom: 16 }}>
+                  <ErrorBanner
+                    message={loadError}
+                    onRetry={() => void loadData()}
+                    retryLabel={t("retry", { ns: "common", defaultValue: "Retry" })}
+                  />
                 </View>
               ) : null}
 
@@ -216,7 +240,7 @@ export default function AdminDashboardScreen() {
               </View>
 
               <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("engagementMetrics")}</Text>
+                <AppText variant="title3" style={{ marginBottom: 16 }}>{t("engagementMetrics")}</AppText>
                 <View style={styles.statsRow}>
                   <StatItem label={t("betsPerUser")} value={kpi?.betsPerUser.toFixed(2) ?? "0.00"} theme={theme} />
                   <StatItem
@@ -274,9 +298,9 @@ export default function AdminDashboardScreen() {
                     radius: 4,
                     pointerLabelComponent: (items: any[]) => (
                       <View style={[styles.tooltip, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                        <Text style={{ color: theme.text, fontSize: 11, fontWeight: "700" }}>
+                        <AppText variant="caption" style={{ fontWeight: "700" }}>
                           {items[0]?.value} {t("usersLabel")}
-                        </Text>
+                        </AppText>
                       </View>
                     ),
                   }}
@@ -359,17 +383,14 @@ export default function AdminDashboardScreen() {
 
               <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>
+                  <AppText variant="title3" style={{ marginBottom: 0 }}>
                     {t("fraudMonitor")}
-                  </Text>
+                  </AppText>
                   <View style={[styles.liveDot, { backgroundColor: fraudAlerts.length ? theme.error : theme.success }]} />
                 </View>
 
                 {fraudAlerts.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="checkmark-circle" size={40} color="#34C759" />
-                    <Text style={{ color: theme.textSecondary, marginTop: 8 }}>{t("noFraudAlerts")}</Text>
-                  </View>
+                  <EmptyState icon="checkmark-circle" title={t("noFraudAlerts")} />
                 ) : (
                   fraudAlerts.map((alert, index) => (
                     <View
@@ -383,9 +404,13 @@ export default function AdminDashboardScreen() {
                       ]}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.alertUser, { color: theme.text }]}>{alert.username}</Text>
-                        <Text style={[styles.alertReason, { color: theme.error }]}>{alert.reason}</Text>
-                        <Text style={[styles.alertDetails, { color: theme.textSecondary }]}>{alert.details}</Text>
+                        <AppText variant="body" style={{ fontWeight: "700" }}>{alert.username}</AppText>
+                        <AppText variant="bodySm" color="destructive" style={{ marginTop: 2, fontWeight: "600" }}>
+                          {alert.reason}
+                        </AppText>
+                        <AppText variant="bodySm" color="secondary" style={{ marginTop: 2 }}>
+                          {alert.details}
+                        </AppText>
                       </View>
                       <View
                         style={[
@@ -393,7 +418,9 @@ export default function AdminDashboardScreen() {
                           { backgroundColor: alert.severity === "high" ? "#FF3B30" : "#FF9500" },
                         ]}
                       >
-                        <Text style={styles.severityText}>{alert.severity.toUpperCase()}</Text>
+                        <AppText variant="caption" color="onPrimary" style={{ fontWeight: "800" }}>
+                          {alert.severity.toUpperCase()}
+                        </AppText>
                       </View>
                     </View>
                   ))
@@ -403,7 +430,7 @@ export default function AdminDashboardScreen() {
               <View style={{ height: 40 }} />
             </>
           )}
-        </ScrollView>
+        </AppScreen>
       </AdminShell>
     </>
   );
@@ -428,11 +455,15 @@ function KPICard({
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: theme.textSecondary }]}>{title}</Text>
+        <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 }}>
+          {title}
+        </AppText>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>
-      <Text style={[styles.cardValue, { color: theme.text }]}>{value}</Text>
-      {hint ? <Text style={[styles.cardHint, { color: theme.textSecondary }]}>{hint}</Text> : null}
+      <AppText variant="title2" style={{ fontVariant: ["tabular-nums"] }}>{value}</AppText>
+      {hint ? (
+        <AppText variant="caption" color="secondary" style={{ marginTop: 6 }}>{hint}</AppText>
+      ) : null}
     </View>
   );
 }
@@ -462,12 +493,12 @@ function QuickLinkCard({
         <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.linkTitle, { color: theme.text }]}>{title}</Text>
-        <Text style={[styles.linkSub, { color: theme.textSecondary }]}>{subtitle}</Text>
+        <AppText variant="bodySm" style={{ fontWeight: "700" }}>{title}</AppText>
+        <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>{subtitle}</AppText>
       </View>
       {badge != null && badge > 0 ? (
         <View style={[styles.linkBadge, { backgroundColor: theme.error }]}>
-          <Text style={styles.linkBadgeText}>{badge}</Text>
+          <AppText variant="caption" color="onPrimary" style={{ fontWeight: "800" }}>{badge}</AppText>
         </View>
       ) : (
         <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
@@ -487,8 +518,8 @@ function StatItem({
 }) {
   return (
     <View style={styles.statItem}>
-      <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <AppText variant="title2" style={{ fontWeight: "700" }}>{value}</AppText>
+      <AppText variant="caption" color="secondary" style={{ marginTop: 4, textAlign: "center" }}>{label}</AppText>
     </View>
   );
 }
@@ -499,7 +530,7 @@ function LegendRow({ items }: { items: Array<{ color: string; label: string }> }
       {items.map((item) => (
         <View key={item.label} style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-          <Text style={styles.legendText}>{item.label}</Text>
+          <AppText variant="caption" color="secondary">{item.label}</AppText>
         </View>
       ))}
     </View>
@@ -507,18 +538,15 @@ function LegendRow({ items }: { items: Array<{ color: string; label: string }> }
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
+  adminScreen: {
+    flex: 1,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
+  },
+  skeletonStack: { gap: 12, marginTop: 8 },
   scrollContent: { paddingBottom: 32 },
   heroRow: { marginBottom: 16 },
-  heroTitle: { fontSize: 22, fontWeight: "700", letterSpacing: -0.3 },
-  heroSub: { fontSize: 13, marginTop: 4 },
-  errorBanner: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  errorBannerText: { fontSize: 13, lineHeight: 18 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 12 },
   card: {
     flex: 1,
@@ -533,9 +561,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  cardTitle: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
-  cardValue: { fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  cardHint: { fontSize: 11, marginTop: 6 },
   linkCard: {
     flex: 1,
     minWidth: 160,
@@ -548,10 +573,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" && ({ cursor: "pointer" } as any)),
   },
   linkIconWrap: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  linkTitle: { fontSize: 14, fontWeight: "700" },
-  linkSub: { fontSize: 12, marginTop: 2 },
   linkBadge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  linkBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
   section: {
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
@@ -559,23 +581,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 16 },
   statsRow: { flexDirection: "row", justifyContent: "space-around" },
   statItem: { alignItems: "center", flex: 1 },
-  statValue: { fontSize: 20, fontWeight: "700" },
-  statLabel: { fontSize: 11, marginTop: 4, textAlign: "center" },
-  emptyState: { alignItems: "center", padding: 24 },
   alertRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
-  alertUser: { fontWeight: "700", fontSize: 15 },
-  alertReason: { fontSize: 13, marginTop: 2, fontWeight: "600" },
-  alertDetails: { fontSize: 12, marginTop: 2 },
   severityBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 },
-  severityText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   liveDot: { width: 8, height: 8, borderRadius: 4 },
   legendRow: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11, color: "#888" },
   tooltip: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,

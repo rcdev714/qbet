@@ -1,3 +1,7 @@
 {
-  "generic": "Something went wrong. Please try again."
+  "generic": "Something went wrong. Please try again.",
+  "title": "Error",
+  "actionFailed": "Action failed",
+  "networkError": "Network error. Check your connection and try again.",
+  "retry": "Retry"
 }

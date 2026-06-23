@@ -1,4 +1,5 @@
 import { SEO } from '@/components/SEO';
+import { Brand, Marketing } from '@/constants/theme';
 import type { ComplianceJurisdiction } from '@/lib/compliance/jurisdiction';
 import { getJurisdictionDisclaimer, getJurisdictionLabel } from '@/lib/compliance/jurisdiction';
 import { getPolicyDocuments, POLICY_ROUTE_ORDER, policyRouteWithJurisdiction } from '@/lib/legal/policy-content';
@@ -10,13 +11,13 @@ import React from 'react';
 import { Animated, Easing, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { WhatsAppContactLink } from '../components/WhatsAppContactLink';
 
-const BRAND_DARK_BG = '#030712';
-const BRAND_DARK_BORDER = 'rgba(255, 255, 255, 0.08)';
-const BRAND_ACCENT_BLUE = '#4F46E5'; // Premium Indigo
-const BRAND_PRIMARY = '#3B82F6'; // Premium Blue
-const BRAND_EMERALD = '#10B981'; // Premium Emerald Green
-const TEXT_MUTED = '#94A3B8';
-const TEXT_LINK = '#93C5FD';
+const BRAND_DARK_BG = Marketing.heroBackground;
+const BRAND_DARK_BORDER = Marketing.heroBorder;
+const BRAND_ACCENT_BLUE = Brand.primary;
+const BRAND_PRIMARY = Brand.primary;
+const BRAND_EMERALD = Brand.success;
+const TEXT_MUTED = Marketing.textMuted;
+const TEXT_LINK = Marketing.textLink;
 
 const EXAMPLE_MARKETS = [
   {

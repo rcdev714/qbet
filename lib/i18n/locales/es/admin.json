@@ -60,6 +60,7 @@
   "usersLabel": "usuarios",
   "fraudMonitor": "Monitor de fraude",
   "noFraudAlerts": "No se detectó actividad sospechosa.",
+  "noChartData": "No hay datos disponibles",
   "transactionsLinkSub": "Libro mayor con filtros",
   "reportsLinkSub": "{{count}} reportes abiertos",
   "searchTransactions": "Buscar usuario, referencia o ID…",

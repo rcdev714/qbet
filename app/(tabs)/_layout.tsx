@@ -5,6 +5,11 @@ import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import {
+    DESKTOP_BREAKPOINT,
+    SIDEBAR_WIDTH_COLLAPSED,
+    SIDEBAR_WIDTH_EXPANDED
+} from '@/constants/layout';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { isAppAdmin } from '@/lib/admin';
@@ -12,9 +17,6 @@ import { useTranslation } from 'react-i18next';
 
 const ICON_SIZE = Platform.OS === 'ios' ? 22 : 32;
 const AVATAR_SIZE = Platform.OS === 'ios' ? 22 : 32;
-const DESKTOP_BREAKPOINT = 900;
-const SIDEBAR_EXPANDED_WIDTH = 248;
-const SIDEBAR_COLLAPSED_WIDTH = 84;
 
 function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { theme: colors } = useTheme();
@@ -51,7 +53,7 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
       style={[
         styles.sidebar,
         {
-          width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
+          width: isCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
           backgroundColor: colors.background,
           borderRightColor: colors.border,
         },

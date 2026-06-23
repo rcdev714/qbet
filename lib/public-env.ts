@@ -8,6 +8,7 @@ type PublicEnvExtra = {
   adminEmail?: string;
   launchJurisdiction?: string;
   betaRequired?: string;
+  sentryDsn?: string;
 };
 
 function readExtra(): PublicEnvExtra {
@@ -25,9 +26,11 @@ export function getPublicEnv() {
       "https://anymarket.expo.app"
     ).replace(/\/$/, ""),
     supabaseUrl:
-      extra.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || "",
+      extra.supabaseUrl ||
+      (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_URL || "" : ""),
     supabaseAnonKey:
-      extra.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_KEY || "",
+      extra.supabaseAnonKey ||
+      (__DEV__ ? process.env.EXPO_PUBLIC_SUPABASE_KEY || "" : ""),
     stripePublishableKey:
       extra.stripePublishableKey ||
       process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
@@ -44,5 +47,13 @@ export function getPublicEnv() {
       "true",
     debugLogs:
       process.env.EXPO_PUBLIC_DEBUG_LOGS === "true",
+    sentryDsn:
+      extra.sentryDsn ||
+      process.env.EXPO_PUBLIC_SENTRY_DSN ||
+      "",
+    sentryEnabled:
+      Boolean(extra.sentryDsn || process.env.EXPO_PUBLIC_SENTRY_DSN),
+    sentryDevEnabled:
+      process.env.EXPO_PUBLIC_SENTRY_DEV === "true",
   };
 }

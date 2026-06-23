@@ -71,8 +71,13 @@ UI gates are informational. **Postgres RPCs + `assert_compliance_gate` are autho
 psql "$DATABASE_URL" -f supabase/tests/security_boundary_hardening.sql
 ```
 
+## Error monitoring (Sentry)
+
+Client errors and structured logs are sent to Sentry when `EXPO_PUBLIC_SENTRY_DSN` is configured. PII (email, phone, tokens) is scrubbed in `beforeSend`. Session replay masks all text inputs. Edge functions optionally forward ERROR-level logs when `SENTRY_DSN` is set in Supabase secrets. See [ui-system.md](./ui-system.md).
+
 ## Related docs
 
+- [ui-system.md](./ui-system.md) — design tokens, primitives, a11y, motion, Sentry logging rules
 - [multi-jurisdiction-compliance.md](./multi-jurisdiction-compliance.md)
 - [ecuador-compliance-framework.md](./ecuador-compliance-framework.md)
 - [deploy-bet-contract-email.md](./deploy-bet-contract-email.md)

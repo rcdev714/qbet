@@ -83,11 +83,12 @@ npm run deploy:web:prod
 
 This runs:
 
-1. `npx eas env:exec production "npm run check:web:prod"`
+1. `EXPO_NO_DOTENV=1 npx eas env:exec production "npm run check:web:prod"` (prevents local `.env` from inlining `127.0.0.1:54321`)
    - `tsc --noEmit`
    - `expo lint`
    - `expo export --platform web` → `dist/`
-2. `eas deploy --prod --environment production --export-dir dist`
+2. `bash scripts/check-prod-export-env.sh` (fails if bundle still references local Supabase)
+3. `eas deploy --prod --environment production --export-dir dist`
 
 ### Granular commands
 

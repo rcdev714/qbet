@@ -1,5 +1,6 @@
 import * as Linking from "expo-linking";
 import { Platform } from "react-native";
+import { normalizeAuthEmail } from "../lib/auth-errors";
 import { supabase } from "../lib/supabase";
 import type { User } from "../types/user";
 import { walletService } from "./wallet.service";
@@ -39,7 +40,7 @@ export const authService = {
   ): Promise<{ user: User | null; error: Error | null }> {
     try {
       const { error: authError } = await supabase.auth.signUp({
-        email: data.email,
+        email: normalizeAuthEmail(data.email),
         password: data.password,
         options: {
           emailRedirectTo: getAuthRedirectUrl(),
@@ -69,7 +70,7 @@ export const authService = {
   ): Promise<{ user: User | null; error: Error | null }> {
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
+        email: normalizeAuthEmail(data.email),
         password: data.password,
       });
 

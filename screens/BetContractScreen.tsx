@@ -1,3 +1,8 @@
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Brand } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { BetContractDiagnosis } from "@/lib/bet-contract-diagnostics";
@@ -12,19 +17,16 @@ import {
 } from "@/lib/legal/bet-contract-document";
 import { getPublicEnv } from "@/lib/public-env";
 import { getParamString } from "@/lib/route-params";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { betContractService } from "@/services/betContract.service";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
     Linking,
     Platform,
-    SafeAreaView,
-    ScrollView,
     Share,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -40,6 +42,7 @@ export function BetContractScreen() {
   const params = useLocalSearchParams<{ betId: string }>();
   const betId = getParamString(params.betId);
   const { theme } = useTheme();
+  const { t } = useTranslation("contract");
   const [contract, setContract] = useState<BetContractRecord | null>(null);
   const [diagnosis, setDiagnosis] = useState<BetContractDiagnosis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +62,7 @@ export function BetContractScreen() {
   const loadContract = useCallback(async () => {
     if (!betId) {
       setLoading(false);
-      setLoadError("Missing bet id in route.");
+      setLoadError(t("missingBetId"));
       return;
     }
 
@@ -78,7 +81,7 @@ export function BetContractScreen() {
           : `${result.diagnosis?.reason ?? "unknown"} (${result.durationMs}ms)`,
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load wager agreement.";
+      const message = error instanceof Error ? error.message : t("loadErrorBody");
       setLoadError(message);
       setContract(null);
       setDiagnosis(null);
@@ -86,7 +89,7 @@ export function BetContractScreen() {
     } finally {
       setLoading(false);
     }
-  }, [betId, pushDebug]);
+  }, [betId, pushDebug, t]);
 
   useEffect(() => {
     void loadContract();
@@ -113,7 +116,7 @@ export function BetContractScreen() {
           printWindow.print();
           pushDebug("pdf.web_print");
         } else {
-          Alert.alert("Download blocked", "Allow pop-ups to print or save the contract as PDF.");
+          showAppAlertRaw(t("downloadBlockedTitle"), t("downloadBlockedBody"));
           pushDebug("pdf.blocked", "popup-blocked");
         }
         return;
@@ -129,13 +132,13 @@ export function BetContractScreen() {
           UTI: "com.adobe.pdf",
         });
       } else {
-        Alert.alert("Saved", `Contract PDF saved to ${uri}`);
+        showAppAlertRaw(t("savedTitle"), t("savedBody", { uri }));
       }
       pushDebug("pdf.native_success", uri);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not generate PDF.";
+      const message = error instanceof Error ? error.message : t("loadErrorBody");
       pushDebug("pdf.error", message);
-      Alert.alert("Download failed", message);
+      showAppAlertRaw(t("downloadFailedTitle"), message);
     } finally {
       setDownloading(false);
     }
@@ -154,17 +157,15 @@ export function BetContractScreen() {
         result.skipped ? "email.skipped" : "email.sent",
         result.emailId ?? result.sentAt,
       );
-      Alert.alert(
-        result.skipped ? "Already sent" : "Email sent",
-        result.skipped
-          ? "This contract email was already delivered."
-          : "Check your inbox for the wager agreement.",
+      showAppAlertRaw(
+        result.skipped ? t("emailAlreadySentTitle") : t("emailSentTitle"),
+        result.skipped ? t("emailAlreadySentBody") : t("emailSentBody"),
       );
       await loadContract();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not send email.";
+      const message = error instanceof Error ? error.message : t("loadErrorBody");
       pushDebug("email.error", message);
-      Alert.alert("Email failed", message);
+      showAppAlertRaw(t("emailFailedTitle"), message);
     } finally {
       setSending(null);
     }
@@ -193,7 +194,7 @@ export function BetContractScreen() {
     const text = JSON.stringify(payload, null, 2);
     if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
       await navigator.clipboard.writeText(text);
-      Alert.alert("Copied", "Debug info copied to clipboard.");
+      showAppAlertRaw(t("copiedTitle"), t("copiedBody"));
       return;
     }
     await Share.share({ message: text });
@@ -201,60 +202,54 @@ export function BetContractScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.center, { backgroundColor: theme.background }]}>
-        <ActivityIndicator color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-          Loading wager agreement…
-        </Text>
-      </SafeAreaView>
+      <AppScreen testID="contract-root" maxWidth="narrow" style={{ gap: 16 }}>
+        <AppSkeleton variant="text" width="70%" height={28} />
+        <AppSkeleton variant="text" width="50%" />
+        <AppSkeleton variant="card" height={120} />
+        <AppSkeleton variant="card" height={160} />
+      </AppScreen>
     );
   }
 
   if (loadError) {
     return (
-      <SafeAreaView style={[styles.centerPad, { backgroundColor: theme.background }]}>
-        <Text style={[styles.emptyTitle, { color: theme.text }]}>Could not load agreement</Text>
-        <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>{loadError}</Text>
-        <TouchableOpacity onPress={() => void loadContract()} style={styles.retryButton}>
-          <Text style={{ color: theme.primary, fontWeight: "600" }}>Retry</Text>
-        </TouchableOpacity>
+      <AppScreen testID="contract-root" maxWidth="narrow" style={styles.centerPad}>
+        <AppText variant="title2" style={{ textAlign: "center" }}>{t("loadError")}</AppText>
+        <ErrorBanner message={loadError} onRetry={() => void loadContract()} retryLabel={t("retry")} />
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 12 }}>
-          <Text style={{ color: theme.textSecondary }}>Go back</Text>
+          <AppText color="secondary">{t("goBack")}</AppText>
         </TouchableOpacity>
-      </SafeAreaView>
+      </AppScreen>
     );
   }
 
   if (!contract) {
     return (
-      <SafeAreaView style={[styles.centerPad, { backgroundColor: theme.background }]}>
-        <Text style={[styles.emptyTitle, { color: theme.text }]}>
-          {diagnosis?.title ?? "Wager agreement not found"}
-        </Text>
-        <Text style={[styles.emptyBody, { color: theme.textSecondary }]}>
-          {diagnosis?.message ??
-            "Live private group bets generate wallet-tied wager agreements. This bet does not have one."}
-        </Text>
-        {diagnosis?.canRetry ? (
-          <TouchableOpacity onPress={() => void loadContract()} style={styles.retryButton}>
-            <Text style={{ color: theme.primary, fontWeight: "600" }}>Retry</Text>
-          </TouchableOpacity>
-        ) : null}
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 12 }}>
-          <Text style={{ color: theme.textSecondary }}>Go back</Text>
+      <AppScreen testID="contract-root" maxWidth="narrow" style={styles.centerPad}>
+        <EmptyState
+          icon="document-text-outline"
+          title={diagnosis?.title ?? t("emptyTitle")}
+          description={diagnosis?.message ?? t("emptyBody")}
+          actionLabel={diagnosis?.canRetry ? t("retry") : undefined}
+          onAction={diagnosis?.canRetry ? () => void loadContract() : undefined}
+        />
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 12, alignSelf: "center" }}>
+          <AppText color="secondary">{t("goBack")}</AppText>
         </TouchableOpacity>
         {showDebugPanel && diagnosis ? (
           <View style={[styles.debugPanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <Text style={[styles.debugTitle, { color: theme.textSecondary }]}>DEBUG</Text>
-            <Text style={[styles.debugBody, { color: theme.text }]}>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", letterSpacing: 0.5 }}>
+              {t("debug")}
+            </AppText>
+            <AppText variant="caption" style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}>
               {betContractService.formatDiagnosisForDebug(diagnosis)}
-            </Text>
+            </AppText>
             <TouchableOpacity onPress={() => void handleCopyDebug()}>
-              <Text style={{ color: theme.primary, marginTop: 8 }}>Copy debug info</Text>
+              <AppText color="primary" style={{ marginTop: 8 }}>{t("copyDebug")}</AppText>
             </TouchableOpacity>
           </View>
         ) : null}
-      </SafeAreaView>
+      </AppScreen>
     );
   }
 
@@ -263,136 +258,143 @@ export function BetContractScreen() {
   const appUrl = getPublicEnv().appUrl ?? "https://anymarket.expo.app";
 
   return (
-    <SafeAreaView testID="contract-root" style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <AppScreen testID="contract-root" maxWidth="narrow" scroll scrollProps={{ contentContainerStyle: styles.content }}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backRow}>
-          <Text style={{ color: theme.primary, fontSize: 16 }}>← Back</Text>
+          <AppText color="primary" style={{ fontSize: 16 }}>{t("back")}</AppText>
         </TouchableOpacity>
 
-        <Text style={[styles.title, { color: theme.text }]}>Wager Agreement</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+        <AppText variant="display" style={{ marginBottom: 4 }}>{t("title")}</AppText>
+        <AppText variant="bodySm" color="secondary" style={{ marginBottom: 12 }}>
           {snapshot.contractNumber} · {contract.jurisdiction}
-        </Text>
+        </AppText>
 
         <View style={styles.statusRow}>
           <EmailStatus
             testID="contract-email-placed"
-            label="Placed email"
+            label={t("placedEmail")}
             sentAt={contract.placed_email_sent_at}
             theme={theme}
+            t={t}
           />
           <EmailStatus
             testID="contract-email-resolved"
-            label="Settlement email"
+            label={t("settlementEmail")}
             sentAt={contract.resolved_email_sent_at}
             theme={theme}
             pending={!resolution}
+            t={t}
           />
         </View>
 
-        <Section title="Wallet & Bettor" theme={theme}>
-          <Row label="Bettor" value={snapshot.bettor.username} theme={theme} />
-          <Row label="Wallet ID" value={snapshot.wallet.walletId} theme={theme} />
+        <Section title={t("sectionWallet")} theme={theme}>
+          <Row label={t("bettor")} value={snapshot.bettor.username} theme={theme} />
+          <Row label={t("walletId")} value={snapshot.wallet.walletId} theme={theme} />
           <Row
-            label="Debit"
+            label={t("debit")}
             value={`${snapshot.wallet.debitAmount} ${snapshot.wallet.currency}`}
             theme={theme}
           />
         </Section>
 
-        <Section title="Market Position" theme={theme}>
-          <Text style={[styles.question, { color: theme.text }]}>{snapshot.market.question}</Text>
+        <Section title={t("sectionMarket")} theme={theme}>
+          <AppText variant="title3" style={{ marginBottom: 4 }}>{snapshot.market.question}</AppText>
           <Row
-            label="Option"
+            label={t("option")}
             value={`${snapshot.position.optionLabel} (${snapshot.position.side.toUpperCase()})`}
             theme={theme}
           />
-          <Row label="Stake" value={`${snapshot.position.amount}`} theme={theme} />
+          <Row label={t("stake")} value={`${snapshot.position.amount}`} theme={theme} />
           <Row
-            label="Placed"
+            label={t("placed")}
             value={new Date(snapshot.position.placedAt).toLocaleString()}
             theme={theme}
           />
         </Section>
 
         {snapshot.group ? (
-          <Section title="Group Pool Context" theme={theme}>
-            <Row label="Group" value={snapshot.group.name} theme={theme} />
-            <Row label="Admin" value={snapshot.group.adminUsername ?? "—"} theme={theme} />
-            <Row label="Participants" value={String(snapshot.group.memberCount)} theme={theme} />
+          <Section title={t("sectionGroup")} theme={theme}>
+            <Row label={t("group")} value={snapshot.group.name} theme={theme} />
+            <Row label={t("admin")} value={snapshot.group.adminUsername ?? "—"} theme={theme} />
+            <Row label={t("participants")} value={String(snapshot.group.memberCount)} theme={theme} />
           </Section>
         ) : null}
 
-        <Section title="Legal Framework" theme={theme}>
+        <Section title={t("sectionLegal")} theme={theme}>
           {(snapshot.legal.disclaimers ?? []).map((item) => (
-            <Text key={item} style={[styles.body, { color: theme.textSecondary }]}>
+            <AppText key={item} variant="bodySm" color="secondary" style={{ lineHeight: 20 }}>
               • {item}
-            </Text>
+            </AppText>
           ))}
           {(snapshot.legal.acceptedPolicies ?? []).map((policy) => (
             <TouchableOpacity
               key={`${policy.kind}-${policy.version}`}
               onPress={() => Linking.openURL(`${appUrl}${policy.url ?? "/terms"}`)}
             >
-              <Text style={[styles.link, { color: theme.primary }]}>
+              <AppText variant="bodySm" color="primary" style={{ marginTop: 4 }}>
                 {policy.title} ({policy.version})
-              </Text>
+              </AppText>
             </TouchableOpacity>
           ))}
         </Section>
 
         {resolution ? (
-          <Section title="Settlement" theme={theme}>
-            <Row label="Outcome" value={resolution.outcome.toUpperCase()} theme={theme} />
-            <Row label="Winner" value={resolution.winningOptionLabel ?? "—"} theme={theme} />
-            <Row label="Payout" value={String(resolution.payoutAmount)} theme={theme} />
+          <Section title={t("sectionSettlement")} theme={theme}>
+            <Row label={t("outcome")} value={resolution.outcome.toUpperCase()} theme={theme} />
+            <Row label={t("winner")} value={resolution.winningOptionLabel ?? "—"} theme={theme} />
+            <Row label={t("payout")} value={String(resolution.payoutAmount)} theme={theme} />
           </Section>
         ) : null}
 
         <View style={styles.actions}>
           <ActionButton
-            label={downloading ? "Preparing PDF..." : "Download PDF"}
+            label={downloading ? t("pdfPreparing") : t("downloadPdf")}
             onPress={() => void handleDownloadPdf()}
             disabled={downloading}
             theme={theme}
           />
           <ActionButton
-            label={sending === "placed" ? "Sending..." : "Email Agreement"}
+            label={sending === "placed" ? t("sending") : t("emailAgreement")}
             onPress={() => void handleSendEmail("placed")}
             disabled={sending !== null}
             theme={theme}
           />
           {resolution ? (
             <ActionButton
-              label={sending === "resolved" ? "Sending..." : "Email Settlement"}
+              label={sending === "resolved" ? t("sending") : t("emailSettlement")}
               onPress={() => void handleSendEmail("resolved")}
               disabled={sending !== null}
               theme={theme}
             />
           ) : null}
-          <ActionButton label="Share Summary" onPress={() => void handleShareText()} theme={theme} secondary />
+          <ActionButton label={t("shareSummary")} onPress={() => void handleShareText()} theme={theme} secondary />
         </View>
 
         {showDebugPanel ? (
           <View style={[styles.debugPanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <Text style={[styles.debugTitle, { color: theme.textSecondary }]}>DEBUG LOG</Text>
-            <Text style={[styles.debugBody, { color: theme.text }]}>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", letterSpacing: 0.5 }}>
+              {t("debugLog")}
+            </AppText>
+            <AppText variant="caption" style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}>
               betId: {betId}
               {"\n"}contractId: {contract.id}
-            </Text>
+            </AppText>
             {debugLog.map((entry) => (
-              <Text key={`${entry.at}-${entry.action}`} style={[styles.debugLine, { color: theme.textSecondary }]}>
+              <AppText
+                key={`${entry.at}-${entry.action}`}
+                variant="caption"
+                color="secondary"
+                style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
+              >
                 {entry.at} · {entry.action}
                 {entry.detail ? ` · ${entry.detail}` : ""}
-              </Text>
+              </AppText>
             ))}
             <TouchableOpacity onPress={() => void handleCopyDebug()}>
-              <Text style={{ color: theme.primary, marginTop: 8 }}>Copy debug info</Text>
+              <AppText color="primary" style={{ marginTop: 8 }}>{t("copyDebug")}</AppText>
             </TouchableOpacity>
           </View>
         ) : null}
-      </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -402,23 +404,27 @@ function EmailStatus({
   pending,
   theme,
   testID,
+  t,
 }: {
   label: string;
   sentAt: string | null;
   pending?: boolean;
   theme: ReturnType<typeof useTheme>["theme"];
   testID?: string;
+  t: ReturnType<typeof useTranslation>["t"];
 }) {
-  let status = pending ? "Pending resolution" : "Not sent";
+  let status = pending ? t("pendingResolution") : t("notSent");
   let color = theme.textSecondary;
   if (sentAt) {
-    status = `Sent ${new Date(sentAt).toLocaleString()}`;
+    status = t("sentAt", { date: new Date(sentAt).toLocaleString() });
     color = "#059669";
   }
   return (
     <View style={styles.statusChip} testID={testID}>
-      <Text style={[styles.statusLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.statusValue, { color }]}>{status}</Text>
+      <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
+        {label}
+      </AppText>
+      <AppText variant="bodySm" style={{ color }}>{status}</AppText>
     </View>
   );
 }
@@ -434,7 +440,9 @@ function Section({
 }) {
   return (
     <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title.toUpperCase()}</Text>
+      <AppText variant="label" color="secondary" style={{ letterSpacing: 0.6, marginBottom: 4, textTransform: "uppercase" }}>
+        {title}
+      </AppText>
       {children}
     </View>
   );
@@ -451,8 +459,8 @@ function Row({
 }) {
   return (
     <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.rowValue, { color: theme.text }]}>{value}</Text>
+      <AppText variant="bodySm" color="secondary" style={{ flex: 1 }}>{label}</AppText>
+      <AppText variant="bodySm" style={{ flex: 1.2, textAlign: "right", fontWeight: "600" }}>{value}</AppText>
     </View>
   );
 }
@@ -482,9 +490,9 @@ function ActionButton({
         disabled ? { opacity: 0.6 } : null,
       ]}
     >
-      <Text style={{ color: secondary ? theme.text : "#fff", fontWeight: "600", textAlign: "center" }}>
+      <AppText style={{ color: secondary ? theme.text : "#fff", fontWeight: "600", textAlign: "center" }}>
         {label}
-      </Text>
+      </AppText>
     </TouchableOpacity>
   );
 }
@@ -494,21 +502,11 @@ function isDarkSurface(theme: ReturnType<typeof useTheme>["theme"]) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
-  centerPad: { flex: 1, justifyContent: "center", padding: 24, gap: 10 },
-  loadingText: { fontSize: 14 },
-  emptyTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
-  emptyBody: { fontSize: 15, lineHeight: 22, textAlign: "center" },
-  retryButton: { marginTop: 16, paddingVertical: 8 },
-  content: { padding: 20, paddingBottom: 40 },
+  centerPad: { flex: 1, justifyContent: "center", gap: 10 },
+  content: { paddingBottom: 40 },
   backRow: { marginBottom: 12 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
-  subtitle: { fontSize: 14, marginBottom: 12 },
   statusRow: { gap: 8, marginBottom: 16 },
   statusChip: { gap: 2 },
-  statusLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
-  statusValue: { fontSize: 13 },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
@@ -516,13 +514,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 8,
   },
-  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.6, marginBottom: 4 },
-  question: { fontSize: 17, fontWeight: "600", marginBottom: 4 },
-  body: { fontSize: 14, lineHeight: 20 },
-  link: { fontSize: 14, marginTop: 4 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  rowLabel: { fontSize: 14, flex: 1 },
-  rowValue: { fontSize: 14, fontWeight: "600", flex: 1.2, textAlign: "right" },
   actions: { gap: 10, marginTop: 8 },
   button: {
     borderRadius: 12,
@@ -537,7 +529,4 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 6,
   },
-  debugTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
-  debugBody: { fontSize: 12, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-  debugLine: { fontSize: 11, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
 });

@@ -1,8 +1,10 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const path = require("path");
 
 const projectRoot = __dirname;
-const config = getDefaultConfig(projectRoot);
+const defaultConfig = getDefaultConfig(projectRoot);
+const config = getSentryExpoConfig(projectRoot, defaultConfig);
 
 // Async route chunks on web can bundle their own React/context copies.
 // Force a single module instance for core React packages.

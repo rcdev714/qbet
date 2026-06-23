@@ -1,0 +1,15 @@
+{
+  "title": "Market",
+  "notFound": "Market not found",
+  "placeBet": "Place bet",
+  "opening": "Opening market…",
+  "betDistribution": "Bet Distribution",
+  "loadingActivity": "Loading market activity…",
+  "noBetsYet": "No bets yet",
+  "beFirstToPredict": "Be the first to make a prediction",
+  "probabilityHistory": "Probability history",
+  "totalPool": "{{amount}} total",
+  "noBetsOnOption": "No bets on this option",
+  "participants_one": "{{count}} participant",
+  "participants_other": "{{count}} participants"
+}

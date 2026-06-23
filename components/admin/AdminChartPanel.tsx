@@ -1,6 +1,8 @@
+import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export type ChartRange = 7 | 14 | 30;
 
@@ -26,18 +28,20 @@ export function AdminChartPanel({
   headerRight,
   footer,
   empty,
-  emptyMessage = "No data available",
+  emptyMessage,
   children,
 }: AdminChartPanelProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation("admin");
+  const resolvedEmptyMessage = emptyMessage ?? t("noChartData");
 
   return (
     <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+          <AppText variant="title3" style={{ color: theme.text }}>{title}</AppText>
           {subtitle ? (
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
+            <AppText variant="bodySm" color="secondary" style={{ marginTop: 4 }}>{subtitle}</AppText>
           ) : null}
         </View>
         <View style={styles.headerActions}>
@@ -56,14 +60,9 @@ export function AdminChartPanel({
                     ]}
                     activeOpacity={0.85}
                   >
-                    <Text
-                      style={[
-                        styles.rangeLabel,
-                        { color: active ? theme.primary : theme.textSecondary },
-                      ]}
-                    >
+                    <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: "700" }}>
                       {option}D
-                    </Text>
+                    </AppText>
                   </TouchableOpacity>
                 );
               })}
@@ -74,7 +73,7 @@ export function AdminChartPanel({
 
       {empty ? (
         <View style={styles.empty}>
-          <Text style={{ color: theme.textSecondary }}>{emptyMessage}</Text>
+          <AppText variant="bodySm" color="secondary">{resolvedEmptyMessage}</AppText>
         </View>
       ) : (
         <View style={styles.chartSlot}>{children}</View>

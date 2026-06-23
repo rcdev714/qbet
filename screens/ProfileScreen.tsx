@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { ImagePickerAsset } from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ReportContentButton } from "../components/moderation/ReportContentButton";
 import { PlayStatsView } from "../components/play-mode/PlayStatsView";
 import { AuraScoreModal } from "../components/profile/AuraScoreModal";
@@ -14,11 +14,13 @@ import { ProfileTab, ProfileTabs } from "../components/profile/ProfileTabs";
 import { SettingsModal } from "../components/profile/SettingsModal";
 import { StatsView } from "../components/profile/StatsView";
 import { SEO } from "../components/SEO";
+import { AppText, EmptyState } from "@/components/ui";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { isAppAdmin } from "../lib/admin";
 import { supabase } from "../lib/supabase";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { moderationService } from "../services/moderation.service";
@@ -196,7 +198,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       
       const { isFollowing, error } = await socialService.toggleFollow(targetUserId);
       if (error) {
-          Alert.alert("Error", "Could not update follow status");
+          showAppAlertRaw("Error", "Could not update follow status");
       } else {
           // Update local state
           if (viewedUser) {
@@ -251,7 +253,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
         });
 
         if (inviteError || !invite) {
-             Alert.alert("Error", "Group created but failed to generate invite code.");
+             showAppAlertRaw("Error", "Group created but failed to generate invite code.");
         }
 
         // 3. Navigate to Group (User is already admin/member)
@@ -263,7 +265,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
         // We've done that.
         
       } catch (err: any) {
-          Alert.alert("Error", err.message || "Failed to start chat");
+          showAppAlertRaw("Error", err.message || "Failed to start chat");
       }
   };
 
@@ -276,7 +278,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       .eq("id", currentUser.id);
       
     if (error) {
-        Alert.alert("Error", "Username might be taken.");
+        showAppAlertRaw("Error", "Username might be taken.");
         throw error;
     }
     await refreshUser();
@@ -306,7 +308,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
         await refreshUser();
         loadData();
       } catch (err: any) {
-          Alert.alert("Error", err.message || "Failed to update avatar");
+          showAppAlertRaw("Error", err.message || "Failed to update avatar");
       }
   };
 
@@ -342,16 +344,16 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-             <Text style={[styles.iconText, { color: theme.text }]}>←</Text>
+             <AppText variant="title1">←</AppText>
         </TouchableOpacity>
         
-        <Text style={[styles.screenTitle, { color: theme.text }]}>
+        <AppText variant="title3">
             {viewedUser?.username || "Profile"}
-        </Text>
+        </AppText>
         
         {isOwnProfile ? (
             <TouchableOpacity onPress={handleOpenSettings} style={styles.iconButton}>
-                 <Text style={[styles.iconText, { color: theme.text }]}>⚙️</Text>
+                 <AppText variant="title1">⚙️</AppText>
             </TouchableOpacity>
         ) : (
             <View style={{ width: 40 }} /> // Spacer to balance back button
@@ -380,8 +382,8 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
             }}
             onPress={() => router.push("/admin-dashboard" as any)}
         >
-            <Text style={{ marginRight: 8 }}>🛡️</Text>
-            <Text style={{ color: theme.text, fontWeight: "600" }}>Admin Dashboard</Text>
+            <AppText style={{ marginRight: 8 }}>🛡️</AppText>
+            <AppText variant="body" style={{ fontWeight: "600" }}>Admin Dashboard</AppText>
         </TouchableOpacity>
       )}
 
@@ -426,7 +428,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
                   onPress={handleBlockUser}
                   style={[styles.blockButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
                 >
-                  <Text style={[styles.blockButtonText, { color: theme.error }]}>Block user</Text>
+                  <AppText variant="label" color="destructive">Block user</AppText>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -438,9 +440,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
               isPlayMode ? <PlayStatsView userId={targetUserId} /> : <StatsView stats={stats} bets={bets} />
             ) : (
                 getFilteredBets().length === 0 ? (
-                    <View style={{ padding: 40, alignItems: 'center' }}>
-                        <Text style={{ color: theme.textSecondary }}>No bets found.</Text>
-                    </View>
+                    <EmptyState icon="ticket-outline" title="No bets found." />
                 ) : null
             )
         }

@@ -1,19 +1,20 @@
 import { Brand } from "@/constants/theme";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Dimensions,
     Platform,
-    SafeAreaView,
-    ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
-import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { PlayBetDetailView } from "../components/play-mode/PlayBetDetailView";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
@@ -67,6 +68,7 @@ export function BetDetailScreen() {
   const marketId = getParamString(params.id) ?? null;
   const { market, options, loading: marketLoading } = useMarket(marketId);
   const { theme, isDark } = useTheme();
+  const { t } = useTranslation("market");
   const { isPlayMode } = useWalletContext();
   const [bets, setBets] = useState<BetWithUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,21 +157,29 @@ export function BetDetailScreen() {
 
   if (loading || marketLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        <AnyMarketLoader message="Loading market activity..." />
-      </SafeAreaView>
+        <AppScreen maxWidth="narrow" style={{ gap: 16 }}>
+          <AppSkeleton variant="text" width="50%" height={20} />
+          <AppSkeleton variant="text" width="90%" height={28} />
+          <AppSkeleton variant="card" height={180} />
+          <AppSkeleton variant="row" />
+          <AppSkeleton variant="row" />
+        </AppScreen>
+      </>
     );
   }
 
   if (!market) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        <View style={styles.centerContainer}>
-          <Text style={[styles.errorText, { color: theme.error }]}>Market not found</Text>
-        </View>
-      </SafeAreaView>
+        <AppScreen maxWidth="narrow">
+          <View style={styles.centerContainer}>
+            <AppText variant="body" color="destructive">{t("notFound")}</AppText>
+          </View>
+        </AppScreen>
+      </>
     );
   }
 
@@ -222,27 +232,35 @@ export function BetDetailScreen() {
 
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+      <AppScreen maxWidth="narrow" scroll scrollProps={{ contentContainerStyle: styles.scrollContent, showsVerticalScrollIndicator: false }}>
         <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, { color: isPlayMode ? theme.primary : theme.success }]}>←</Text>
+            <AppText style={{ fontSize: 24, color: isPlayMode ? theme.primary : theme.success }}>←</AppText>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Bet Distribution</Text>
+          <AppText variant="title3">{t("betDistribution")}</AppText>
         </View>
 
-        {/* Market Question */}
         <View style={[styles.questionSection, { backgroundColor: theme.background }]}>
-          <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
+          <AppText variant="title2" style={{ letterSpacing: -0.5, lineHeight: 28, marginBottom: 12 }}>
+            {market.question}
+          </AppText>
           <View style={styles.metaRow}>
             <View style={[styles.statusBadge, market.status === "open" && { backgroundColor: isPlayMode ? '#E7F3FF' : '#E7FFE7' }]}>
-              <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? theme.primary : theme.success }]}>
+              <AppText
+                variant="caption"
+                style={{
+                  fontWeight: "600",
+                  color: market.status === "open" ? (isPlayMode ? theme.primary : theme.success) : theme.textSecondary,
+                }}
+              >
                 {(market.status || 'open').toUpperCase()}
-              </Text>
+              </AppText>
             </View>
-            <Text style={styles.poolText}>{formatCurrency(totalPool)} total</Text>
+            <AppText variant="bodySm" color="secondary">
+              {t("totalPool", { amount: formatCurrency(totalPool) })}
+            </AppText>
           </View>
         </View>
 
@@ -253,21 +271,29 @@ export function BetDetailScreen() {
             options={options.map(o => ({ id: o.id, label: o.label }))}
           />
         ) : bets.length === 0 ? (
-          <View style={styles.emptyState}>
-            {/* Removed Emoji */}
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No bets yet</Text>
-            <Text style={styles.emptySubtitle}>Be the first to make a prediction</Text>
-          </View>
+          <EmptyState
+            icon="analytics-outline"
+            title={t("noBetsYet")}
+            description={t("beFirstToPredict")}
+          />
         ) : (
           <>
             {/* Overview Section with Chart */}
             <View style={[styles.overviewSection, { backgroundColor: theme.surface }]}>
               <View style={styles.chartHeader}>
-                <Text style={styles.sectionLabel}>PROBABILITY HISTORY</Text>
+                <AppText variant="label" color="secondary" style={{ letterSpacing: 0.5, textTransform: "uppercase" }}>
+                  {t("probabilityHistory")}
+                </AppText>
                 <View style={[styles.statusBadge, market.status === "open" && { backgroundColor: isPlayMode ? '#E7F3FF' : '#E7FFE7' }]}>
-                  <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? theme.primary : theme.success }]}>
+                  <AppText
+                    variant="caption"
+                    style={{
+                      fontWeight: "600",
+                      color: market.status === "open" ? (isPlayMode ? theme.primary : theme.success) : theme.textSecondary,
+                    }}
+                  >
                     {(market.status || 'open').toUpperCase()}
-                  </Text>
+                  </AppText>
                 </View>
               </View>
 
@@ -307,9 +333,9 @@ export function BetDetailScreen() {
                           {items.map((item: any, idx: number) => (
                             <View key={idx} style={styles.pointerRow}>
                               <View style={[styles.pointerDot, { backgroundColor: item.color }]} />
-                              <Text style={[styles.pointerText, { color: theme.text }]}>
+                              <AppText variant="caption" style={{ fontWeight: "600" }}>
                                 {item.value.toFixed(1)}%
-                              </Text>
+                              </AppText>
                             </View>
                           ))}
                         </View>
@@ -323,12 +349,12 @@ export function BetDetailScreen() {
                 {optionGroups.map((group) => (
                   <View key={group.option.id} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: group.color }]} />
-                    <Text style={[styles.legendLabel, { color: theme.text }]} numberOfLines={1}>
+                    <AppText variant="caption" numberOfLines={1} style={{ flexShrink: 1 }}>
                       {group.option.label}
-                    </Text>
-                    <Text style={[styles.legendValue, { color: group.color }]}>
+                    </AppText>
+                    <AppText variant="caption" style={{ fontWeight: "600", color: group.color }}>
                       {group.percentage.toFixed(0)}%
-                    </Text>
+                    </AppText>
                   </View>
                 ))}
               </View>
@@ -340,13 +366,15 @@ export function BetDetailScreen() {
                 <View style={styles.optionHeader}>
                   <View style={styles.optionTitleRow}>
                     <View style={[styles.optionIndicator, { backgroundColor: group.color }]} />
-                    <Text style={[styles.optionLabel, { color: theme.text }]}>{group.option.label}</Text>
+                    <AppText variant="body" style={{ fontWeight: "600" }}>{group.option.label}</AppText>
                   </View>
-                  <Text style={[styles.optionTotal, { color: theme.text }]}>{formatCurrency(group.total)}</Text>
+                  <AppText variant="bodySm" style={{ fontWeight: "600" }}>{formatCurrency(group.total)}</AppText>
                 </View>
 
                 {group.bets.length === 0 ? (
-                  <Text style={styles.noBetsText}>No bets on this option</Text>
+                  <AppText variant="bodySm" color="secondary" style={{ fontStyle: "italic", textAlign: "center" }}>
+                    {t("noBetsOnOption")}
+                  </AppText>
                 ) : (
                   <View style={styles.barsContainer}>
                     {group.bets.map((bet) => {
@@ -355,9 +383,9 @@ export function BetDetailScreen() {
                         <View key={`${bet.userId}-${bet.optionId}`} style={styles.barRow}>
                           <View style={styles.barInfo}>
                             <View style={[styles.userDot, { backgroundColor: bet.color }]} />
-                            <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+                            <AppText variant="caption" numberOfLines={1} style={{ flex: 1 }}>
                               {bet.username}
-                            </Text>
+                            </AppText>
                           </View>
                           <View style={[styles.barWrapper, { backgroundColor: isDark ? theme.background : "#F2F2F7" }]}>
                             <View
@@ -367,7 +395,7 @@ export function BetDetailScreen() {
                               ]}
                             />
                           </View>
-                          <Text style={[styles.barAmount, { color: theme.text }]}>{formatCurrency(bet.totalAmount)}</Text>
+                          <AppText variant="caption">{formatCurrency(bet.totalAmount)}</AppText>
                         </View>
                       );
                     })}
@@ -378,9 +406,9 @@ export function BetDetailScreen() {
 
             {/* Participants List */}
             <View style={styles.participantsSection}>
-              <Text style={styles.sectionLabel}>
-                {new Set(bets.map((b) => b.user_id)).size} PARTICIPANT{new Set(bets.map((b) => b.user_id)).size !== 1 ? "S" : ""}
-              </Text>
+              <AppText variant="label" color="secondary" style={{ letterSpacing: 0.5, textTransform: "uppercase" }}>
+                {t("participants", { count: new Set(bets.map((b) => b.user_id)).size })}
+              </AppText>
               <View style={[styles.participantsList, { backgroundColor: theme.surface }]}>
                 {Array.from(userColorMap.entries()).map(([userId, color]) => {
                   const userBet = bets.find((b) => b.user_id === userId);
@@ -392,8 +420,8 @@ export function BetDetailScreen() {
                   return (
                     <View key={userId} style={[styles.participantRow, { borderBottomColor: theme.border }]}>
                       <View style={[styles.participantDot, { backgroundColor: color }]} />
-                      <Text style={[styles.participantName, { color: theme.text }]}>{username}</Text>
-                      <Text style={[styles.participantAmount, { color: theme.text }]}>{formatCurrency(userTotal)}</Text>
+                      <AppText variant="body">{username}</AppText>
+                      <AppText variant="body">{formatCurrency(userTotal)}</AppText>
                     </View>
                   );
                 })}
@@ -401,8 +429,8 @@ export function BetDetailScreen() {
             </View>
           </>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </AppScreen>
+    </>
   );
 }
 

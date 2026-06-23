@@ -1,4 +1,6 @@
+import { AppButton, AppInput, AppText, ErrorBanner } from "@/components/ui";
 import { Brand } from "@/constants/theme";
+import { addAppBreadcrumb, captureUiError, showAppAlertRaw } from "@/lib/ui/feedback";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -6,7 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { MarketChatTab } from "../components/MarketChatTab";
@@ -201,8 +203,15 @@ export function MarketScreen() {
     if (betError) {
       const errorMessage = betError.message || "We couldn't place your bet. Check your connection and try again.";
       setError(errorMessage);
-      Alert.alert("Bet wasn't placed", errorMessage);
+      captureUiError(betError, "MarketScreen", "placeBet");
+      showAppAlertRaw("Bet wasn't placed", errorMessage);
     } else {
+      addAppBreadcrumb("bet", "Bet placed", {
+        marketId: resolvedMarketId,
+        amount,
+        side: selectedSide,
+        isPlayMode,
+      });
       setBettingAmount("");
       setSelectedOption(null);
       setSelectedSide(null);
@@ -343,7 +352,7 @@ export function MarketScreen() {
             marginTop: 140 
           }
         ]}>
-          <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
+          <AppText variant="title1" style={styles.question}>{market.question}</AppText>
           {market.description && (
             <Text style={[styles.description, { color: theme.textSecondary }]}>{market.description}</Text>
           )}
@@ -412,13 +421,13 @@ export function MarketScreen() {
                       {isPlayMode ? "Practice mode" : "Live mode"}
                     </Text>
                   </View>
-                  <Text style={[styles.guideTitle, { color: theme.text }]}>Place your first prediction in 3 steps</Text>
+                  <AppText variant="title2" style={styles.guideTitle}>Place your first prediction in 3 steps</AppText>
                   <Text style={[styles.guideText, { color: theme.textSecondary }]}>
                     Choose an outcome, pick an amount, then review the possible payout before confirming.
                   </Text>
                 </View>
 
-                <Text style={styles.sectionTitle}>1. Choose an outcome</Text>
+                <AppText variant="label" color="secondary" style={styles.sectionTitle}>1. Choose an outcome</AppText>
                 
                 {/* Binary Market UI - Simple Yes/No buttons */}
                 {isBinaryMarket(market, options) && (() => {
@@ -694,9 +703,9 @@ export function MarketScreen() {
             <View style={styles.guidedBetHeader}>
               <View>
                 <Text style={[styles.guidedStepLabel, { color: theme.textSecondary }]}>2. Choose amount</Text>
-                <Text style={[styles.guidedStepTitle, { color: theme.text }]}>
+                <AppText variant="title2" style={styles.guidedStepTitle}>
                   {isPlayMode ? "Practice bet" : "Live bet"}
-                </Text>
+                </AppText>
               </View>
               <View style={[styles.reviewBadge, { backgroundColor: isPlayMode ? theme.primarySoft : "rgba(52, 199, 89, 0.16)" }]}>
                 <Text style={[styles.reviewBadgeText, { color: isPlayMode ? theme.primary : theme.success }]}>
@@ -767,8 +776,15 @@ export function MarketScreen() {
                               if (betError) {
                                 const errorMessage = betError.message || "We couldn't place your one-tap bet. Try again.";
                                 setError(errorMessage);
-                                Alert.alert("Bet wasn't placed", errorMessage);
+                                captureUiError(betError, "MarketScreen", "oneTapPlaceBet");
+                                showAppAlertRaw("Bet wasn't placed", errorMessage);
                               } else {
+                                addAppBreadcrumb("bet", "One-tap bet placed", {
+                                  marketId: resolvedMarketId,
+                                  amount: amt,
+                                  side: selectedSide,
+                                  isPlayMode,
+                                });
                                 setBettingAmount("");
                                 setSelectedOption(null);
                                 setSelectedSide(null);
@@ -797,18 +813,18 @@ export function MarketScreen() {
             </View>
 
             <View style={styles.betInputContainer}>
-              <TextInput
-                style={[styles.betInput, { backgroundColor: isDark ? theme.background : "#F2F2F7", color: theme.text }]}
-                placeholder="$0"
-                placeholderTextColor={theme.textSecondary}
-                value={bettingAmount}
-                onChangeText={(text) => {
-                  setBettingAmount(text);
-                  setError(null);
-                }}
-                keyboardType="numeric"
-                autoFocus={false}
-              />
+              <View style={styles.betInputField}>
+                <AppInput
+                  placeholder="$0"
+                  value={bettingAmount}
+                  onChangeText={(text) => {
+                    setBettingAmount(text);
+                    setError(null);
+                  }}
+                  keyboardType="numeric"
+                  autoFocus={false}
+                />
+              </View>
               {(() => {
                 const amount = bettingAmount ? parseFloat(bettingAmount) : 0;
                 const isDisabled =
@@ -820,19 +836,17 @@ export function MarketScreen() {
                   (isEcSportsBlocked && !isPlayMode);
 
                 return (
-                  <TouchableOpacity
-                    style={[styles.placeBetButton, isDisabled && styles.placeBetButtonDisabled, { backgroundColor: theme.primary, borderColor: theme.primary, borderWidth: 1 }]}
-                    onPress={handlePlaceBet}
+                  <AppButton
+                    title={isPlacingBet ? `Placing ${isPlayMode ? "practice" : "live"} bet…` : `Place ${isPlayMode ? "practice" : "live"} bet`}
+                    loading={isPlacingBet}
                     disabled={isDisabled}
-                  >
-                    <Text style={[styles.placeBetButtonText, { color: theme.onPrimary }]}>
-                      {isPlacingBet ? `Placing ${isPlayMode ? "practice" : "live"} bet…` : `Place ${isPlayMode ? "practice" : "live"} bet`}
-                    </Text>
-                  </TouchableOpacity>
+                    onPress={handlePlaceBet}
+                    style={styles.placeBetButton}
+                  />
                 );
               })()}
             </View>
-            {error && <Text style={styles.footerError}>{error}</Text>}
+            {error ? <ErrorBanner message={error} /> : null}
           </View>
         )}
       </KeyboardAvoidingView>
@@ -1246,36 +1260,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  betInput: {
+  betInputField: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    fontSize: 17,
-    fontWeight: "400",
-    color: "#000",
-    height: 50,
   },
   placeBetButton: {
-    backgroundColor: Brand.primary,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    justifyContent: "center",
-    height: 50,
-  },
-  placeBetButtonDisabled: {
-    backgroundColor: "#E5E5EA",
-  },
-  placeBetButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "400",
-  },
-  footerError: {
-    color: "#FF3B30",
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: "center",
+    alignSelf: "stretch",
+    minWidth: 148,
   },
   errorText: {
     color: "#FF3B30",

@@ -1,3 +1,7 @@
 {
-  "generic": "Algo salió mal. Inténtalo de nuevo."
+  "generic": "Algo salió mal. Inténtalo de nuevo.",
+  "title": "Error",
+  "actionFailed": "Acción fallida",
+  "networkError": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
+  "retry": "Reintentar"
 }

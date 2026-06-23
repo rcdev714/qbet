@@ -1,6 +1,7 @@
 import * as Linking from "expo-linking";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
+import { setSentryUser } from "../lib/sentry";
 import { supabase } from "../lib/supabase";
 import { authService } from "../services/auth.service";
 import type { User } from "../types/user";
@@ -158,6 +159,10 @@ export function useAuth() {
       authSubscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    setSentryUser(user?.id ?? null);
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);

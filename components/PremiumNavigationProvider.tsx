@@ -1,6 +1,7 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AccessibilityInfo } from "react-native";
 
 import { ANYMARKET_LOADER_OVERLAY_FILL_MS, AnyMarketLoader } from "@/components/AnyMarketLoader";
@@ -26,7 +27,8 @@ const REDUCED_MOTION_DWELL_AFTER_PUSH_MS = 50;
 
 export function PremiumNavigationProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [message, setMessage] = useState("Opening AnyMarket...");
+  const { t } = useTranslation("common");
+  const [message, setMessage] = useState(() => t("opening"));
   const [isNavigating, setIsNavigating] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,7 +57,7 @@ export function PremiumNavigationProvider({ children }: { children: React.ReactN
     (href: Href | string, options?: PremiumNavigateOptions) => {
       clearPendingTimeout();
       const navigationStartedAt = Date.now();
-      setMessage(options?.message ?? "Opening AnyMarket...");
+      setMessage(options?.message ?? t("opening"));
       setIsNavigating(true);
 
       const delayMs = options?.delayMs ?? (reduceMotion ? REDUCED_MOTION_DELAY_MS : DEFAULT_DELAY_MS);
@@ -76,7 +78,7 @@ export function PremiumNavigationProvider({ children }: { children: React.ReactN
         }, waitAfterPush);
       }, delayMs);
     },
-    [clearPendingTimeout, reduceMotion, router],
+    [clearPendingTimeout, reduceMotion, router, t],
   );
 
   const value = useMemo(

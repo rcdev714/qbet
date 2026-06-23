@@ -1,4 +1,6 @@
+import { AppText, ErrorBanner } from "@/components/ui";
 import { Brand } from "@/constants/theme";
+import { logger } from "@/lib/logger";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { decode } from "base64-arraybuffer";
 import * as Clipboard from 'expo-clipboard';
@@ -317,7 +319,7 @@ export function GroupScreen() {
         );
         setStatusBanner("Invite link shared.");
       } catch (error) {
-        console.error("Error sharing invite link:", error);
+        logger.error("Error sharing invite link", { groupId: group?.id }, error);
         setStatusBanner("Invite link copied.");
       }
     } else {
@@ -430,7 +432,7 @@ export function GroupScreen() {
           const { data: { publicUrl } } = supabase.storage.from("market-images").getPublicUrl(fileName);
           imageUrl = publicUrl;
         } catch (e) {
-          console.error("Image upload failed", e);
+          logger.error("Image upload failed during market creation", { groupId: createGroupId }, e);
         }
       }
 
@@ -813,7 +815,7 @@ export function GroupScreen() {
                         </View>
                         <Text style={[styles.firstBetGuideLabel, { color: theme.primary }]}>STEP 2 OF 2</Text>
                       </View>
-                      <Text style={[styles.firstBetGuideTitle, { color: theme.text }]}>Create your first group bet</Text>
+                      <AppText variant="title1" style={styles.firstBetGuideTitle}>Create your first group bet</AppText>
                       <Text style={[styles.firstBetGuideBody, { color: theme.textSecondary }]}>
                         Ask a simple yes/no question, keep the starter outcomes, then launch it. We preselected a small first bet when your balance allows it.
                       </Text>
@@ -835,7 +837,7 @@ export function GroupScreen() {
                   </TouchableOpacity>
 
                   <View style={styles.modalSection}>
-                    <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>What are you predicting?</Text>
+                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>What are you predicting?</AppText>
                     <TextInput
                       style={[styles.modalInput, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", color: theme.text, height: undefined, minHeight: 60, paddingTop: 12, paddingBottom: 12, borderRadius: 16, textAlignVertical: "top" }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
                       placeholder="e.g. Will bitcoin hit $100k by 2026?"
@@ -847,7 +849,7 @@ export function GroupScreen() {
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Available Outcomes</Text>
+                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Available Outcomes</AppText>
                     {newOptions.map((item, index) => (
                       <View 
                         key={index} 
@@ -883,7 +885,7 @@ export function GroupScreen() {
                   </TouchableOpacity>
 
                   <View style={styles.modalSection}>
-                    <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Closing Date</Text>
+                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Closing Date</AppText>
                     {Platform.OS === "web" ? (
                       <View style={[styles.dateButton, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 12, height: 60, justifyContent: "center" }]}>
                         {React.createElement('input', {
@@ -921,7 +923,7 @@ export function GroupScreen() {
                   </View>
 
                   <View style={styles.modalSection}>
-                    <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Initial Prediction Amount (Optional)</Text>
+                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Initial Prediction Amount (Optional)</AppText>
                     <View style={[styles.initialBetInputRow, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: theme.border }]}>
                       <Text style={[styles.currencyPrefix, { color: theme.text, fontSize: 18, fontWeight: "600" }]}>$</Text>
                       <TextInput
@@ -931,7 +933,7 @@ export function GroupScreen() {
                       />
                     </View>
                     {selectedInitialOption === null && initialBetAmount !== "" && (
-                      <Text style={[styles.betWarningText, { color: "#FF3B30", marginTop: 8, fontSize: 12 }]}>Select one above outcome to place this initial amount</Text>
+                      <ErrorBanner message="Select one above outcome to place this initial amount" />
                     )}
                   </View>
 
@@ -953,7 +955,9 @@ export function GroupScreen() {
         onClose={() => setPublicBetPickerVisible(false)}
         onSelect={async (market) => {
           setPublicBetPickerVisible(false);
-          shareService.trackShare(market.id, "market", "internal").catch(console.error);
+          shareService.trackShare(market.id, "market", "internal").catch((error) => {
+            logger.error("Failed to track share", { marketId: market.id }, error);
+          });
           await sendMessage({
              user_id: user!.id,
              content: `Shared a public prediction: ${market.question}`,
@@ -1029,7 +1033,7 @@ export function GroupScreen() {
                     )}
 
                     <View style={styles.descriptionInfoSection}>
-                      <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Group Name</Text>
+                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Group Name</AppText>
                       {isAdmin ? (
                         <View style={[styles.descriptionEditBox, { backgroundColor: isDark ? theme.background : "#F8F9FA", borderColor: theme.border }]}>
                           <TextInput style={[styles.descriptionInput, { color: theme.text, minHeight: 40 }, Platform.OS === "web" && ({ cursor: "text" } as any)]} value={editedName} onChangeText={setEditedName} placeholder="Group Name" placeholderTextColor={theme.textSecondary} />
@@ -1043,7 +1047,7 @@ export function GroupScreen() {
                         <Text style={[styles.modalTitle, { color: theme.text, marginHorizontal: 0, marginBottom: 12 }]}>{group?.name}</Text>
                       )}
 
-                      <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Description</Text>
+                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Description</AppText>
                       {isAdmin ? (
                         <View style={[styles.descriptionEditBox, { backgroundColor: isDark ? theme.background : "#F8F9FA", borderColor: theme.border }]}>
                           <TextInput style={[styles.descriptionInput, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text" } as any)]} value={editedDescription} onChangeText={setEditedDescription} placeholder="Add a group description..." placeholderTextColor={theme.textSecondary} multiline />
@@ -1060,7 +1064,7 @@ export function GroupScreen() {
 
                     {/* Predictions Summary */}
                     <View style={styles.predictionsSection}>
-                      <Text style={[styles.modalSectionTitle, { color: theme.textSecondary }]}>Predictions</Text>
+                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Predictions</AppText>
                       <TouchableOpacity style={[styles.accordionHeader, { backgroundColor: isDark ? theme.background : "#F2F2F7", borderColor: theme.border }]} onPress={() => setOpenExpanded((v) => !v)} activeOpacity={0.8}>
                         <Text style={[styles.accordionTitle, { color: theme.text }]}>Open</Text>
                         <View style={styles.accordionRight}>
@@ -1108,7 +1112,7 @@ export function GroupScreen() {
                       )}
                     </View>
 
-                    <Text style={styles.modalSectionTitle}>Members</Text>
+                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Members</AppText>
                   </>
                 }
                 ListHeaderComponentStyle={{ paddingBottom: 16 }}

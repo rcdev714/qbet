@@ -1,3 +1,4 @@
+import { logger } from "../lib/logger";
 import { supabase } from "../lib/supabase";
 
 export interface KPISummary {
@@ -141,7 +142,7 @@ export const adminService = {
                 predictionsPerUser,
             };
         } catch (error) {
-            console.error("Error fetching KPI summary:", error);
+            logger.error("Error fetching KPI summary", {}, error);
             return {
                 totalUsers: 0,
                 totalBets: 0,

@@ -5,6 +5,11 @@
   "save": "Save",
   "back": "Back",
   "loading": "Loading…",
+  "preparing": "Preparing AnyMarket…",
+  "opening": "Opening AnyMarket…",
+  "emptyDefault": "Nothing here yet",
+  "retry": "Retry",
+  "navigation": "Navigation",
   "countries": {
     "EC": "Ecuador",
     "US": "United States",

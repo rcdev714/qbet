@@ -4,7 +4,6 @@ import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Keyboard,
     Platform,
@@ -19,6 +18,7 @@ import {
 } from "react-native";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { CreateGroupModal } from "../components/CreateGroupModal";
+import { AppButton, AppText, StaggerGroup } from "@/components/ui";
 import { CodeInput } from "../components/ui/CodeInput";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
@@ -26,6 +26,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useGroups } from "../hooks/useGroups";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
 import { formatCurrency } from "../lib/parimutuel";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { messageService } from "../services/message.service";
@@ -109,7 +110,7 @@ export function DirectMessagesScreen() {
       }
     } catch (error) {
        const errorMessage = error instanceof Error ? error.message : "An error occurred";
-       Alert.alert("Failed", errorMessage);
+       showAppAlertRaw("Failed", errorMessage);
     } finally {
       setCreateLoading(false);
     }
@@ -117,7 +118,7 @@ export function DirectMessagesScreen() {
 
   const handleJoinGroup = async (code: string) => {
     if (!code.trim()) {
-      Alert.alert("Error", "Please enter a valid code");
+      showAppAlertRaw("Error", "Please enter a valid code");
       return;
     }
 
@@ -135,7 +136,7 @@ export function DirectMessagesScreen() {
       const message = errorMessage === 'Group not found'
         ? "Invalid code. Please check and try again."
         : errorMessage;
-      Alert.alert("Failed", message);
+      showAppAlertRaw("Failed", message);
     } finally {
       setCreateLoading(false);
     }
@@ -341,22 +342,22 @@ export function DirectMessagesScreen() {
                 borderWidth: StyleSheet.hairlineWidth
               }
             ]}>
-              <Text style={[styles.groupInitials, { color: isDark ? theme.text : "#8E8E93" }]}>
+              <AppText variant="title3" style={{ color: isDark ? theme.text : "#8E8E93" }}>
                 {(item.name || "G").substring(0, 1).toUpperCase()}
-              </Text>
+              </AppText>
             </View>
           )}
           {unreadCount > 0 && (
             <View style={[styles.badge, { borderColor: theme.background }]}>
-              <Text style={styles.badgeText}>
+              <AppText variant="caption" color="onPrimary" style={styles.badgeText}>
                 {unreadCount > 99 ? "99+" : unreadCount}
-              </Text>
+              </AppText>
             </View>
           )}
         </View>
         <View style={styles.groupInfo}>
           <View style={styles.groupHeaderRow}>
-            <Text style={[styles.groupName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+            <AppText variant="body" style={{ fontWeight: "600" }} numberOfLines={1}>{item.name}</AppText>
           </View>
           <View style={styles.previewRow}>
             {!isMyMessage && (
@@ -409,8 +410,8 @@ export function DirectMessagesScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Groups</Text>
-          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Chats, predictions, and unread activity</Text>
+          <AppText variant="title3">Groups</AppText>
+          <AppText variant="caption" color="secondary">Chats, predictions, and unread activity</AppText>
           <View style={styles.statsWheelContainer}>
             <ScrollView
               horizontal
@@ -476,69 +477,58 @@ export function DirectMessagesScreen() {
             <View style={[styles.onboardingHeroIcon, { backgroundColor: `${theme.primary}18` }]}>
               <IconSymbol name="sparkles" size={28} color={theme.primary} />
             </View>
-            <Text style={[styles.onboardingEyebrow, { color: theme.primary }]}>WELCOME TO ANYMARKET</Text>
-            <Text style={[styles.onboardingTitle, { color: theme.text }]}>Make your first market with friends.</Text>
-            <Text style={[styles.onboardingBody, { color: theme.textSecondary }]}>
+            <AppText variant="caption" color="primary" style={styles.onboardingEyebrow}>WELCOME TO ANYMARKET</AppText>
+            <AppText variant="title1" style={styles.onboardingTitle}>Make your first market with friends.</AppText>
+            <AppText variant="body" color="secondary" style={styles.onboardingBody}>
               Start a private group, join one with a code, or browse public markets while you wait for friends to join.
-            </Text>
+            </AppText>
 
-            <View style={styles.onboardingSteps}>
+            <StaggerGroup>
+              <View style={styles.onboardingSteps}>
               {ONBOARDING_STEPS.map(([step, title, copy]) => (
                 <View key={step} style={styles.onboardingStep}>
                   <View style={[styles.onboardingStepBadge, { backgroundColor: `${theme.primary}18` }]}>
-                    <Text style={[styles.onboardingStepNumber, { color: theme.primary }]}>{step}</Text>
+                    <AppText variant="label" color="primary">{step}</AppText>
                   </View>
                   <View style={styles.onboardingStepCopy}>
-                    <Text style={[styles.onboardingStepTitle, { color: theme.text }]}>{title}</Text>
-                    <Text style={[styles.onboardingStepBody, { color: theme.textSecondary }]}>{copy}</Text>
+                    <AppText variant="body" style={{ fontWeight: "600" }}>{title}</AppText>
+                    <AppText variant="bodySm" color="secondary">{copy}</AppText>
                   </View>
                 </View>
               ))}
-            </View>
+              </View>
+            </StaggerGroup>
 
-            <TouchableOpacity
-              style={[styles.onboardingPrimaryButton, { backgroundColor: theme.primary }]}
+            <AppButton
+              title="Create my first group"
               onPress={() => openModal()}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.onboardingPrimaryText}>Create my first group</Text>
-            </TouchableOpacity>
+              style={styles.onboardingPrimaryButton}
+            />
 
-            <TouchableOpacity
-              style={[styles.onboardingSecondaryButton, { borderColor: theme.border }]}
+            <AppButton
+              title={showJoinInput ? "Hide invite code" : "I have an invite code"}
+              variant="secondary"
               onPress={() => setShowJoinInput(!showJoinInput)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.onboardingSecondaryText, { color: theme.text }]}>
-                {showJoinInput ? "Hide invite code" : "I have an invite code"}
-              </Text>
-            </TouchableOpacity>
+              style={styles.onboardingSecondaryButton}
+            />
 
-            <TouchableOpacity
-              style={styles.onboardingExploreButton}
+            <AppButton
+              title="Explore public markets"
+              variant="ghost"
               onPress={() => navigate("/feed", { message: "Loading live markets..." })}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.onboardingExploreText, { color: theme.primary }]}>
-                Explore public markets
-              </Text>
-            </TouchableOpacity>
+              style={styles.onboardingExploreButton}
+            />
 
             {showJoinInput && (
               <View style={styles.onboardingJoinPanel}>
                 <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
                 {joinCode.length === 6 && (
-                  <TouchableOpacity
-                    style={[styles.confirmJoinBtn, { backgroundColor: theme.primary }]}
+                  <AppButton
+                    title="Join Group"
+                    loading={createLoading}
                     onPress={() => handleJoinGroup(joinCode)}
-                    disabled={createLoading}
-                  >
-                    {createLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.confirmJoinBtnText}>Join Group</Text>
-                    )}
-                  </TouchableOpacity>
+                    style={styles.confirmJoinBtn}
+                  />
                 )}
               </View>
             )}
@@ -557,17 +547,12 @@ export function DirectMessagesScreen() {
                 <View style={styles.headerJoinPanel}>
                   <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
                   {joinCode.length === 6 && (
-                    <TouchableOpacity
-                      style={[styles.headerJoinSubmit, { backgroundColor: theme.primary }]}
+                    <AppButton
+                      title="Join Now"
+                      loading={createLoading}
                       onPress={() => handleJoinGroup(joinCode)}
-                      disabled={createLoading}
-                    >
-                      {createLoading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.headerJoinSubmitText}>Join Now</Text>
-                      )}
-                    </TouchableOpacity>
+                      style={styles.headerJoinSubmit}
+                    />
                   )}
                 </View>
               </View>

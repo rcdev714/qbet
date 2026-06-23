@@ -97,6 +97,13 @@ on conflict (email) do nothing;
 update public.users set is_admin = true where email = 'you@example.com';
 ```
 
+**Local admin password:** E2E tests reset the admin auth password before each run. If login fails with 400, reset it:
+
+```bash
+bash scripts/reset-local-admin-password.sh
+# default: E2eAdmin!Test1 — override with LOCAL_ADMIN_PASSWORD=YourPass bash scripts/reset-local-admin-password.sh
+```
+
 Or use [`supabase/scripts/grant_app_admin.sql`](../supabase/scripts/grant_app_admin.sql) on hosted projects.
 
 ---

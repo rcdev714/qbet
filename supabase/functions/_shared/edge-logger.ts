@@ -24,6 +24,9 @@ export function createEdgeLogger(functionName: string, requestId = newRequestId(
         break;
       case "ERROR":
         console.error(line, JSON.stringify(payload));
+        void import("./sentry-bridge.ts").then(({ captureEdgeError }) =>
+          captureEdgeError(new Error(message), { functionName, requestId, ...context }),
+        ).catch(() => {});
         break;
     }
   }

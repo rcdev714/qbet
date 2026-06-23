@@ -4,6 +4,7 @@ import { GlobalHeader } from "@/components/GlobalHeader";
 import { SEO } from "@/components/SEO";
 import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
 import { SwipeMarketCard } from "@/components/SwipeMarketCard";
+import { AppButton, AppText, EmptyState, ErrorBanner } from "@/components/ui";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -377,18 +378,17 @@ export default function FeedScreen() {
   if (feedError && markets.length === 0) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingHorizontal: 24 }]}>
-        <Text style={[styles.text, { color: theme.text, textAlign: "center" }]}>Markets could not load</Text>
-        <Text style={[styles.subtext, { color: theme.textSecondary, textAlign: "center" }]}>{feedError}</Text>
-        <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: theme.primary }]}
-          onPress={() => {
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Markets could not load"
+          description={feedError}
+          actionLabel="Try again"
+          onAction={() => {
             setLoading(true);
             fetchFeed();
           }}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.retryButtonText, { color: theme.onPrimary }]}>Try again</Text>
-        </TouchableOpacity>
+          variant="destructive"
+        />
       </View>
     );
   }
@@ -438,22 +438,15 @@ export default function FeedScreen() {
           </View>
 
           {feedError && (
-            <View style={[styles.webInlineNotice, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={[styles.webInlineNoticeText, { color: theme.text }]}>{feedError}</Text>
-              <TouchableOpacity onPress={() => fetchFeed()} style={[styles.webSmallButton, { backgroundColor: theme.primary }]}>
-                <Text style={[styles.webSmallButtonText, { color: theme.onPrimary }]}>Try again</Text>
-              </TouchableOpacity>
-            </View>
+            <ErrorBanner message={feedError} onRetry={() => fetchFeed()} retryLabel="Try again" />
           )}
 
           {pendingMarkets && (
-            <TouchableOpacity
-              style={[styles.webNewMarkets, { backgroundColor: theme.primary }]}
+            <AppButton
+              title="Show new markets"
               onPress={applyPendingMarkets}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.webNewMarketsText, { color: theme.onPrimary }]}>Show new markets</Text>
-            </TouchableOpacity>
+              style={styles.webNewMarkets}
+            />
           )}
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.webCategoryRow}>
@@ -487,10 +480,11 @@ export default function FeedScreen() {
           </View>
 
           {visibleMarkets.length === 0 && (
-            <View style={[styles.webEmptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.text, { color: theme.text }]}>{t("empty")}</Text>
-              <Text style={[styles.subtext, { color: theme.textSecondary }]}>Try another category or refresh the board.</Text>
-            </View>
+            <EmptyState
+              icon="search-outline"
+              title={t("empty")}
+              description="Try another category or refresh the board."
+            />
           )}
         </ScrollView>
 
@@ -532,19 +526,17 @@ export default function FeedScreen() {
       />
 
       {feedError && markets.length > 0 && (
-        <View style={[styles.feedBanner, { backgroundColor: isDark ? "rgba(255,255,255,0.9)" : "rgba(1,22,39,0.9)" }]}>
-          <Text style={[styles.feedBannerText, { color: isDark ? "#011627" : "#fff" }]}>{feedError}</Text>
+        <View style={styles.feedBanner}>
+          <ErrorBanner message={feedError} onRetry={() => fetchFeed()} retryLabel="Try again" />
         </View>
       )}
 
       {pendingMarkets && (
-        <TouchableOpacity
-          style={[styles.newMarketsButton, { backgroundColor: theme.primary }]}
+        <AppButton
+          title="New markets available"
           onPress={applyPendingMarkets}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.newMarketsButtonText, { color: theme.onPrimary }]}>New markets available</Text>
-        </TouchableOpacity>
+          style={styles.newMarketsButton}
+        />
       )}
 
       <FlatList
@@ -602,10 +594,11 @@ export default function FeedScreen() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={[styles.text, { color: theme.text }]}>{t("empty")}</Text>
-            <Text style={[styles.subtext, { color: theme.textSecondary }]}>When one appears, open it to practice before using live funds.</Text>
-          </View>
+          <EmptyState
+            icon="layers-outline"
+            title={t("empty")}
+            description="When one appears, open it to practice before using live funds."
+          />
         }
       />
       

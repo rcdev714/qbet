@@ -4,7 +4,9 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../contexts/ThemeContext';
+
+import { HEADER_HEIGHT } from '@/constants/layout';
+import { useTheme } from '@/contexts/ThemeContext';
 import { PlayModeToggle } from './PlayModeToggle';
 
 interface GlobalHeaderProps {
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    minHeight: 44,
+    minHeight: HEADER_HEIGHT,
   },
   side: {
     minWidth: 44,

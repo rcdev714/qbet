@@ -1,4 +1,9 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import {
+    ADMIN_SIDEBAR_WIDTH,
+    CONTENT_MAX_WIDTH_WIDE,
+    DESKTOP_BREAKPOINT,
+} from "@/constants/layout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter, useSegments } from "expo-router";
 import React from "react";
@@ -13,9 +18,7 @@ import {
     View,
 } from "react-native";
 
-export const ADMIN_SIDEBAR_WIDTH = 220;
-export const ADMIN_BREAKPOINT = 900;
-export const ADMIN_CONTENT_MAX_WIDTH = 1120;
+export { DESKTOP_BREAKPOINT as ADMIN_BREAKPOINT, CONTENT_MAX_WIDTH_WIDE as ADMIN_CONTENT_MAX_WIDTH, ADMIN_SIDEBAR_WIDTH };
 
 type AdminShellProps = {
   children: React.ReactNode;
@@ -27,9 +30,9 @@ const PLATFORM_HOME = "/(tabs)/feed" as const;
 
 export function useAdminLayoutMetrics() {
   const { width, height } = useWindowDimensions();
-  const isWide = width >= ADMIN_BREAKPOINT;
+  const isWide = width >= DESKTOP_BREAKPOINT;
   const mainPaneWidth = isWide ? width - ADMIN_SIDEBAR_WIDTH : width;
-  const contentWidth = Math.min(mainPaneWidth - 48, ADMIN_CONTENT_MAX_WIDTH);
+  const contentWidth = Math.min(mainPaneWidth - 48, CONTENT_MAX_WIDTH_WIDE);
 
   return { width, height, isWide, mainPaneWidth, contentWidth };
 }
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
   contentInner: {
     flex: 1,
     width: "100%",
-    maxWidth: ADMIN_CONTENT_MAX_WIDTH,
+    maxWidth: CONTENT_MAX_WIDTH_WIDE,
     alignSelf: "center",
     paddingHorizontal: 24,
     paddingVertical: 20,

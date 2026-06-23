@@ -99,7 +99,7 @@ test("view wager agreement", async ({ page }) => {
   saveE2eState({ ...state, lastBetId: betId! });
   await page.goto(`/contract/${betId}`);
   await expect(page.getByTestId("contract-root")).toBeVisible();
-  await expect(page.getByText(/Wager Agreement/i)).toBeVisible();
+  await expect(page.getByText(/Wager Agreement|Acuerdo de apuesta/i)).toBeVisible();
   e2eLog(SCOPE, "contract page ok", { betId });
 });
 

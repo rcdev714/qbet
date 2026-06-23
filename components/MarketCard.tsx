@@ -64,15 +64,15 @@ export function MarketCard({
       {/* Top Section with Status and Timer */}
       <View style={styles.topRow}>
         <View style={styles.badgeRow}>
-          <View style={[styles.statusBadge, { backgroundColor: market.status === 'open' ? theme.primarySoft : (isDark ? 'rgba(142, 142, 147, 0.15)' : '#F2F2F7') }]}>
+          <View style={[styles.statusBadge, { backgroundColor: market.status === 'open' ? theme.primarySoft : (isDark ? theme.borderSubtle : theme.muted) }]}>
             <View style={[styles.statusDot, { backgroundColor: market.status === 'open' ? theme.primary : theme.textSecondary }]} />
             <Text style={[styles.statusText, { color: market.status === 'open' ? theme.primary : theme.textSecondary }]}>
               {(market.status || 'open').toUpperCase()}
             </Text>
           </View>
           {isShared && (
-            <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(52, 199, 89, 0.15)' : '#E8F5E9' }]}>
-              <Text style={[styles.statusText, { color: isDark ? theme.success : '#2E7D32' }]}>PUBLIC</Text>
+            <View style={[styles.statusBadge, { backgroundColor: isDark ? `${theme.success}26` : theme.primarySoft }]}>
+              <Text style={[styles.statusText, { color: theme.success }]}>PUBLIC</Text>
             </View>
           )}
         </View>
@@ -136,7 +136,7 @@ export function MarketCard({
                   style={[
                     styles.predictButton,
                     { 
-                      backgroundColor: isDark ? theme.primarySoft : '#F0FFF1', 
+                      backgroundColor: theme.primarySoft, 
                       borderColor: theme.primary, 
                       borderWidth: 1.5 
                     }
@@ -151,16 +151,16 @@ export function MarketCard({
                   style={[
                     styles.predictButton,
                     { 
-                      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FFF1F0', 
-                      borderColor: '#F87171', 
+                      backgroundColor: isDark ? `${theme.error}1A` : `${theme.error}14`, 
+                      borderColor: theme.error, 
                       borderWidth: 1.5 
                     }
                   ]}
                   onPress={() => onSelectOption?.(noOption.id, "no")}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.predictLabel, { color: isDark ? '#FCA5A5' : '#EF4444' }]}>NO</Text>
-                  <Text style={[styles.predictPrice, { color: isDark ? '#FEE2E2' : '#EF4444' }]}>{noCents}¢</Text>
+                  <Text style={[styles.predictLabel, { color: theme.error }]}>NO</Text>
+                  <Text style={[styles.predictPrice, { color: theme.error }]}>{noCents}¢</Text>
                 </TouchableOpacity>
               </View>
               {canResolve && (
@@ -169,7 +169,7 @@ export function MarketCard({
                     <Text style={[styles.adminActionText, { color: theme.primary }]}>WIN YES</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.adminAction} onPress={() => onResolve?.(noOption.id)}>
-                    <Text style={[styles.adminActionText, { color: '#EF4444' }]}>WIN NO</Text>
+                    <Text style={[styles.adminActionText, { color: theme.error }]}>WIN NO</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -196,8 +196,8 @@ export function MarketCard({
                 }
                 style={[
                   styles.optionPill,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8F9FA', borderColor: theme.border, borderWidth: 1 },
-                  isWinner && { borderColor: theme.primary, borderWidth: 1.5, backgroundColor: isDark ? 'rgba(0, 122, 255, 0.1)' : '#E3F2FD' }
+                  { backgroundColor: isDark ? theme.borderSubtle : theme.muted, borderColor: theme.border, borderWidth: 1 },
+                  isWinner && { borderColor: theme.primary, borderWidth: 1.5, backgroundColor: theme.primarySoft }
                 ]}
                 onPress={() => !isResolved && onSelectOption?.(option.id, "yes")}
                 disabled={isResolved}
@@ -230,7 +230,7 @@ export function MarketCard({
           <Text style={[styles.volumeLabel, { color: theme.textSecondary }]}>Pool</Text>
           <Text style={[styles.volumeValue, { color: theme.text }]}>{formatCurrency(totalPool)}</Text>
         </View>
-        <TouchableOpacity style={[styles.chartToggle, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F3F7F4" }]} onPress={onViewDistribution}>
+        <TouchableOpacity style={[styles.chartToggle, { backgroundColor: isDark ? theme.borderSubtle : theme.muted }]} onPress={onViewDistribution}>
           <IconSymbol name="chart.bar.fill" size={14} color={theme.primary} />
           <Text style={[styles.chartLink, { color: theme.primary }]}>Stats</Text>
         </TouchableOpacity>
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   likedText: {
-    color: '#FF2D55',
+    color: "#FF2D55",
   }
 });
 
@@ -479,10 +479,10 @@ function LikeButton({ marketId, isDark, theme }: { marketId: string, isDark: boo
       <Ionicons 
         name={liked ? "heart" : "heart-outline"} 
         size={20} 
-        color={liked ? "#FF2D55" : theme.textSecondary} 
+        color={liked ? theme.destructive : theme.textSecondary} 
       />
       {count > 0 && (
-        <Text style={[styles.likeCount, { color: liked ? "#FF2D55" : theme.textSecondary }]}>
+        <Text style={[styles.likeCount, { color: liked ? theme.destructive : theme.textSecondary }]}>
           {count}
         </Text>
       )}

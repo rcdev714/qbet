@@ -1,23 +1,17 @@
 import { SEO } from "@/components/SEO";
+import { AppButton } from "@/components/ui/AppButton";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppText } from "@/components/ui/AppText";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { getParamString } from "@/lib/route-params";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { complianceService } from "@/services/compliance.service";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Linking, Platform, StyleSheet, TouchableOpacity, View, Alert } from "react-native";
 
 export default function WalletVerifyScreen() {
   const router = useRouter();
@@ -67,11 +61,11 @@ export default function WalletVerifyScreen() {
       if (session.url) {
         await Linking.openURL(session.url);
       } else {
-        Alert.alert(t("verifyUrlMissingTitle"), t("verifyUrlMissingBody"));
+        showAppAlertRaw(t("verifyUrlMissingTitle"), t("verifyUrlMissingBody"));
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t("verifyErrorBody");
-      Alert.alert(t("verifyErrorTitle"), message);
+      showAppAlertRaw(t("verifyErrorTitle"), message);
     } finally {
       setLoading(false);
     }
@@ -80,78 +74,52 @@ export default function WalletVerifyScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO title={t("verifySeoTitle")} description={t("verifySeoDescription")} url="/wallet/verify" noindex />
-      <SafeAreaView style={styles.safeArea}>
+      <AppScreen maxWidth="narrow" style={styles.screen}>
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.title, { color: theme.text }]}>{t("verifyPageTitle")}</Text>
-          <Text style={[styles.body, { color: theme.textSecondary }]}>
+          <AppText variant="title2" style={{ textAlign: "center" }}>{t("verifyPageTitle")}</AppText>
+          <AppText variant="body" color="secondary" style={{ textAlign: "center", lineHeight: 22 }}>
             {t("verifyPageDescription")}
-          </Text>
+          </AppText>
 
-          <TouchableOpacity
+          <AppButton
             testID="kyc-start"
-            style={[styles.primaryButton, { backgroundColor: theme.primary }, loading && styles.disabled]}
+            title={t("verifyStart")}
             onPress={startVerification}
+            loading={loading}
             disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>{t("verifyStart")}</Text>
-            )}
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
+          <AppButton
             testID="kyc-poll-status"
-            style={[styles.secondaryButton, { borderColor: theme.border }, polling && styles.disabled]}
+            title={t("verifyCheckStatus")}
+            variant="secondary"
             onPress={pollStatus}
+            loading={polling}
             disabled={polling}
-          >
-            {polling ? (
-              <ActivityIndicator color={theme.primary} />
-            ) : (
-              <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>{t("verifyCheckStatus")}</Text>
-            )}
-          </TouchableOpacity>
+          />
 
           <TouchableOpacity
             onPress={() => router.back()}
             style={[Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
           >
-            <Text style={[styles.backText, { color: theme.textSecondary }]}>{t("verifyBack")}</Text>
+            <AppText variant="bodySm" color="secondary" style={{ textAlign: "center" }}>
+              {t("verifyBack")}
+            </AppText>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </AppScreen>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, justifyContent: "center", padding: 24 },
+  screen: { flex: 1, justifyContent: "center" },
   card: {
-    maxWidth: 520,
     width: "100%",
-    alignSelf: "center",
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 24,
     gap: 16,
   },
-  title: { fontSize: 22, fontWeight: "600", textAlign: "center" },
-  body: { fontSize: 15, lineHeight: 22, textAlign: "center" },
-  primaryButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
-  secondaryButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  secondaryButtonText: { fontWeight: "600", fontSize: 15 },
-  backText: { textAlign: "center", fontSize: 14 },
-  disabled: { opacity: 0.7 },
 });

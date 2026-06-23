@@ -2,6 +2,9 @@ import React from "react";
 import { StyleSheet, View, type ViewProps } from "react-native";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { cn } from "@/lib/ui/cn";
+
+import { AppText } from "./AppText";
 
 interface AppCardProps extends ViewProps {
   padded?: boolean;
@@ -20,32 +23,55 @@ export function AppCard({
   return (
     <View
       {...props}
-      style={[
-        styles.card,
+      style={cn(
         {
           backgroundColor: theme.surface,
           borderColor: theme.border,
           borderRadius: theme.radius.lg,
+          borderWidth: StyleSheet.hairlineWidth,
         },
         padded && { padding: theme.spacing.lg },
-        elevated && styles.elevated,
+        elevated && theme.elevation("sm"),
         style,
-      ]}
+      )}
     >
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  elevated: {
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-});
+export function CardHeader({ children, style, ...props }: ViewProps) {
+  return (
+    <View {...props} style={cn({ gap: 4, marginBottom: 12 }, style)}>
+      {children}
+    </View>
+  );
+}
+
+export function CardTitle({ children }: { children: React.ReactNode }) {
+  return <AppText variant="title2">{children}</AppText>;
+}
+
+export function CardDescription({ children }: { children: React.ReactNode }) {
+  return (
+    <AppText variant="bodySm" color="secondary">
+      {children}
+    </AppText>
+  );
+}
+
+export function CardContent({ children, style, ...props }: ViewProps) {
+  return (
+    <View {...props} style={cn({ gap: 8 }, style)}>
+      {children}
+    </View>
+  );
+}
+
+export function CardFooter({ children, style, ...props }: ViewProps) {
+  return (
+    <View {...props} style={cn({ marginTop: 16, flexDirection: "row", gap: 8 }, style)}>
+      {children}
+    </View>
+  );
+}

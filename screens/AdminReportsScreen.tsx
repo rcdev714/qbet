@@ -1,20 +1,22 @@
 import { AdminShell, useAdminLayoutMetrics } from "@/components/admin/AdminShell";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useTheme } from "@/contexts/ThemeContext";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { adminService, type AdminContentReportRow } from "@/services/admin.service";
 import { moderationService } from "@/services/moderation.service";
-import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Alert,
     FlatList,
     Platform,
     RefreshControl,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
@@ -49,15 +51,17 @@ export default function AdminReportsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [notesById, setNotesById] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadReports = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
+      setLoadError(null);
       const result = await adminService.listContentReports({ status, limit: 100 });
       setRows(result.rows);
       setTotalCount(result.totalCount);
     } catch {
-      Alert.alert(t("actionFailed"), t("loadReportsFailed"));
+      setLoadError(t("loadReportsFailed"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,7 +87,7 @@ export default function AdminReportsScreen() {
       });
       await loadReports();
     } catch {
-      Alert.alert(t("actionFailed"), t("resolveReportFailed"));
+      showAppAlertRaw(t("actionFailed"), t("resolveReportFailed"));
     } finally {
       setActionId(null);
     }
@@ -98,18 +102,22 @@ export default function AdminReportsScreen() {
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.targetType, { color: theme.text }]}>{targetLabel(item.targetType)}</Text>
-            <Text style={[styles.reason, { color: severityColor }]}>{item.reason}</Text>
+            <AppText variant="bodySm" style={{ fontWeight: "700", textTransform: "capitalize" }}>
+              {targetLabel(item.targetType)}
+            </AppText>
+            <AppText variant="bodySm" style={{ marginTop: 2, fontWeight: "600", color: severityColor }}>
+              {item.reason}
+            </AppText>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: `${severityColor}22` }]}>
-            <Text style={[styles.statusText, { color: severityColor }]}>
+            <AppText variant="caption" style={{ color: severityColor, fontWeight: "800", textTransform: "uppercase" }}>
               {t(`reportStatus.${item.status}`)}
-            </Text>
+            </AppText>
           </View>
         </View>
 
         {item.details ? (
-          <Text style={[styles.details, { color: theme.textSecondary }]}>{item.details}</Text>
+          <AppText variant="bodySm" color="secondary" style={{ lineHeight: 18 }}>{item.details}</AppText>
         ) : null}
 
         <View style={styles.metaGrid}>
@@ -124,9 +132,9 @@ export default function AdminReportsScreen() {
         </View>
 
         {item.adminNotes ? (
-          <Text style={[styles.adminNotes, { color: theme.textSecondary }]}>
+          <AppText variant="caption" color="secondary" style={{ fontStyle: "italic" }}>
             {t("adminNotes")}: {item.adminNotes}
-          </Text>
+          </AppText>
         ) : null}
 
         {(item.status === "open" || item.status === "reviewing") && (
@@ -182,10 +190,11 @@ export default function AdminReportsScreen() {
     <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <AdminShell title={t("reports")} badge={status === "open" ? totalCount : undefined}>
+        <AppScreen maxWidth="wide" style={styles.adminScreen}>
         <View style={styles.headerBlock}>
-          <Text style={[styles.countLabel, { color: theme.textSecondary }]}>
+          <AppText variant="bodySm" color="secondary" style={{ fontWeight: "500" }}>
             {t("reportCount", { count: totalCount })}
-          </Text>
+          </AppText>
           <SegmentedControl
             segments={STATUS_OPTIONS.map((option) => ({
               value: option,
@@ -196,8 +205,19 @@ export default function AdminReportsScreen() {
           />
         </View>
 
+        {loadError ? (
+          <ErrorBanner
+            message={loadError}
+            onRetry={() => void loadReports(true)}
+            retryLabel={t("retry", { ns: "common", defaultValue: "Retry" })}
+          />
+        ) : null}
+
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
+          <View style={styles.skeletonStack}>
+            <AppSkeleton variant="card" />
+            <AppSkeleton variant="card" />
+          </View>
         ) : (
           <FlatList
             data={rows}
@@ -215,13 +235,11 @@ export default function AdminReportsScreen() {
             }
             contentContainerStyle={rows.length === 0 ? styles.emptyList : styles.listContent}
             ListEmptyComponent={
-              <View style={styles.empty}>
-                <Ionicons name="shield-checkmark-outline" size={40} color={theme.textSecondary} />
-                <Text style={{ color: theme.textSecondary, marginTop: 8 }}>{t("noReports")}</Text>
-              </View>
+              <EmptyState icon="shield-checkmark-outline" title={t("noReports")} />
             }
           />
         )}
+        </AppScreen>
       </AdminShell>
     </>
   );
@@ -238,10 +256,12 @@ function MetaItem({
 }) {
   return (
     <View style={styles.metaItem}>
-      <Text style={[styles.metaLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.metaValue, { color: theme.text }]} numberOfLines={1}>
+      <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
+        {label}
+      </AppText>
+      <AppText variant="bodySm" style={{ marginTop: 2, fontWeight: "500" }} numberOfLines={1}>
         {value}
-      </Text>
+      </AppText>
     </View>
   );
 }
@@ -278,14 +298,20 @@ function ActionButton({
         Platform.OS === "web" && ({ cursor: disabled ? "default" : "pointer" } as any),
       ]}
     >
-      <Text style={[styles.actionBtnText, { color }]}>{label}</Text>
+      <AppText variant="caption" style={{ color, fontWeight: "700" }}>{label}</AppText>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  adminScreen: {
+    flex: 1,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
+  },
+  skeletonStack: { gap: 12, marginTop: 8 },
   headerBlock: { gap: 10, marginBottom: 16 },
-  countLabel: { fontSize: 13, fontWeight: "500" },
   listContent: { gap: 12, paddingBottom: 24 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -294,16 +320,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  targetType: { fontSize: 15, fontWeight: "700", textTransform: "capitalize" },
-  reason: { fontSize: 13, fontWeight: "600", marginTop: 2 },
   statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  statusText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
-  details: { fontSize: 13, lineHeight: 18 },
   metaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   metaItem: { minWidth: "45%", flex: 1 },
-  metaLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
-  metaValue: { fontSize: 13, marginTop: 2, fontWeight: "500" },
-  adminNotes: { fontSize: 12, fontStyle: "italic" },
   actionBlock: { gap: 8, marginTop: 4 },
   notesInput: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -320,7 +339,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  actionBtnText: { fontSize: 12, fontWeight: "700" },
-  empty: { alignItems: "center", paddingVertical: 48 },
   emptyList: { flexGrow: 1 },
 });

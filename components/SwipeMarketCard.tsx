@@ -6,6 +6,8 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
 import { isAppAdmin } from "@/lib/admin";
 import { alertBetPlacedWithContract } from "@/lib/bet-contract-ui";
+import { addAppBreadcrumb, captureUiError, showAppAlertRaw } from "@/lib/ui/feedback";
+import { logger } from "@/lib/logger";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "@/lib/parimutuel";
 import { supabase } from "@/lib/supabase";
@@ -176,7 +178,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
           }
 
           if (currentStake > balance) {
-              Alert.alert("Insufficient Balance", "You don't have enough funds for this bet.");
+              showAppAlertRaw("Insufficient Balance", "You don't have enough funds for this bet.");
               resetCard();
               return;
           }
@@ -192,6 +194,13 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
              });
              if (error) throw error;
 
+             addAppBreadcrumb("bet", "Swipe bet placed", {
+               marketId: market.id,
+               amount: currentStake,
+               side,
+               isPlayMode,
+             });
+
              alertBetPlacedWithContract({
                router,
                betId: bet?.id,
@@ -201,7 +210,9 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
              
              // Rely on real-time subscription for global refresh to avoid custom non-existent methods
           } catch (e: any) {
-              Alert.alert("Bet failed", e.message);
+              logger.error("Swipe bet failed", { marketId: market.id, side, amount: currentStake }, e);
+              captureUiError(e, "SwipeMarketCard", "confirmBet");
+              showAppAlertRaw("Bet failed", e.message);
               resetCard();
           }
       });
@@ -244,22 +255,22 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
       return (
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
               {/* YES Overlay */}
-              <Animated.View style={[styles.roiOverlay, styles.roiYes, { opacity: swipeOpacityYes }]}>
-                 <Text style={styles.roiTitle}>BUY YES</Text>
-                 <Text style={styles.roiStake}>STAKE: ${currentStake}</Text>
-                 <Text style={styles.roiWin}>WIN: {formatCurrency(yesPayout)}</Text>
+              <Animated.View style={[styles.roiOverlay, styles.roiYes, { opacity: swipeOpacityYes, backgroundColor: `${theme.success}D9` }]}>
+                 <Text style={[styles.roiTitle, { color: theme.onPrimary }]}>BUY YES</Text>
+                 <Text style={[styles.roiStake, { color: theme.onPrimary }]}>STAKE: ${currentStake}</Text>
+                 <Text style={[styles.roiWin, { color: theme.onPrimary }]}>WIN: {formatCurrency(yesPayout)}</Text>
               </Animated.View>
               {/* NO Overlay */}
-              <Animated.View style={[styles.roiOverlay, styles.roiNo, { opacity: swipeOpacityNo }]}>
-                 <Text style={styles.roiTitle}>BUY NO</Text>
-                 <Text style={styles.roiStake}>STAKE: ${currentStake}</Text>
-                 <Text style={styles.roiWin}>WIN: {formatCurrency(noPayout)}</Text>
+              <Animated.View style={[styles.roiOverlay, styles.roiNo, { opacity: swipeOpacityNo, backgroundColor: `${theme.error}D9` }]}>
+                 <Text style={[styles.roiTitle, { color: theme.onPrimary }]}>BUY NO</Text>
+                 <Text style={[styles.roiStake, { color: theme.onPrimary }]}>STAKE: ${currentStake}</Text>
+                 <Text style={[styles.roiWin, { color: theme.onPrimary }]}>WIN: {formatCurrency(noPayout)}</Text>
               </Animated.View>
 
               {/* Stake Indicator (Center) */}
-              <View style={styles.stakeIndicatorContainer}>
-                  <Text style={styles.stakeIndicatorArrow}>▲</Text>
-                  <Text style={styles.stakeIndicatorText}>Drag UP to increase stake</Text>
+              <View style={[styles.stakeIndicatorContainer, { backgroundColor: theme.overlay }]}>
+                  <Text style={[styles.stakeIndicatorArrow, { color: theme.onPrimary }]}>▲</Text>
+                  <Text style={[styles.stakeIndicatorText, { color: theme.onPrimary }]}>Drag UP to increase stake</Text>
               </View>
           </View>
       );
@@ -270,7 +281,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
       const marketData = await feedService.getMarketWithStats(market.id);
       if (marketData) setBaseStats(marketData);
     } catch (e) {
-      console.error("Failed to load market data", e);
+      logger.error("Failed to load market data", { marketId: market.id }, e);
     }
   }, [market.id]);
 
@@ -303,7 +314,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
           setCommentCount(socialStats.commentCount);
           setIsLiked(liked);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { logger.error("Failed to load social stats", { marketId: market.id }, e); }
     };
     if (isVisible) loadSocialStats();
     return () => { mounted = false; };
@@ -402,6 +413,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
             styles.container, 
             { 
                width: cardWidth,
+               backgroundColor: theme.background,
                transform: [
                  { translateX: pan.x }, 
                  { translateY: pan.y },
@@ -414,18 +426,18 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
         {/* Top Controls Overlay */}
         <View style={[styles.topControls, { top: insets.top + (Platform.OS === 'web' ? 20 : 60) }]}>
             <View style={styles.badgeContainer}>
-                <View style={[styles.badge, styles.liveBadge]}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.badgeText}>LIVE</Text>
+                <View style={[styles.badge, styles.liveBadge, { backgroundColor: theme.error }]}>
+                    <View style={[styles.liveDot, { backgroundColor: theme.onPrimary }]} />
+                    <Text style={[styles.badgeText, { color: theme.onPrimary }]}>LIVE</Text>
                 </View>
-                <View style={[styles.badge, styles.glassBadge, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)' }]}>
-                <IconSymbol name="clock" size={10} color={isDark ? "#fff" : "#000"} />
-                <Text style={[styles.badgeText, { color: isDark ? "#fff" : "#000" }]}>{timeLeft}</Text>
+                <View style={[styles.badge, styles.glassBadge, { backgroundColor: isDark ? theme.overlay : `${theme.surface}E6` }]}>
+                <IconSymbol name="clock" size={10} color={isDark ? theme.onPrimary : theme.text} />
+                <Text style={[styles.badgeText, { color: isDark ? theme.onPrimary : theme.text }]}>{timeLeft}</Text>
                 </View>
             </View>
             {isAdmin && (
-            <TouchableOpacity style={styles.iconButton} onPress={() => onRemoveMarket?.(market.id)}>
-                <IconSymbol name="trash" size={16} color="#fff" />
+            <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.overlay, borderColor: theme.borderSubtle }]} onPress={() => onRemoveMarket?.(market.id)}>
+                <IconSymbol name="trash" size={16} color={theme.onPrimary} />
             </TouchableOpacity>
             )}
         </View>
@@ -435,7 +447,9 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
             {market.image_url ? (
             <Image source={{ uri: market.image_url }} style={styles.image} contentFit="cover" transition={300} />
             ) : (
-            <View style={[styles.placeholderImage, { backgroundColor: '#1A1A1A' }]}><IconSymbol name="chart.bar.fill" size={40} color="#333" /></View>
+            <View style={[styles.placeholderImage, { backgroundColor: theme.background }]}>
+              <IconSymbol name="chart.bar.fill" size={40} color={theme.textSecondary} />
+            </View>
             )}
             <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.95)']} style={styles.gradientOverlay} />
         </View>
@@ -444,19 +458,19 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
         <View style={styles.contentOverlay}>
             <View style={styles.bottomContent}>
                 <View style={styles.metadataRow}>
-                    <View style={[styles.metadataContainer, { backgroundColor: isDark ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.95)' }]}>
-                        <Text style={[styles.categoryText, { color: isDark ? "#fff" : "#000" }]}>{market.category || "General"}</Text>
+                    <View style={[styles.metadataContainer, { backgroundColor: isDark ? `${theme.surface}CC` : `${theme.surface}F2` }]}>
+                        <Text style={[styles.categoryText, { color: theme.text }]}>{market.category || "General"}</Text>
                         {stats && (
                             <View style={styles.statRow}>
-                                <View style={[styles.divider, { backgroundColor: isDark ? "#666" : "#999" }]} />
-                                <IconSymbol name="dollarsign.circle.fill" size={14} color={isDark ? "#fff" : "#000"} />
-                                <Text style={[styles.statText, { color: isDark ? "#fff" : "#000" }]}>${stats.totalPool.toLocaleString()}</Text>
+                                <View style={[styles.divider, { backgroundColor: theme.textSecondary }]} />
+                                <IconSymbol name="dollarsign.circle.fill" size={14} color={theme.text} />
+                                <Text style={[styles.statText, { color: theme.text }]}>${stats.totalPool.toLocaleString()}</Text>
                             </View>
                         )}
                     </View>
                 </View>
 
-                <Text style={styles.question} numberOfLines={4}>{market.question}</Text>
+                <Text style={[styles.question, { color: theme.onPrimary }]} numberOfLines={4}>{market.question}</Text>
 
             {/* Probability Chart */}
             {stats && isBinary && (
@@ -476,21 +490,21 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
                 <View style={styles.swipeInstructions}>
                     <View style={styles.roiHintChip}>
                         <View style={styles.roiHintSide}>
-                            <IconSymbol name="arrow.left" size={14} color="#F87171" />
-                            <Text style={styles.instructionText}>NO</Text>
+                            <IconSymbol name="arrow.left" size={14} color={theme.error} />
+                            <Text style={[styles.instructionText, { color: theme.onPrimary }]}>NO</Text>
                         </View>
                         <View style={styles.roiHintWin}>
-                            <Text style={styles.winLabel}>WIN</Text>
+                            <Text style={[styles.winLabel, { color: theme.onPrimary }]}>WIN</Text>
                             <Text style={[styles.winAmount, { color: theme.success, textShadowColor: `${theme.success}66` }]}>${Math.round(calculateYesNoPayout(currentStake, noOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
                         </View>
                     </View>
                     <View style={styles.roiHintChip}>
                         <View style={styles.roiHintSide}>
-                            <Text style={styles.instructionText}>YES</Text>
+                            <Text style={[styles.instructionText, { color: theme.onPrimary }]}>YES</Text>
                             <IconSymbol name="arrow.right" size={14} color={theme.success} />
                         </View>
                         <View style={styles.roiHintWin}>
-                            <Text style={styles.winLabel}>WIN</Text>
+                            <Text style={[styles.winLabel, { color: theme.onPrimary }]}>WIN</Text>
                             <Text style={[styles.winAmount, { color: theme.success, textShadowColor: `${theme.success}66` }]}>${Math.round(calculateYesNoPayout(currentStake, yesOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
                         </View>
                     </View>
@@ -498,15 +512,15 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
             )}
 
             <View style={styles.beginnerPanel}>
-                <Text style={styles.beginnerTitle}>New here?</Text>
-                <Text style={styles.beginnerText}>Open the market to choose an outcome, review the payout, then confirm.</Text>
+                <Text style={[styles.beginnerTitle, { color: theme.onPrimary }]}>New here?</Text>
+                <Text style={[styles.beginnerText, { color: `${theme.onPrimary}B8` }]}>Open the market to choose an outcome, review the payout, then confirm.</Text>
                 <View style={styles.beginnerActions}>
                     <TouchableOpacity
                       style={[styles.secondaryCta, { borderColor: 'rgba(255,255,255,0.22)' }]}
                       onPress={handlePress}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.secondaryCtaText}>Open market</Text>
+                      <Text style={[styles.secondaryCtaText, { color: theme.onPrimary }]}>Open market</Text>
                     </TouchableOpacity>
                     {isBinary && (
                       <TouchableOpacity
@@ -514,7 +528,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
                         onPress={handlePracticeBet}
                         activeOpacity={0.85}
                       >
-                        <Text style={styles.primaryCtaText}>Practice with $10</Text>
+                        <Text style={[styles.primaryCtaText, { color: theme.onPrimary }]}>Practice with $10</Text>
                       </TouchableOpacity>
                     )}
                 </View>
@@ -523,16 +537,16 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
             {/* Social Row */}
             <View style={styles.socialRow}>
             <TouchableOpacity style={styles.socialButton} onPress={handleLike} activeOpacity={0.7} disabled={isLiking}>
-                <IconSymbol name={isLiked ? "heart.fill" : "heart"} size={24} color={isLiked ? "#FF3B58" : "#fff"} />
-                <Text style={styles.socialCount}>{formatCount(likeCount)}</Text>
+                <IconSymbol name={isLiked ? "heart.fill" : "heart"} size={24} color={isLiked ? theme.destructive : theme.onPrimary} />
+                <Text style={[styles.socialCount, { color: theme.onPrimary }]}>{formatCount(likeCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} onPress={() => navigate({ pathname: "/market/[id]", params: { id: market.id, tab: "chat" } } as any, { message: "Opening live chat..." })} activeOpacity={0.7}>
-                <IconSymbol name="bubble.left.fill" size={22} color="#fff" />
-                <Text style={styles.socialCount}>{formatCount(commentCount)}</Text>
+                <IconSymbol name="bubble.left.fill" size={22} color={theme.onPrimary} />
+                <Text style={[styles.socialCount, { color: theme.onPrimary }]}>{formatCount(commentCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton} onPress={() => setShowShareOverlay(true)} activeOpacity={0.7}>
-                <IconSymbol name="arrowshape.turn.up.right.fill" size={22} color="#fff" />
-                <Text style={styles.socialCount}>Share</Text>
+                <IconSymbol name="arrowshape.turn.up.right.fill" size={22} color={theme.onPrimary} />
+                <Text style={[styles.socialCount, { color: theme.onPrimary }]}>Share</Text>
             </TouchableOpacity>
             </View>
             </View>

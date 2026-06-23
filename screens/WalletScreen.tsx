@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
     Linking,
@@ -19,6 +18,7 @@ import {
 } from "react-native";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { RulesModal } from "../components/profile/RulesModal";
+import { AppButton, AppInput, AppSkeleton, AppText, EmptyState } from "@/components/ui";
 import { WalletActionRail, type WalletActionKey } from "../components/wallet/WalletActionRail";
 import {
     WalletHistoryFilters,
@@ -32,6 +32,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { formatCurrency } from "../lib/parimutuel";
 import { isStripeNativeAvailable, useStripe } from "../lib/stripe-bridge";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { walletService } from "../services/wallet.service";
 
 const PREDEFINED_AMOUNTS = [10, 20, 50, 100];
@@ -196,12 +197,12 @@ export function WalletScreen() {
     if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value < MIN_DEPOSIT) {
-      Alert.alert("Minimum deposit", `Enter at least $${MIN_DEPOSIT}.00`);
+      showAppAlertRaw("Minimum deposit", `Enter at least $${MIN_DEPOSIT}.00`);
       return;
     }
 
     if (!user?.id) {
-      Alert.alert("Sign in required", "Please sign in to add funds.");
+      showAppAlertRaw("Sign in required", "Please sign in to add funds.");
       return;
     }
 
@@ -215,13 +216,13 @@ export function WalletScreen() {
       if (result?.url) {
         window.location.href = result.url;
       } else {
-        Alert.alert("Payment unavailable", "Unable to start checkout right now.");
+        showAppAlertRaw("Payment unavailable", "Unable to start checkout right now.");
       }
       return;
     }
 
     if (!isStripeNativeAvailable) {
-      Alert.alert(
+      showAppAlertRaw(
         "Stripe unavailable",
         "Use a development build to test native payments.",
       );
@@ -236,7 +237,7 @@ export function WalletScreen() {
     );
     if (!intent) {
       setLoading(false);
-      Alert.alert("Payment unavailable", "Unable to initialize payment.");
+      showAppAlertRaw("Payment unavailable", "Unable to initialize payment.");
       return;
     }
 
@@ -251,14 +252,14 @@ export function WalletScreen() {
 
     if (initError) {
       setLoading(false);
-      Alert.alert("Payment error", initError.message);
+      showAppAlertRaw("Payment error", initError.message);
       return;
     }
 
     const { error: presentError } = await stripe.presentPaymentSheet();
     setLoading(false);
     if (presentError) {
-      Alert.alert("Payment error", presentError.message);
+      showAppAlertRaw("Payment error", presentError.message);
       return;
     }
 
@@ -281,7 +282,7 @@ export function WalletScreen() {
 
       const link = await walletService.startOnboarding(user.id, user.email);
       if (!link?.url) {
-        Alert.alert("Setup unavailable", "Unable to open Stripe onboarding.");
+        showAppAlertRaw("Setup unavailable", "Unable to open Stripe onboarding.");
         return;
       }
 
@@ -299,15 +300,15 @@ export function WalletScreen() {
     if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value < MIN_WITHDRAWAL) {
-      Alert.alert("Minimum withdrawal", `Enter at least $${MIN_WITHDRAWAL}.00`);
+      showAppAlertRaw("Minimum withdrawal", `Enter at least $${MIN_WITHDRAWAL}.00`);
       return;
     }
     if (value > balance) {
-      Alert.alert("Insufficient balance", "Your wallet balance is too low.");
+      showAppAlertRaw("Insufficient balance", "Your wallet balance is too low.");
       return;
     }
     if (onboardingState !== "ready") {
-      Alert.alert("Complete setup", "Finish Stripe onboarding to withdraw.");
+      showAppAlertRaw("Complete setup", "Finish Stripe onboarding to withdraw.");
       return;
     }
 
@@ -316,7 +317,7 @@ export function WalletScreen() {
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert("Withdrawal failed", result.error || "Please try again.");
+      showAppAlertRaw("Withdrawal failed", result.error || "Please try again.");
       return;
     }
 
@@ -342,7 +343,7 @@ export function WalletScreen() {
     setLoading(false);
     if (!match) {
       setRecipient(null);
-      Alert.alert("User not found", "Try a username or email.");
+      showAppAlertRaw("User not found", "Try a username or email.");
       return;
     }
     setRecipient(match);
@@ -352,19 +353,19 @@ export function WalletScreen() {
     if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!recipient) {
-      Alert.alert("Recipient required", "Find a user first.");
+      showAppAlertRaw("Recipient required", "Find a user first.");
       return;
     }
     if (!Number.isFinite(value) || value <= 0) {
-      Alert.alert("Invalid amount", "Enter a valid send amount.");
+      showAppAlertRaw("Invalid amount", "Enter a valid send amount.");
       return;
     }
     if (value > balance) {
-      Alert.alert("Insufficient balance", "Your wallet balance is too low.");
+      showAppAlertRaw("Insufficient balance", "Your wallet balance is too low.");
       return;
     }
     if (onboardingState !== "ready") {
-      Alert.alert("Complete setup", "Finish Stripe onboarding before sending.");
+      showAppAlertRaw("Complete setup", "Finish Stripe onboarding before sending.");
       return;
     }
 
@@ -383,7 +384,7 @@ export function WalletScreen() {
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert("Send failed", result.error);
+      showAppAlertRaw("Send failed", result.error);
       return;
     }
 
@@ -408,7 +409,7 @@ export function WalletScreen() {
       }
       setBannerMessage("Receive handle copied.");
     } catch {
-      Alert.alert("Copy failed", "Please copy it manually.");
+      showAppAlertRaw("Copy failed", "Please copy it manually.");
     }
   };
 
@@ -417,12 +418,12 @@ export function WalletScreen() {
       return (
         <View>
           <View style={[styles.walletGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.walletGuideTitle, { color: theme.text }]}>Add live funds</Text>
-            <Text style={[styles.walletGuideText, { color: theme.textSecondary }]}>
+            <AppText variant="title3">{t("addLiveFunds")}</AppText>
+            <AppText variant="bodySm" color="secondary" style={styles.walletGuideText}>
               Deposits go to your live wallet. Practice credits stay separate, and the minimum deposit is ${MIN_DEPOSIT}.
-            </Text>
+            </AppText>
           </View>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Quick amounts</Text>
+          <AppText variant="label" color="secondary" style={styles.sectionTitle}>Quick amounts</AppText>
           <View style={styles.quickRow}>
             {PREDEFINED_AMOUNTS.map((value) => (
               <TouchableOpacity
@@ -437,36 +438,30 @@ export function WalletScreen() {
                   setAmount(String(value));
                 }}
               >
-                <Text
-                  style={[
-                    styles.quickChipText,
-                    { color: amount === String(value) ? theme.onPrimary : theme.text },
-                  ]}
+                <AppText
+                  variant="label"
+                  style={{ color: amount === String(value) ? theme.onPrimary : theme.text }}
                 >
                   ${value}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Custom amount</Text>
-          <TextInput
+          <AppText variant="label" color="secondary" style={styles.sectionTitle}>Custom amount</AppText>
+          <AppInput
+            testID="topup-amount"
             value={amount}
             onChangeText={(text) => setAmount(sanitizeAmount(text))}
             placeholder={`Minimum $${MIN_DEPOSIT}`}
-            placeholderTextColor={theme.textSecondary}
             keyboardType="decimal-pad"
-            style={[
-              styles.input,
-              { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7" },
-            ]}
           />
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+          <AppButton
+            testID="topup-submit"
+            title="Add Funds"
+            loading={loading}
             onPress={handleTopUp}
-            disabled={loading}
-          >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Add Funds</Text>}
-          </TouchableOpacity>
+            style={styles.primaryButton}
+          />
         </View>
       );
     }
@@ -524,13 +519,12 @@ export function WalletScreen() {
               { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7", marginTop: 10 },
             ]}
           />
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+          <AppButton
+            title="Send Funds"
+            loading={loading}
             onPress={handleSend}
-            disabled={loading}
-          >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Send Funds</Text>}
-          </TouchableOpacity>
+            style={styles.primaryButton}
+          />
         </View>
       );
     }
@@ -547,12 +541,11 @@ export function WalletScreen() {
               Share this with another user so they can send funds instantly.
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+          <AppButton
+            title="Copy Receive Handle"
             onPress={copyReceiveHandle}
-          >
-            <Text style={styles.primaryButtonText}>Copy Receive Handle</Text>
-          </TouchableOpacity>
+            style={styles.primaryButton}
+          />
         </View>
       );
     }
@@ -580,13 +573,12 @@ export function WalletScreen() {
             <Text style={{ color: theme.primary }}>View</Text>
           </TouchableOpacity>
         ) : null}
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+        <AppButton
+          title="Confirm Withdrawal"
+          loading={loading}
           onPress={handleWithdraw}
-          disabled={loading}
-        >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Confirm Withdrawal</Text>}
-        </TouchableOpacity>
+          style={styles.primaryButton}
+        />
       </View>
     );
   };
@@ -633,9 +625,7 @@ export function WalletScreen() {
                   Practice credits help you learn the app. Switch to live only when you want to deposit or withdraw real money.
                 </Text>
               </View>
-              <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={() => void requestLiveMode()}>
-                <Text style={styles.primaryButtonText}>Switch to Live Wallet</Text>
-              </TouchableOpacity>
+              <AppButton title="Switch to Live Wallet" onPress={() => void requestLiveMode()} style={styles.primaryButton} />
             </>
           ) : !liveWalletReady ? (
             <>
@@ -645,15 +635,17 @@ export function WalletScreen() {
                   Complete Stripe Identity verification before depositing, withdrawing, or placing live bets.
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+              <AppButton
+                title="Verify identity"
                 onPress={() => router.push("/wallet/verify" as any)}
-              >
-                <Text style={styles.primaryButtonText}>Verify identity</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.secondaryLinkButton]} onPress={toggleMode}>
-                <Text style={[styles.secondaryLinkText, { color: theme.textSecondary }]}>Back to practice mode</Text>
-              </TouchableOpacity>
+                style={styles.primaryButton}
+              />
+              <AppButton
+                title="Back to practice mode"
+                variant="ghost"
+                onPress={toggleMode}
+                style={styles.secondaryLinkButton}
+              />
             </>
           ) : (
             <>
@@ -687,9 +679,9 @@ export function WalletScreen() {
 
           <View style={[styles.historyList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {transactionsLoading ? (
-              <ActivityIndicator color={theme.text} style={{ marginVertical: 20 }} />
+              <AppSkeleton variant="text" style={{ marginVertical: 20, alignSelf: "center", width: "60%" }} />
             ) : filteredTransactions.length === 0 ? (
-              <Text style={[styles.emptyHistory, { color: theme.textSecondary }]}>No transactions yet.</Text>
+              <EmptyState icon="receipt-outline" title="No transactions yet." />
             ) : (
               filteredTransactions.map((tx, index) => {
                 const isPositive = Number(tx.amount) > 0;

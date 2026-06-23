@@ -1,20 +1,20 @@
+import { AppButton, AppInput, AppText, FieldGroup } from "@/components/ui";
 import { Brand } from "@/constants/theme";
+import { formatAuthError } from "@/lib/auth-errors";
 import { getBetaAccessIntent } from "@/lib/beta-access-intent";
 import { getParamString } from "@/lib/route-params";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     Alert,
     Platform,
     SafeAreaView,
     StatusBar,
     StyleSheet,
-    Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -51,12 +51,12 @@ export default function LoginScreen() {
 
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert(t("missingInfo"), t("missingInfoBody"));
+      showAppAlertRaw(t("missingInfo"), t("missingInfoBody"));
       return;
     }
 
     if (!isLogin && password !== confirmPassword) {
-      Alert.alert(t("checkPassword"), t("checkPasswordBody"));
+      showAppAlertRaw(t("checkPassword"), t("checkPasswordBody"));
       return;
     }
 
@@ -78,22 +78,15 @@ export default function LoginScreen() {
         }
       }
     } catch (error) {
-      let errorMessage = t("genericError");
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null) {
-        const errObj = error as { status?: number; statusText?: string; message?: string };
-        if (errObj.status === 502 || errObj.status === 503) {
-          errorMessage = t("serviceUnavailable");
-        } else if (errObj.message) {
-          errorMessage = errObj.message;
-        } else if (errObj.statusText) {
-          errorMessage = errObj.statusText;
-        }
-      }
-      
-      Alert.alert(t("error"), errorMessage);
+      const errorMessage = formatAuthError(error, {
+        invalidCredentials: __DEV__ ? t("invalidCredentialsDev") : t("invalidCredentials"),
+        userAlreadyExists: t("userAlreadyExists"),
+        weakPassword: t("weakPassword"),
+        invalidEmail: t("invalidEmail"),
+        generic: t("genericError"),
+      });
+
+      showAppAlertRaw(t("error"), errorMessage);
     } finally {
       setAuthSubmitting(false);
     }
@@ -120,18 +113,18 @@ export default function LoginScreen() {
                   style={styles.logo}
                   contentFit="contain"
                 />
-                <Text style={styles.brandName}>AnyMarket</Text>
+                <AppText variant="display" style={styles.brandName}>AnyMarket</AppText>
               </View>
-              <Text style={styles.subtitle}>
+              <AppText variant="title3" style={styles.subtitle}>
                 {isLogin ? t("welcomeBack") : t("createAccount")}
-              </Text>
+              </AppText>
               {!isLogin && (
-                <Text style={styles.helperText}>
+                <AppText variant="bodySm" color="secondary" style={styles.helperText}>
                   {t("signupHelper")}
-                </Text>
+                </AppText>
               )}
               {approvedIntent ? (
-                <Text style={styles.approvedBanner}>{tAccess("approvedLoginBanner")}</Text>
+                <AppText variant="bodySm" color="success" style={styles.approvedBanner}>{tAccess("approvedLoginBanner")}</AppText>
               ) : null}
             </View>
 
@@ -145,7 +138,7 @@ export default function LoginScreen() {
                       try {
                         const { error } = await signInWithGoogle();
                         if (error) {
-                          Alert.alert(t("error"), error.message);
+                          showAppAlertRaw(t("error"), error.message);
                         }
                       } finally {
                         setAuthSubmitting(false);
@@ -155,79 +148,64 @@ export default function LoginScreen() {
                     activeOpacity={0.85}
                   >
                     <Ionicons name="logo-google" size={20} color="#16243F" style={{ marginRight: 10 }} />
-                    <Text style={styles.googleButtonText}>
+                    <AppText variant="body" style={styles.googleButtonText}>
                       {isLogin ? t("continueGoogle") : t("createGoogle")}
-                    </Text>
+                    </AppText>
                   </TouchableOpacity>
 
                   <View style={styles.dividerRow}>
                     <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>{t("orEmail")}</Text>
+                    <AppText variant="caption" color="muted" style={styles.dividerText}>{t("orEmail")}</AppText>
                     <View style={styles.dividerLine} />
                   </View>
                 </View>
               )}
 
-              <TextInput
-                testID="login-email"
-                style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                placeholder={t("email")}
-                placeholderTextColor="rgba(219, 231, 255, 0.55)"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              <TextInput
-                testID="login-password"
-                style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                placeholder={t("password")}
-                placeholderTextColor="rgba(219, 231, 255, 0.55)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-
-              {!isLogin && (
-                <TextInput
-                  testID="login-confirm-password"
-                  style={[styles.input, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-                  placeholder={t("confirmPassword")}
-                  placeholderTextColor="rgba(219, 231, 255, 0.55)"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+              <FieldGroup>
+                <AppInput
+                  testID="login-email"
+                  placeholder={t("email")}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <AppInput
+                  testID="login-password"
+                  placeholder={t("password")}
+                  value={password}
+                  onChangeText={setPassword}
                   secureTextEntry
                 />
-              )}
-
-              <TouchableOpacity
-                testID="login-submit"
-                style={[styles.button, authSubmitting && styles.buttonDisabled, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
-                onPress={handleAuth}
-                disabled={authSubmitting}
-                activeOpacity={0.85}
-              >
-                {authSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {isLogin ? t("signIn") : t("createAccountButton")}
-                  </Text>
+                {!isLogin && (
+                  <AppInput
+                    testID="login-confirm-password"
+                    placeholder={t("confirmPassword")}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                  />
                 )}
-              </TouchableOpacity>
+              </FieldGroup>
 
-              <TouchableOpacity
+              <AppButton
+                testID="login-submit"
+                title={isLogin ? t("signIn") : t("createAccountButton")}
+                loading={authSubmitting}
+                onPress={handleAuth}
+                style={styles.button}
+              />
+
+              <AppButton
                 testID="signup-toggle"
-                style={[styles.switchButton, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
+                title={isLogin ? t("switchToSignup") : t("switchToLogin")}
+                variant="ghost"
                 onPress={() => {
                   setIsLogin(!isLogin);
                   setConfirmPassword("");
                 }}
-              >
-                <Text style={styles.switchButtonText}>
-                  {isLogin ? t("switchToSignup") : t("switchToLogin")}
-                </Text>
-              </TouchableOpacity>
+                style={styles.switchButton}
+              />
             </View>
           </View>
         </View>

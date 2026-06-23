@@ -1,23 +1,26 @@
 import { AdminShell, useAdminLayoutMetrics } from "@/components/admin/AdminShell";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { AppSkeleton } from "@/components/ui/AppSkeleton";
+import { AppText } from "@/components/ui/AppText";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useTheme } from "@/contexts/ThemeContext";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import {
     adminService,
     type AdminTransactionRow,
     type AdminTransactionType,
 } from "@/services/admin.service";
-import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Platform,
     RefreshControl,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
@@ -73,6 +76,7 @@ export default function AdminTransactionsScreen() {
   const [modeFilter, setModeFilter] = useState<(typeof MODE_FILTERS)[number]>("live");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -98,9 +102,10 @@ export default function AdminTransactionsScreen() {
   const reload = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
+      setLoadError(null);
       await loadPage(0, false);
     } catch {
-      Alert.alert(t("actionFailed"), t("loadTransactionsFailed"));
+      setLoadError(t("loadTransactionsFailed"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,7 +122,7 @@ export default function AdminTransactionsScreen() {
     try {
       await loadPage(rows.length, true);
     } catch {
-      Alert.alert(t("actionFailed"), t("loadTransactionsFailed"));
+      showAppAlertRaw(t("actionFailed"), t("loadTransactionsFailed"));
     } finally {
       setLoadingMore(false);
     }
@@ -134,35 +139,35 @@ export default function AdminTransactionsScreen() {
     <View style={[styles.row, { borderBottomColor: theme.border }]}>
       <View style={styles.rowMain}>
         <View style={styles.rowTop}>
-          <Text style={[styles.typeLabel, { color: typeColor(item.type, theme) }]}>
+          <AppText variant="bodySm" style={{ fontWeight: "700", textTransform: "capitalize", color: typeColor(item.type, theme) }}>
             {t(`txType.${item.type}`, { defaultValue: item.type })}
-          </Text>
-          <Text style={[styles.amount, { color: theme.text }]}>
+          </AppText>
+          <AppText variant="bodySm" style={{ fontWeight: "700", fontVariant: ["tabular-nums"] }}>
             {formatAmount(item.type, item.amount)}
-          </Text>
+          </AppText>
         </View>
-        <Text style={[styles.meta, { color: theme.textSecondary }]}>
+        <AppText variant="caption" color="secondary">
           {item.username ?? t("unknownUser")} · {formatDate(item.createdAt)}
-        </Text>
+        </AppText>
         <View style={styles.tagRow}>
           <View style={[styles.tag, { backgroundColor: theme.background }]}>
-            <Text style={[styles.tagText, { color: theme.textSecondary }]}>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
               {item.status}
-            </Text>
+            </AppText>
           </View>
           {item.isPlayMode ? (
             <View style={[styles.tag, { backgroundColor: theme.primarySoft }]}>
-              <Text style={[styles.tagText, { color: theme.primary }]}>{t("playMode")}</Text>
+              <AppText variant="caption" color="primary" style={{ fontWeight: "700" }}>{t("playMode")}</AppText>
             </View>
           ) : (
             <View style={[styles.tag, { backgroundColor: theme.background }]}>
-              <Text style={[styles.tagText, { color: theme.textSecondary }]}>{t("liveMode")}</Text>
+              <AppText variant="caption" color="secondary" style={{ fontWeight: "700" }}>{t("liveMode")}</AppText>
             </View>
           )}
           {item.referenceId ? (
-            <Text style={[styles.ref, { color: theme.textSecondary }]} numberOfLines={1}>
+            <AppText variant="caption" color="secondary" numberOfLines={1} style={{ flex: 1 }}>
               {item.referenceId.slice(0, 18)}…
-            </Text>
+            </AppText>
           ) : null}
         </View>
       </View>
@@ -173,6 +178,7 @@ export default function AdminTransactionsScreen() {
     <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <AdminShell title={t("transactions")}>
+        <AppScreen maxWidth="wide" style={styles.adminScreen}>
         <View style={styles.toolbar}>
           <TextInput
             value={search}
@@ -196,7 +202,9 @@ export default function AdminTransactionsScreen() {
         </View>
 
         <View style={styles.filters}>
-          <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>{t("filterType")}</Text>
+          <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+            {t("filterType")}
+          </AppText>
           <FlatList
             horizontal
             data={TYPE_FILTERS}
@@ -216,7 +224,9 @@ export default function AdminTransactionsScreen() {
 
         <View style={[styles.dualFilter, isWide && styles.dualFilterWide]}>
           <View style={styles.filterBlock}>
-            <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>{t("filterStatus")}</Text>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+              {t("filterStatus")}
+            </AppText>
             <SegmentedControl
               segments={STATUS_FILTERS.map((s) => ({
                 value: s,
@@ -227,7 +237,9 @@ export default function AdminTransactionsScreen() {
             />
           </View>
           <View style={styles.filterBlock}>
-            <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>{t("filterMode")}</Text>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+              {t("filterMode")}
+            </AppText>
             <SegmentedControl
               segments={MODE_FILTERS.map((m) => ({
                 value: m,
@@ -239,8 +251,20 @@ export default function AdminTransactionsScreen() {
           </View>
         </View>
 
+        {loadError ? (
+          <ErrorBanner
+            message={loadError}
+            onRetry={() => void reload(true)}
+            retryLabel={t("retry", { ns: "common", defaultValue: "Retry" })}
+          />
+        ) : null}
+
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
+          <View style={styles.skeletonStack}>
+            <AppSkeleton variant="row" />
+            <AppSkeleton variant="row" />
+            <AppSkeleton variant="row" />
+          </View>
         ) : (
           <FlatList
             data={rows}
@@ -252,10 +276,7 @@ export default function AdminTransactionsScreen() {
             onEndReached={() => void onLoadMore()}
             onEndReachedThreshold={0.4}
             ListEmptyComponent={
-              <View style={styles.empty}>
-                <Ionicons name="receipt-outline" size={40} color={theme.textSecondary} />
-                <Text style={{ color: theme.textSecondary, marginTop: 8 }}>{t("noTransactions")}</Text>
-              </View>
+              <EmptyState icon="receipt-outline" title={t("noTransactions")} />
             }
             ListFooterComponent={
               loadingMore ? <ActivityIndicator color={theme.primary} style={{ marginVertical: 16 }} /> : null
@@ -263,6 +284,7 @@ export default function AdminTransactionsScreen() {
             contentContainerStyle={rows.length === 0 ? styles.emptyList : undefined}
           />
         )}
+        </AppScreen>
       </AdminShell>
     </>
   );
@@ -291,9 +313,9 @@ function FilterChip({
         Platform.OS === "web" && ({ cursor: "pointer" } as any),
       ]}
     >
-      <Text style={{ color: active ? theme.primary : theme.textSecondary, fontSize: 12, fontWeight: "600" }}>
+      <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: "600" }}>
         {label}
-      </Text>
+      </AppText>
     </TouchableOpacity>
   );
 }
@@ -313,13 +335,22 @@ function SummaryChip({
     tone === "success" ? theme.success : tone === "error" ? theme.error : theme.text;
   return (
     <View style={[styles.summaryChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.summaryValue, { color: valueColor }]}>{value}</Text>
+      <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase" }}>
+        {label}
+      </AppText>
+      <AppText variant="title3" style={{ color: valueColor, marginTop: 4, fontWeight: "700" }}>{value}</AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  adminScreen: {
+    flex: 1,
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
+  },
+  skeletonStack: { gap: 8, marginTop: 8 },
   toolbar: { gap: 12, marginBottom: 16 },
   search: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -336,10 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
   },
-  summaryLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase" },
-  summaryValue: { fontSize: 16, fontWeight: "700", marginTop: 4 },
   filters: { marginBottom: 12 },
-  filterLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", marginBottom: 8 },
   chipList: { gap: 8, paddingRight: 8 },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -356,13 +384,7 @@ const styles = StyleSheet.create({
   },
   rowMain: { gap: 4 },
   rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  typeLabel: { fontSize: 14, fontWeight: "700", textTransform: "capitalize" },
-  amount: { fontSize: 15, fontWeight: "700", fontVariant: ["tabular-nums"] },
-  meta: { fontSize: 12 },
   tagRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 4 },
   tag: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  tagText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
-  ref: { fontSize: 10, flex: 1 },
-  empty: { alignItems: "center", paddingVertical: 48 },
   emptyList: { flexGrow: 1 },
 });

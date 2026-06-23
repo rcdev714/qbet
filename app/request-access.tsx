@@ -1,6 +1,6 @@
 import { CountryPicker } from "@/components/onboarding/CountryPicker";
 import { SEO } from "@/components/SEO";
-import { AppButton } from "@/components/ui/AppButton";
+import { AppButton, AppInput, AppScreen, AppText, ErrorBanner, FieldGroup } from "@/components/ui";
 import { WhatsAppContactLink } from "@/components/WhatsAppContactLink";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { saveSubmittedIntent } from "@/lib/beta-access-intent";
@@ -16,11 +16,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Platform,
-    SafeAreaView,
-    ScrollView,
     StyleSheet,
-    Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -72,15 +68,15 @@ function StatusBanner({
     <View style={[styles.banner, { backgroundColor: palette.bg, borderColor: palette.border }]}>
       <Ionicons name={iconName} size={22} color={palette.icon} style={styles.bannerIcon} />
       <View style={styles.bannerText}>
-        <Text style={[styles.bannerTitle, { color: "#F8FAFC" }]}>{title}</Text>
-        {body ? <Text style={styles.bannerBody}>{body}</Text> : null}
+        <AppText variant="body" style={{ color: "#F8FAFC" }}>{title}</AppText>
+        {body ? <AppText variant="bodySm" color="secondary">{body}</AppText> : null}
         {onDismiss && dismissLabel ? (
           <TouchableOpacity
             onPress={onDismiss}
             style={[styles.bannerDismiss, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
             activeOpacity={0.85}
           >
-            <Text style={[styles.bannerDismissText, { color: palette.icon }]}>{dismissLabel}</Text>
+            <AppText variant="label" style={{ color: palette.icon }}>{dismissLabel}</AppText>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -158,21 +154,17 @@ export default function RequestAccessScreen() {
 
   const showSuccess = submitted || alreadySubmitted;
 
-  const inputBorder = (hasError: boolean) =>
-    hasError ? { borderColor: ERROR_RED, borderWidth: 1 } : undefined;
-
   return (
     <View style={styles.container}>
       <SEO title={t("seoTitle")} description={t("seoDescription")} url="/request-access" />
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <AppScreen scroll scrollProps={{ contentContainerStyle: styles.scroll }}>
           <TouchableOpacity
             onPress={() => router.push("/")}
             style={[styles.backLink, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
             activeOpacity={0.85}
           >
             <Ionicons name="arrow-back" size={18} color={TEXT_MUTED} />
-            <Text style={styles.backLinkText}>{t("backHome")}</Text>
+            <AppText variant="label" color="secondary">{t("backHome")}</AppText>
           </TouchableOpacity>
 
           <View style={styles.card}>
@@ -195,29 +187,27 @@ export default function RequestAccessScreen() {
                   />
                 ) : null}
                 <View style={styles.contactRow}>
-                  <Text style={styles.contactLabel}>{t("questions")}</Text>
+                  <AppText variant="bodySm" color="secondary">{t("questions")}</AppText>
                   <WhatsAppContactLink iconSize={18} />
                 </View>
               </>
             ) : (
               <>
-                <Text style={styles.title}>{t("title")}</Text>
-                <Text style={styles.subtitle}>{t("subtitle")}</Text>
+                <AppText variant="title1" style={styles.title}>{t("title")}</AppText>
+                <AppText variant="body" color="secondary" style={styles.subtitle}>{t("subtitle")}</AppText>
 
                 {submitError ? (
-                  <StatusBanner
-                    variant="error"
-                    title={t("errorTitle")}
-                    body={submitError}
-                    onDismiss={clearErrors}
-                    dismissLabel={t("tryAgain")}
+                  <ErrorBanner
+                    message={submitError}
+                    onRetry={clearErrors}
+                    retryLabel={t("tryAgain")}
                   />
                 ) : null}
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>{t("emailLabel")}</Text>
-                  <TextInput
+                <FieldGroup>
+                  <AppInput
                     testID="access-email"
+                    label={t("emailLabel")}
                     value={email}
                     onChangeText={(value) => {
                       setEmail(value);
@@ -227,19 +217,12 @@ export default function RequestAccessScreen() {
                     autoComplete="email"
                     keyboardType="email-address"
                     placeholder={t("emailPlaceholder")}
-                    placeholderTextColor="rgba(228,236,250,0.55)"
-                    style={[
-                      styles.input,
-                      inputBorder(Boolean(fieldErrors.email)),
-                      Platform.OS === "web" && ({ cursor: "text" } as any),
-                    ]}
+                    error={fieldErrors.email ? t("validationHint") : undefined}
                   />
-                </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>{t("nameLabel")}</Text>
-                  <TextInput
+                  <AppInput
                     testID="access-name"
+                    label={t("nameLabel")}
                     value={fullName}
                     onChangeText={(value) => {
                       setFullName(value);
@@ -247,47 +230,35 @@ export default function RequestAccessScreen() {
                     }}
                     autoComplete="name"
                     placeholder={t("namePlaceholder")}
-                    placeholderTextColor="rgba(228,236,250,0.55)"
-                    style={[
-                      styles.input,
-                      inputBorder(Boolean(fieldErrors.fullName)),
-                      Platform.OS === "web" && ({ cursor: "text" } as any),
-                    ]}
+                    error={fieldErrors.fullName ? t("validationHint") : undefined}
                   />
-                </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>{t("countryLabel")}</Text>
-                  {fieldErrors.country ? (
-                    <Text style={styles.fieldError}>{t("countryRequired")}</Text>
-                  ) : null}
-                  <CountryPicker
-                    testID="access-country-trigger"
-                    variant="dark"
-                    selectedCountry={selectedCountry?.country_code ?? null}
-                    onSelect={(country) => {
-                      setSelectedCountry(country);
-                      if (fieldErrors.country) setFieldErrors((e) => ({ ...e, country: false }));
-                    }}
-                  />
-                </View>
+                  <View style={styles.field}>
+                    <AppText variant="label">{t("countryLabel")}</AppText>
+                    {fieldErrors.country ? (
+                      <AppText variant="caption" color="destructive">{t("countryRequired")}</AppText>
+                    ) : null}
+                    <CountryPicker
+                      testID="access-country-trigger"
+                      variant="dark"
+                      selectedCountry={selectedCountry?.country_code ?? null}
+                      onSelect={(country) => {
+                        setSelectedCountry(country);
+                        if (fieldErrors.country) setFieldErrors((e) => ({ ...e, country: false }));
+                      }}
+                    />
+                  </View>
 
-                <View style={styles.field}>
-                  <Text style={styles.label}>{t("messageLabel")}</Text>
-                  <TextInput
+                  <AppInput
+                    label={t("messageLabel")}
                     value={message}
                     onChangeText={setMessage}
                     multiline
                     numberOfLines={4}
                     placeholder={t("messagePlaceholder")}
-                    placeholderTextColor="rgba(228,236,250,0.55)"
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                      Platform.OS === "web" && ({ cursor: "text" } as any),
-                    ]}
+                    style={styles.textArea}
                   />
-                </View>
+                </FieldGroup>
 
                 <AppButton
                   testID="access-submit"
@@ -298,14 +269,13 @@ export default function RequestAccessScreen() {
                 />
 
                 <View style={styles.contactRow}>
-                  <Text style={styles.contactLabel}>{t("questions")}</Text>
+                  <AppText variant="bodySm" color="secondary">{t("questions")}</AppText>
                   <WhatsAppContactLink iconSize={18} />
                 </View>
               </>
             )}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+      </AppScreen>
     </View>
   );
 }
@@ -417,8 +387,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.2)",
   },
   textArea: {
-    height: 112,
-    paddingTop: 12,
+    minHeight: 112,
     textAlignVertical: "top",
   },
   submitButton: {

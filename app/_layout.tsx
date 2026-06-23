@@ -6,10 +6,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
+import '@/lib/sentry-init';
+
 import { AnyMarketLoader } from '@/components/AnyMarketLoader';
 import { PremiumNavigationProvider } from '@/components/PremiumNavigationProvider';
 import { SEO } from '@/components/SEO';
 import { SignupBanner } from '@/components/SignupBanner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { WebContainer } from '@/components/WebContainer';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { LocaleProvider } from '@/contexts/LocaleContext';
@@ -20,6 +23,7 @@ import { WalletProvider } from '@/contexts/WalletContext';
 import { isAppAdmin } from '@/lib/admin';
 import { LEGAL_COLORS, LEGAL_STACK_SCREEN_OPTIONS } from '@/lib/legal/typography';
 import { getPublicEnv } from '@/lib/public-env';
+import { Sentry } from '@/lib/sentry';
 import { StripeProvider } from '@/lib/stripe-bridge';
 import { complianceService } from '@/services/compliance.service';
 import { groupService } from '@/services/group.service';
@@ -654,22 +658,35 @@ function WebShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
-    <ThemeProvider>
-      <WebShell>
-        <AuthProvider>
-          <LocaleProvider>
-            <PolicyFrameworkProvider>
-            <WalletProvider>
-              <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
-                <RootLayoutNav />
-              </StripeProvider>
-            </WalletProvider>
-            </PolicyFrameworkProvider>
-          </LocaleProvider>
-        </AuthProvider>
-      </WebShell>
-    </ThemeProvider>
+    <Sentry.ErrorBoundary
+      fallback={({ resetError }) => (
+        <EmptyState
+          variant="destructive"
+          icon="warning-outline"
+          title="Something went wrong"
+          description="An unexpected error occurred."
+          actionLabel="Try again"
+          onAction={resetError}
+        />
+      )}
+    >
+      <ThemeProvider>
+        <WebShell>
+          <AuthProvider>
+            <LocaleProvider>
+              <PolicyFrameworkProvider>
+              <WalletProvider>
+                <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
+                  <RootLayoutNav />
+                </StripeProvider>
+              </WalletProvider>
+              </PolicyFrameworkProvider>
+            </LocaleProvider>
+          </AuthProvider>
+        </WebShell>
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
   );
-}
+});

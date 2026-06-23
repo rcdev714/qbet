@@ -1,9 +1,8 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens — colors, fonts, elevation, marketing surfaces.
  */
 
-import { Platform } from "react-native";
+import { Platform, type ViewStyle } from "react-native";
 
 /** Shared brand tokens — use these instead of hardcoded hex values in UI code. */
 export const Brand = {
@@ -15,6 +14,16 @@ export const Brand = {
   error: "#DC2626",
   warning: "#FBBF24",
   mutedText: "#526173",
+} as const;
+
+/** Landing / marketing dark hero derived from Brand */
+export const Marketing = {
+  heroBackground: "#030712",
+  heroBorder: "rgba(255, 255, 255, 0.08)",
+  heroSurface: "rgba(255, 255, 255, 0.04)",
+  textMuted: "#94A3B8",
+  textLink: "#93C5FD",
+  accent: Brand.primary,
 } as const;
 
 export const Colors = {
@@ -37,15 +46,63 @@ export const Colors = {
   },
 };
 
+export type ElevationLevel = "none" | "sm" | "md" | "lg";
+
+export const ElevationLight: Record<ElevationLevel, ViewStyle> = {
+  none: {},
+  sm: {
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  md: {
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  lg: {
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.16,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+};
+
+export const ElevationDark: Record<ElevationLevel, ViewStyle> = {
+  none: {},
+  sm: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  md: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  lg: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.55,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+};
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: "system-ui",
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: "ui-serif",
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: "ui-rounded",
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: "ui-monospace",
   },
   default: {
