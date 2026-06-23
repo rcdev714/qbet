@@ -5,6 +5,13 @@ import { Platform } from "react-native";
 import type { Database } from "../types/database";
 import { getPublicEnv } from "./public-env";
 
+// Expo static export (EAS deploy) renders on Node 20, which lacks native WebSocket.
+if (typeof window === "undefined" && typeof globalThis.WebSocket === "undefined") {
+  const WebSocketImpl = require("ws") as typeof import("ws");
+  (globalThis as typeof globalThis & { WebSocket: typeof WebSocket }).WebSocket =
+    WebSocketImpl as unknown as typeof WebSocket;
+}
+
 const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
 
 if (!supabaseUrl) {

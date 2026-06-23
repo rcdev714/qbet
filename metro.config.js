@@ -16,4 +16,16 @@ config.resolver.extraNodeModules = {
   "react/jsx-dev-runtime": path.join(projectRoot, "node_modules/react/jsx-dev-runtime"),
 };
 
+const defaultResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // `ws` is Node-only; used during Expo static export (environment=node), not in browser bundles.
+  if (moduleName === "ws" && context.customTransformOptions?.environment !== "node") {
+    return { type: "empty" };
+  }
+  if (defaultResolveRequest) {
+    return defaultResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
