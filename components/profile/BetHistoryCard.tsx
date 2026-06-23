@@ -1,5 +1,6 @@
+import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { formatCurrency } from "../../lib/parimutuel";
 import { BetWithDetails } from "../../types/market";
@@ -10,6 +11,8 @@ interface BetHistoryCardProps {
 
 export function BetHistoryCard({ bet }: BetHistoryCardProps) {
   const { theme } = useTheme();
+  const router = useRouter();
+  const isLiveBet = bet.is_play_mode !== true;
 
   // Determine status color and text
   let statusColor = theme.textSecondary;
@@ -25,10 +28,8 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
      }
   }
 
-  // const isWon = statusText === "Won";
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+  const content = (
+    <>
       <View style={styles.header}>
         <Text style={[styles.marketQuestion, { color: theme.text }]} numberOfLines={2}>
           {bet.markets?.question || "Unknown Market"}
@@ -40,7 +41,9 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
 
       <View style={styles.detailsRow}>
         <View>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Constructed Bet</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>
+            {isLiveBet ? "Live Position" : "Practice Position"}
+          </Text>
           <Text style={[styles.option, { color: theme.primary }]}>
             {bet.options?.label || "Unknown Option"}
           </Text>
@@ -54,7 +57,32 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
           </Text>
         </View>
       </View>
-    </View>
+
+      {isLiveBet ? (
+        <Text style={[styles.contractHint, { color: theme.primary }]}>
+          View wager agreement →
+        </Text>
+      ) : null}
+    </>
+  );
+
+  if (!isLiveBet) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      onPress={() => router.push(`/contract/${bet.id}` as any)}
+      accessibilityRole="button"
+      accessibilityLabel="Open wager agreement"
+    >
+      {content}
+    </TouchableOpacity>
   );
 }
 
@@ -98,6 +126,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   status: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  contractHint: {
+    marginTop: 10,
     fontSize: 13,
     fontWeight: "600",
   },

@@ -1,5 +1,9 @@
+import { createDebugLogger } from "../lib/debug-log";
 import { supabase } from "../lib/supabase";
 import type { Bet } from "../types/market";
+import type { BetContractPipelineResult } from "./betContract.service";
+
+const log = createDebugLogger("betService");
 
 export interface PlaceBetData {
   marketId: string;
@@ -7,6 +11,12 @@ export interface PlaceBetData {
   amount: number;
   side?: "yes" | "no";
   isPlayMode?: boolean;
+}
+
+export interface PlaceBetResult {
+  bet: Bet | null;
+  error: Error | null;
+  contractPipeline?: BetContractPipelineResult;
 }
 
 /**
@@ -19,7 +29,7 @@ export const betService = {
    */
   async placeBet(
     data: PlaceBetData,
-  ): Promise<{ bet: Bet | null; error: Error | null }> {
+  ): Promise<PlaceBetResult> {
     try {
       if (data.isPlayMode) {
         // Local Play Mode Logic
@@ -68,10 +78,41 @@ export const betService = {
       });
 
       if (error) {
+        log.error("place_bet RPC failed", {
+          marketId: data.marketId,
+          optionId: data.optionId,
+          message: error.message,
+          code: (error as { code?: string }).code,
+        });
         return { bet: null, error };
       }
 
-      return { bet: bet as Bet, error: null };
+      const placedBet = bet as Bet;
+      let contractPipeline: BetContractPipelineResult | undefined;
+
+      if (!data.isPlayMode) {
+        log.debug("running contract pipeline", { betId: placedBet.id });
+        try {
+          const { betContractService } = require("./betContract.service");
+          contractPipeline = await betContractService.runPlacedPipeline(placedBet.id);
+          log.info("contract pipeline finished", {
+            betId: placedBet.id,
+            status: contractPipeline?.status,
+          });
+        } catch (contractError) {
+          contractPipeline = {
+            status: "failed",
+            betId: placedBet.id,
+            error: contractError instanceof Error ? contractError.message : String(contractError),
+          };
+          log.error("contract pipeline threw", {
+            betId: placedBet.id,
+            error: contractPipeline.error,
+          });
+        }
+      }
+
+      return { bet: placedBet, error: null, contractPipeline };
     } catch (error) {
       return { bet: null, error: error as Error };
     }

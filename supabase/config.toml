@@ -334,7 +334,7 @@ verify_jwt = true
 # verify_jwt = true
 
 [functions.generate-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.share-redirect]
 verify_jwt = false
@@ -355,6 +355,12 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.send-beta-approval-email]
+verify_jwt = true
+
+[functions.send-bet-contract-email]
+verify_jwt = true
+
+[functions.dispatch-market-contract-emails]
 verify_jwt = true
 
 # [edge_runtime.secrets]

@@ -1,5 +1,6 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { scanMarketTextForSports } from "../lib/compliance/sports-content";
+import { createDebugLogger } from "../lib/debug-log";
 import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
 import type {
@@ -10,6 +11,8 @@ import type {
     MarketWithStats,
 } from "../types/market";
 import { messageService } from "./message.service";
+
+const log = createDebugLogger("marketService");
 
 export interface CreateMarketData {
   groupId: string;
@@ -204,6 +207,8 @@ export const marketService = {
       const { data, error } = await supabase.rpc("resolve_market", {
         p_market_id: marketId,
         p_winning_option_id: winningOptionId,
+        p_evidence_url: null,
+        p_evidence_notes: null,
       });
 
       if (error) {
@@ -211,6 +216,30 @@ export const marketService = {
       }
 
       const market = await this.getMarket(marketId);
+
+      try {
+        const { data, error: emailError } = await supabase.functions.invoke(
+          "dispatch-market-contract-emails",
+          { body: { marketId } },
+        );
+        if (emailError) {
+          log.error("resolution contract emails invoke failed", {
+            marketId,
+            message: emailError.message,
+          });
+        } else {
+          log.info("resolution contract emails dispatched", {
+            marketId,
+            result: data,
+          });
+        }
+      } catch (emailError) {
+        log.error("resolution contract emails failed", {
+          marketId,
+          error: emailError instanceof Error ? emailError.message : String(emailError),
+        });
+      }
+
       return { market, error: null };
     } catch (error) {
       return { market: null, error: error as Error };
