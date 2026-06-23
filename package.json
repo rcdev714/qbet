@@ -25,6 +25,8 @@
     "test:sports-content": "npx tsx --test lib/compliance/sports-content.test.ts",
     "test:beta-approval-email": "deno test --no-config supabase/functions/_shared/beta-approval-email.test.ts",
     "test:bet-contract-email": "deno test --no-config supabase/functions/_shared/bet-contract-email.test.ts",
+    "test:bet-contract-sql": "bash scripts/test-bet-contract-sql.sh",
+    "test:integration": "npm run test:beta-approval-sql && npm run test:bet-contract-sql && npm run test:e2e:api",
     "test:e2e:env": "bash scripts/check-e2e-local-env.sh",
     "test:e2e:api": "npm run test:beta-approval-flow && bash scripts/test-bet-contract-flow.sh",
     "test:e2e": "bash scripts/run-local-e2e.sh",
