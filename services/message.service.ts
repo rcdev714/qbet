@@ -1,6 +1,7 @@
-import { supabase } from "../lib/supabase";
-import type { Message, MessageInsert, MessageType } from "../types/message";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { createPostgresChannel } from "../lib/supabase-realtime";
+import type { Message, MessageInsert } from "../types/message";
 
 /**
  * Message service
@@ -127,8 +128,7 @@ export const messageService = {
     groupId: string,
     onMessage: (message: Message) => void
   ): RealtimeChannel {
-    const channel = supabase
-      .channel(`group-messages:${groupId}`)
+    const channel = createPostgresChannel(`group-messages:${groupId}`)
       .on(
         "postgres_changes",
         {

@@ -119,7 +119,29 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
         .limit(50);
 
       if (error) throw error;
-      setCandidates(data as Market[]);
+
+      const markets = (data ?? []) as Market[];
+      if (markets.length === 0) {
+        setCandidates([]);
+        return;
+      }
+
+      const { data: optionRows, error: optionsError } = await supabase
+        .from("options")
+        .select("market_id")
+        .in("market_id", markets.map((market) => market.id));
+
+      if (optionsError) throw optionsError;
+
+      const optionCounts = new Map<string, number>();
+      for (const row of optionRows ?? []) {
+        if (!row.market_id) continue;
+        optionCounts.set(row.market_id, (optionCounts.get(row.market_id) ?? 0) + 1);
+      }
+
+      setCandidates(
+        markets.filter((market) => (optionCounts.get(market.id) ?? 0) >= 2),
+      );
     } catch (err) {
       console.error("Error fetching candidates:", err);
       Alert.alert("Error", "Failed to load candidate markets");
@@ -288,15 +310,30 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
   const handlePromote = async (marketId: string) => {
     setProcessingId(marketId);
     try {
-      const error = await feedService.toggleMarketPublicStatus(marketId, true);
+      const error = await feedService.promoteMarketToFeed(marketId);
       if (error) throw error;
 
-      // Remove from list locally
       setCandidates((prev) => prev.filter((m) => m.id !== marketId));
       Alert.alert("Success", "Market promoted to public feed");
     } catch (err) {
       console.error("Error promoting market:", err);
-      Alert.alert("Error", "Failed to promote market");
+      Alert.alert("Error", formatActionError(err, "Failed to promote market"));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleApproveForFeed = async (marketId: string) => {
+    setProcessingId(marketId);
+    try {
+      const error = await feedService.approveMarketForFeed(marketId);
+      if (error) throw error;
+
+      await fetchActiveMarkets();
+      Alert.alert("Success", "Market approved for public feed");
+    } catch (err) {
+      console.error("Error approving market:", err);
+      Alert.alert("Error", formatActionError(err, "Failed to approve market for feed"));
     } finally {
       setProcessingId(null);
     }
@@ -774,7 +811,21 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
 
       {isManage
         ? (
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {(item as any).compliance_review_state !== "approved" ||
+            (item as any).public_feed_allowed !== true
+              ? (
+                <TouchableOpacity
+                  style={[styles.promoteButton, { backgroundColor: "#34C759", minWidth: 72 }]}
+                  onPress={() => handleApproveForFeed(item.id)}
+                  disabled={processingId === item.id}
+                >
+                  {processingId === item.id
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.promoteText}>Approve</Text>}
+                </TouchableOpacity>
+              )
+              : null}
             <TouchableOpacity
               style={[styles.promoteButton, {
                 backgroundColor: theme.surface,
@@ -797,7 +848,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
                 paddingHorizontal: 10,
               }]}
               onPress={() => handleDelete(item.id)}
-              disabled={!!processingId}
+              disabled={processingId === item.id}
             >
               {processingId === item.id
                 ? <ActivityIndicator color="#fff" size="small" />
@@ -809,7 +860,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           <TouchableOpacity
             style={[styles.promoteButton, { backgroundColor: theme.primary }]}
             onPress={() => handlePromote(item.id)}
-            disabled={!!processingId}
+            disabled={processingId === item.id}
           >
             {processingId === item.id
               ? <ActivityIndicator color="#fff" size="small" />

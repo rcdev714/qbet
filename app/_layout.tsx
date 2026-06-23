@@ -158,8 +158,17 @@ function isPublicSegment(segment: string | undefined) {
     segment === 'profile' ||
     segment === 'share' ||
     segment === 'onboarding' ||
+    segment === 'how-it-works' ||
     isLegalSegment(segment)
   );
+}
+
+function isAdminSegment(segment: string | undefined, segments: string[]) {
+  if (segment === 'admin-dashboard') return true;
+  if (segment === 'admin' && ['users', 'transactions', 'reports'].includes(segments[1] ?? '')) {
+    return true;
+  }
+  return false;
 }
 
 function RootLayoutNav() {
@@ -221,7 +230,7 @@ function RootLayoutNav() {
       setHasBetaAccess(snapshot.hasBetaAccess);
       setPolicyCheckDone(true);
     }
-  }, [hasSession, user?.id, user?.email, user?.is_admin]);
+  }, [hasSession, user]);
 
   useLayoutEffect(() => {
     if (loading) return;
@@ -298,7 +307,7 @@ function RootLayoutNav() {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, [loading, hasSession, user?.id, user?.email, user?.is_admin]);
+  }, [loading, hasSession, user]);
 
   // Handle deep links
   useEffect(() => {
@@ -502,6 +511,8 @@ function RootLayoutNav() {
     const inviteIntent = getCurrentWebInviteIntent();
     const hasPendingInvite = Boolean(readPendingWebInvite());
     const isPublicRoute = isPublicSegment(segment);
+    const isAdminRoute = isAdminSegment(segment, segments as string[]);
+    const adminBypassOnboarding = isAuthenticated && isAppAdmin(user) && isAdminRoute;
     const canBrowseWhileOnboarding =
       isLegalSegment(segment) ||
       isPolicyOnboarding ||
@@ -512,7 +523,9 @@ function RootLayoutNav() {
       segment === 'share' ||
       segment === 'group' ||
       segment === 'market' ||
-      segment === 'bet';
+      segment === 'bet' ||
+      segment === 'contract' ||
+      adminBypassOnboarding;
 
     if (!isAuthenticated && inviteIntent) {
       storePendingWebInvite(inviteIntent);
@@ -554,7 +567,7 @@ function RootLayoutNav() {
     } else if (isAuthenticated && hasResidence && hasPolicyAcceptances && (isLanding || isLogin)) {
       router.replace(POST_AUTH_HOME as any);
     }
-  }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence, hasBetaAccess, user?.id]);
+  }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence, hasBetaAccess, user?.id, user]);
 
   const showBootstrapLoader =
     loading || (hasSession && (!policyCheckDone || !user?.id));
@@ -580,6 +593,10 @@ function RootLayoutNav() {
           <Stack.Screen name="beta/welcome" />
           <Stack.Screen name="admin-dashboard" />
           <Stack.Screen name="admin/users" />
+          <Stack.Screen name="admin/transactions" />
+          <Stack.Screen name="admin/reports" />
+          <Stack.Screen name="how-it-works" />
+          <Stack.Screen name="contract/[betId]" />
           <Stack.Screen name="terms" options={LEGAL_STACK_SCREEN_OPTIONS} />
           <Stack.Screen name="privacy" options={LEGAL_STACK_SCREEN_OPTIONS} />
           <Stack.Screen name="risk" options={LEGAL_STACK_SCREEN_OPTIONS} />

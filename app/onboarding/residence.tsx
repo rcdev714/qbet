@@ -11,13 +11,13 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 export default function ResidenceOnboardingScreen() {
@@ -103,6 +103,7 @@ export default function ResidenceOnboardingScreen() {
           </View>
 
           <CountryPicker
+            testID="residence-country-trigger"
             selectedCountry={selectedCountry?.country_code}
             onSelect={handleCountryChange}
             variant="light"
@@ -123,6 +124,7 @@ export default function ResidenceOnboardingScreen() {
           />
 
           <TouchableOpacity
+            testID="residence-continue"
             style={[styles.button, (!selectedCountry || submitting) && styles.buttonDisabled]}
             onPress={handleContinue}
             disabled={!selectedCountry || submitting}

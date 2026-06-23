@@ -85,3 +85,13 @@ See [`ec-product-classification-memo.md`](./ec-product-classification-memo.md) f
 - Tax base, withholding, VAT/digital service treatment, and monthly reporting obligations — see [`ec-uafe-sri-compliance-runbook.md`](./ec-uafe-sri-compliance-runbook.md).
 - Whether UAFE registration and formal suspicious transaction reporting are required before launch — see runbook.
 - Whether local Ecuadorian entity or representative is required — see [`ec-local-presence-requirements.md`](./ec-local-presence-requirements.md).
+
+## Engineering and deploy docs
+
+| Doc | Purpose |
+|-----|---------|
+| [ec-beta-e2e-checklist.md](./ec-beta-e2e-checklist.md) | Manual QA before beta invites |
+| [ec-counsel-launch-checklist.md](./ec-counsel-launch-checklist.md) | Counsel sign-off gate |
+| [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) | Beta request → approve → email flow |
+| [multi-jurisdiction-compliance.md](./multi-jurisdiction-compliance.md) | Residence → jurisdiction → policy pack |
+| [local-dev-verification.md](./local-dev-verification.md) | Local setup and test gates |

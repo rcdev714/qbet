@@ -1,3 +1,7 @@
+import type { ComplianceJurisdiction } from "./jurisdiction";
+
+export type { ComplianceJurisdiction };
+
 export type PolicyKind =
   | "terms"
   | "privacy"
@@ -29,6 +33,7 @@ export const REQUIRED_POLICY_KINDS: PolicyKind[] = [
   "prohibited_markets",
 ];
 
+/** @deprecated Server reads `prohibited_market_categories` and `market_category_mappings`. */
 export const MARKET_CATEGORY_RULES: Record<
   string,
   {
@@ -82,6 +87,7 @@ export const MARKET_CATEGORY_RULES: Record<
   },
 };
 
+/** @deprecated Server reads `compliance_jurisdiction_rules` via `get_compliance_config`. */
 export const JURISDICTION_RULES = {
   EC: {
     defaultCurrency: "USD",
@@ -102,8 +108,6 @@ export const JURISDICTION_RULES = {
       "United States launch posture: standard KYC, ledger exports, and manual review for sensitive categories.",
   },
 } as const;
-
-export type ComplianceJurisdiction = keyof typeof JURISDICTION_RULES;
 
 export function normalizeMarketCategory(label: string) {
   return label

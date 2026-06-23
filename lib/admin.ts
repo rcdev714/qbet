@@ -1,8 +1,7 @@
 import { getPublicEnv } from "./public-env";
 
 /**
- * Checks if the provided email is in the list of admin emails.
- * Reads from app.config.js extra via getPublicEnv() so web production export works.
+ * UI-only admin hint. Authoritative admin checks use DB `is_admin` via `is_app_admin()`.
  */
 export const isAdminEmail = (email?: string | null): boolean => {
     if (!email) return false;

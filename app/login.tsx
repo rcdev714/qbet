@@ -169,6 +169,7 @@ export default function LoginScreen() {
               )}
 
               <TextInput
+                testID="login-email"
                 style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
                 placeholder={t("email")}
                 placeholderTextColor="rgba(219, 231, 255, 0.55)"
@@ -178,6 +179,7 @@ export default function LoginScreen() {
                 keyboardType="email-address"
               />
               <TextInput
+                testID="login-password"
                 style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
                 placeholder={t("password")}
                 placeholderTextColor="rgba(219, 231, 255, 0.55)"
@@ -188,7 +190,8 @@ export default function LoginScreen() {
 
               {!isLogin && (
                 <TextInput
-                  style={[styles.input, Platform.OS === "web" && { cursor: "text" } as any]}
+                  testID="login-confirm-password"
+                  style={[styles.input, Platform.OS === "web" && ({ cursor: "text" } as any)]}
                   placeholder={t("confirmPassword")}
                   placeholderTextColor="rgba(219, 231, 255, 0.55)"
                   value={confirmPassword}
@@ -198,6 +201,7 @@ export default function LoginScreen() {
               )}
 
               <TouchableOpacity
+                testID="login-submit"
                 style={[styles.button, authSubmitting && styles.buttonDisabled, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
                 onPress={handleAuth}
                 disabled={authSubmitting}
@@ -213,6 +217,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                testID="signup-toggle"
                 style={[styles.switchButton, Platform.OS === 'web' && { cursor: 'pointer' } as any]}
                 onPress={() => {
                   setIsLogin(!isLogin);

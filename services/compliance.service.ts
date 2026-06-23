@@ -174,14 +174,28 @@ export const complianceService = {
     return data === true;
   },
 
+  async getUserPolicyLocale(userId?: string): Promise<"en" | "es"> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return "en";
+
+    const { data, error } = await (supabase as any).rpc("get_user_policy_locale", {
+      p_user_id: targetUserId,
+    });
+    if (error || !data) return "en";
+    return data === "es" ? "es" : "en";
+  },
+
   async getRequiredPolicies(jurisdiction?: ComplianceJurisdiction): Promise<PolicyVersion[]> {
     const targetJurisdiction = jurisdiction || (await resolveUserJurisdiction());
+    const locale = await this.getUserPolicyLocale();
 
     const { data, error } = await (supabase as any)
       .from("policy_versions")
       .select("*")
       .eq("is_required", true)
       .eq("jurisdiction", targetJurisdiction)
+      .eq("locale", locale)
       .is("retired_at", null)
       .lte("effective_at", new Date().toISOString())
       .order("kind")
@@ -196,6 +210,26 @@ export const complianceService = {
       }
     });
     return Array.from(latestByKind.values());
+  },
+
+  async getComplianceConfig(jurisdiction?: ComplianceJurisdiction) {
+    const { data, error } = await (supabase as any).rpc("get_compliance_config", {
+      p_jurisdiction: jurisdiction ?? null,
+    });
+    if (error) throw error;
+    return data as {
+      framework_id: ComplianceJurisdiction;
+      locale: "en" | "es";
+      jurisdiction_rules: unknown[];
+      category_mappings: Array<{
+        display_slug: string;
+        display_label: string;
+        compliance_category_slug: string;
+        default_visibility: string;
+        sort_order: number;
+      }>;
+      required_policies: PolicyVersion[];
+    };
   },
 
   async acceptCurrentPolicies(source: string = "signup", jurisdiction?: ComplianceJurisdiction) {

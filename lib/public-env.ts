@@ -42,5 +42,7 @@ export function getPublicEnv() {
       extra.betaRequired ||
       process.env.EXPO_PUBLIC_BETA_REQUIRED ||
       "true",
+    debugLogs:
+      process.env.EXPO_PUBLIC_DEBUG_LOGS === "true",
   };
 }

@@ -88,6 +88,7 @@ export default function WalletVerifyScreen() {
           </Text>
 
           <TouchableOpacity
+            testID="kyc-start"
             style={[styles.primaryButton, { backgroundColor: theme.primary }, loading && styles.disabled]}
             onPress={startVerification}
             disabled={loading}
@@ -100,6 +101,7 @@ export default function WalletVerifyScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            testID="kyc-poll-status"
             style={[styles.secondaryButton, { borderColor: theme.border }, polling && styles.disabled]}
             onPress={pollStatus}
             disabled={polling}

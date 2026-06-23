@@ -2166,6 +2166,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_approve_market_for_feed: {
+        Args: { p_market_id: string }
+        Returns: Database["public"]["Tables"]["markets"]["Row"]
+      }
+      admin_promote_market_to_feed: {
+        Args: { p_market_id: string }
+        Returns: Database["public"]["Tables"]["markets"]["Row"]
+      }
       assert_compliance_gate: {
         Args: {
           p_action: string
@@ -2205,6 +2213,27 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_market_with_options: {
+        Args: {
+          p_category?: string
+          p_closes_at?: string
+          p_compliance_category?: string
+          p_creator_attestation?: boolean
+          p_description?: string
+          p_featured_at?: string
+          p_group_id?: string
+          p_image_url?: string
+          p_is_public?: boolean
+          p_labels: string[]
+          p_market_type?: string
+          p_metadata?: Json
+          p_question: string
+          p_resolution_source?: string
+          p_resolver_type?: string
+          p_status?: Database["public"]["Enums"]["market_status"]
+        }
+        Returns: Database["public"]["Tables"]["markets"]["Row"]
       }
       create_notification: {
         Args: {
@@ -2254,6 +2283,11 @@ export type Database = {
       generate_entity_share_code: { Args: never; Returns: string }
       generate_group_code: { Args: never; Returns: string }
       generate_share_code: { Args: never; Returns: string }
+      get_admin_daily_financial_series: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      get_admin_financial_kpis: { Args: never; Returns: Json }
       get_categories: {
         Args: never
         Returns: {
@@ -2357,6 +2391,10 @@ export type Database = {
         Args: { p_group_id: string; p_user_id: string }
         Returns: boolean
       }
+      insert_market_options: {
+        Args: { p_labels: string[]; p_market_id: string }
+        Returns: Database["public"]["Tables"]["options"]["Row"][]
+      }
       join_group_by_code: {
         Args: { p_code: string }
         Returns: {
@@ -2379,6 +2417,21 @@ export type Database = {
           user_id: string
           username: string
         }[]
+      }
+      list_admin_content_reports: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: Json[]
+      }
+      list_admin_transactions: {
+        Args: {
+          p_is_play_mode?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+          p_type?: string
+        }
+        Returns: Json[]
       }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: {

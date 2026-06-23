@@ -5,14 +5,20 @@ import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
 import type {
     Market,
-    MarketInsert,
     MarketOption,
-    MarketOptionInsert,
     MarketWithStats,
 } from "../types/market";
 import { messageService } from "./message.service";
 
 const log = createDebugLogger("marketService");
+
+function normalizeMarketOptionLabels(options: string[]): string[] | Error {
+  const labels = options.map((label) => label.trim()).filter(Boolean);
+  if (labels.length < 2) {
+    return new Error("At least two options required");
+  }
+  return labels;
+}
 
 export interface CreateMarketData {
   groupId: string;
@@ -43,53 +49,24 @@ export const marketService = {
         return { market: null, error: new Error("Not authenticated") };
       }
 
-      // Create market
-      const marketInsert: MarketInsert = {
-        group_id: data.groupId,
-        creator_id: user.id,
-        question: data.question,
-        description: data.description,
-        closes_at: data.closesAt?.toISOString(),
-        status: "open",
-        image_url: data.imageUrl,
-      };
-
-      const { data: market, error: marketError } = await supabase
-        .from("markets")
-        .insert(marketInsert)
-        .select()
-        .single();
-
-      if (marketError || !market) {
-        return {
-          market: null,
-          error: marketError || new Error("Failed to create market"),
-        };
-      }
-
-      // Create options
-      const optionsInsert: MarketOptionInsert[] = data.options.map((label) => ({
-        market_id: market.id,
-        label,
-        total_pool: 0,
-      }));
-
-      const { error: optionsError } = await supabase
-        .from("options")
-        .insert(optionsInsert);
-
-      if (optionsError) {
-        // Clean up market if options creation fails
-        await supabase.from("markets").delete().eq("id", market.id);
-        return { market: null, error: optionsError };
+      const labels = normalizeMarketOptionLabels(data.options);
+      if (labels instanceof Error) {
+        return { market: null, error: labels };
       }
 
       const complianceCategory = "general_event";
-      const { error: reviewError } = await (supabase as any).rpc(
-        "upsert_market_compliance_review",
+      const { data: market, error: createError } = await supabase.rpc(
+        "create_market_with_options",
         {
-          p_market_id: market.id,
-          p_category: complianceCategory,
+          p_question: data.question,
+          p_labels: labels,
+          p_group_id: data.groupId,
+          p_description: data.description,
+          p_closes_at: data.closesAt?.toISOString(),
+          p_image_url: data.imageUrl,
+          p_status: "open",
+          p_is_public: false,
+          p_compliance_category: complianceCategory,
           p_resolution_source:
             data.description?.trim() || "Creator-declared source at market creation",
           p_creator_attestation: true,
@@ -99,16 +76,18 @@ export const marketService = {
             sports_scan: scanMarketTextForSports({
               question: data.question,
               description: data.description,
-              optionLabels: data.options,
+              optionLabels: labels,
               category: complianceCategory,
             }),
           },
         },
       );
 
-      if (reviewError) {
-        await supabase.from("markets").delete().eq("id", market.id);
-        return { market: null, error: new Error(reviewError.message) };
+      if (createError || !market) {
+        return {
+          market: null,
+          error: createError || new Error("Failed to create market"),
+        };
       }
 
       // Create a message for the new market

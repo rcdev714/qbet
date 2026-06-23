@@ -23,6 +23,7 @@ type PolicyConsentBlockProps = {
   jurisdiction: ComplianceJurisdiction;
   countryCode?: string | null;
   variant?: "dark" | "light";
+  testID?: string;
 };
 
 export function PolicyConsentBlock({
@@ -31,6 +32,7 @@ export function PolicyConsentBlock({
   jurisdiction,
   countryCode,
   variant = "dark",
+  testID,
 }: PolicyConsentBlockProps) {
   const router = useRouter();
   const { t } = useTranslation("compliance");
@@ -72,6 +74,7 @@ export function PolicyConsentBlock({
       </View>
 
       <TouchableOpacity
+        testID={testID}
         style={[styles.agreementRow, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
         onPress={() => onAcceptedChange(!accepted)}
         activeOpacity={0.75}

@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Dimensions,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -30,21 +30,21 @@ const PAGES = [
     content: (theme: any, isDark: boolean) => (
       <View>
         <Text style={[styles.bodyText, { color: theme.text }]}>
-          The social prediction market where any event is a tradeable asset.
+          Social prediction infrastructure for private groups. Learn in Practice mode, participate in Live only after verification.
         </Text>
         <View style={styles.featureList}>
           <View style={styles.featureItem}>
              <Text style={styles.featureIcon}>🎯</Text>
              <View>
-               <Text style={[styles.featureTitle, { color: theme.text }]}>Precision</Text>
-               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Settle questions with real outcomes.</Text>
+               <Text style={[styles.featureTitle, { color: theme.text }]}>Objective resolution</Text>
+               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Markets settle on published criteria and source of truth.</Text>
              </View>
           </View>
           <View style={styles.featureItem}>
-             <Text style={styles.featureIcon}>🎨</Text>
+             <Text style={styles.featureIcon}>🤝</Text>
              <View>
-               <Text style={[styles.featureTitle, { color: theme.text }]}>Social</Text>
-               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Bet with friends or the community.</Text>
+               <Text style={[styles.featureTitle, { color: theme.text }]}>Parimutuel pools</Text>
+               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Winners share the pool—AnyMarket is facilitator, not counterparty.</Text>
              </View>
           </View>
         </View>

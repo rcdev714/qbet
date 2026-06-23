@@ -7,6 +7,7 @@ interface Segment<T extends string> {
   value: T;
   label: string;
   description?: string;
+  testID?: string;
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -46,6 +47,7 @@ export function SegmentedControl<T extends string>({
         return (
           <TouchableOpacity
             key={segment.value}
+            testID={segment.testID}
             accessibilityLabel={segment.description ? `${segment.label}, ${segment.description}` : segment.label}
             accessibilityRole="radio"
             accessibilityState={{ checked: isActive }}

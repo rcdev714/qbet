@@ -5,13 +5,12 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import type {
     Market,
-    MarketInsert,
-    MarketOptionInsert,
     MarketWithStats,
 } from "../types/market";
 
 /**
- * Feed categories (display labels; mapped to compliance taxonomy on create)
+ * Feed categories (display labels; mapped to compliance taxonomy on create).
+ * Canonical mapping also lives in `market_category_mappings` (see get_compliance_config RPC).
  */
 export const FEED_CATEGORIES = ["Politics", "Tech", "Entertainment"] as const;
 export type FeedCategory = (typeof FEED_CATEGORIES)[number];
@@ -21,6 +20,14 @@ const FEED_TO_COMPLIANCE_CATEGORY: Record<FeedCategory, string> = {
   Tech: "general_event",
   Entertainment: "general_event",
 };
+
+function normalizeMarketOptionLabels(options: string[]): string[] | Error {
+  const labels = options.map((label) => label.trim()).filter(Boolean);
+  if (labels.length < 2) {
+    return new Error("At least two options required");
+  }
+  return labels;
+}
 
 async function getViewerJurisdiction(): Promise<"EC" | "US"> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -247,6 +254,36 @@ export const feedService = {
     },
 
     /**
+     * Promote a market to the public feed (admin RPC — sets compliance + visibility).
+     */
+    async promoteMarketToFeed(marketId: string): Promise<Error | null> {
+        try {
+            const { error } = await (supabase as any).rpc(
+                "admin_promote_market_to_feed",
+                { p_market_id: marketId },
+            );
+            return error;
+        } catch (error) {
+            return error as Error;
+        }
+    },
+
+    /**
+     * Approve a public market for feed visibility (admin RPC).
+     */
+    async approveMarketForFeed(marketId: string): Promise<Error | null> {
+        try {
+            const { error } = await (supabase as any).rpc(
+                "admin_approve_market_for_feed",
+                { p_market_id: marketId },
+            );
+            return error;
+        } catch (error) {
+            return error as Error;
+        }
+    },
+
+    /**
      * Toggle a market's public status (Admin only)
      */
     async toggleMarketPublicStatus(
@@ -286,58 +323,26 @@ export const feedService = {
                 return { market: null, error: new Error("Not authenticated") };
             }
 
-            // Create market (no group, is_public = true)
-            const marketInsert: MarketInsert = {
-                creator_id: user.id,
-                group_id: null, // Public markets don't belong to a group
-                question: data.question,
-                description: data.description,
-                category: data.category,
-                closes_at: data.closesAt.toISOString(),
-                status: "open",
-                is_public: true,
-                featured_at: new Date().toISOString(),
-                image_url: data.imageUrl,
-                market_type: data.marketType,
-            };
-
-            const { data: market, error: marketError } = await supabase
-                .from("markets")
-                .insert(marketInsert)
-                .select()
-                .single();
-
-            if (marketError || !market) {
-                return {
-                    market: null,
-                    error: marketError || new Error("Failed to create market"),
-                };
-            }
-
-            // Create options
-            const optionsInsert: MarketOptionInsert[] = data.options.map(
-                (label) => ({
-                    market_id: market.id,
-                    label,
-                    total_pool: 0,
-                }),
-            );
-
-            const { error: optionsError } = await supabase
-                .from("options")
-                .insert(optionsInsert);
-
-            if (optionsError) {
-                await supabase.from("markets").delete().eq("id", market.id);
-                return { market: null, error: optionsError };
+            const labels = normalizeMarketOptionLabels(data.options);
+            if (labels instanceof Error) {
+                return { market: null, error: labels };
             }
 
             const complianceCategory = FEED_TO_COMPLIANCE_CATEGORY[data.category] ?? "general_event";
-            const { error: reviewError } = await (supabase as any).rpc(
-                "upsert_market_compliance_review",
+            const { data: market, error: createError } = await supabase.rpc(
+                "create_market_with_options",
                 {
-                    p_market_id: market.id,
-                    p_category: complianceCategory,
+                    p_question: data.question,
+                    p_labels: labels,
+                    p_description: data.description,
+                    p_closes_at: data.closesAt.toISOString(),
+                    p_image_url: data.imageUrl,
+                    p_status: "open",
+                    p_is_public: true,
+                    p_featured_at: new Date().toISOString(),
+                    p_category: data.category,
+                    p_market_type: data.marketType,
+                    p_compliance_category: complianceCategory,
                     p_resolution_source: data.description?.trim() || "Creator-declared public source at market creation",
                     p_creator_attestation: true,
                     p_resolver_type: "creator_source",
@@ -345,8 +350,11 @@ export const feedService = {
                 },
             );
 
-            if (reviewError) {
-                console.warn("[feedService] compliance review upsert failed:", reviewError.message);
+            if (createError || !market) {
+                return {
+                    market: null,
+                    error: createError || new Error("Failed to create market"),
+                };
             }
 
             return { market: market as Market, error: null };

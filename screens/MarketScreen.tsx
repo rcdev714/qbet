@@ -18,6 +18,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { useMarket } from "../hooks/useMarket";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
+import { alertBetPlacedWithContract } from "../lib/bet-contract-ui";
 import { scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { getBinaryOptions, isBinaryMarket } from "../lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "../lib/parimutuel";
@@ -187,7 +188,7 @@ export function MarketScreen() {
     setIsPlacingBet(true);
     setError(null);
 
-    const { error: betError } = await betService.placeBet({
+    const { bet, error: betError, contractPipeline } = await betService.placeBet({
       marketId: resolvedMarketId,
       optionId: selectedOption,
       amount,
@@ -209,7 +210,12 @@ export function MarketScreen() {
       refreshWallet();
       refresh();
       notifyBetPlaced();
-      Alert.alert("Bet placed", "Your prediction is in. Prices and balance are updating now.");
+      alertBetPlacedWithContract({
+        router,
+        betId: bet?.id,
+        isPlayMode,
+        contractPipeline,
+      });
     }
   };
 
@@ -748,7 +754,7 @@ export function MarketScreen() {
                               setIsPlacingBet(true);
                               setError(null);
                               
-                              const { error: betError } = await betService.placeBet({
+                              const { bet, error: betError, contractPipeline } = await betService.placeBet({
                                 marketId: resolvedMarketId,
                                 optionId: selectedOption,
                                 amount: amt,
@@ -768,10 +774,15 @@ export function MarketScreen() {
                                 setSelectedSide(null);
                                 // Success Feedback
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                Alert.alert("Bet placed", `Placed a $${amt.toFixed(2)} bet. Prices and balance are updating now.`);
                                 refreshWallet();
                                 refresh();
                                 notifyBetPlaced();
+                                alertBetPlacedWithContract({
+                                  router,
+                                  betId: bet?.id,
+                                  isPlayMode,
+                                  contractPipeline,
+                                });
                               }
                           };
                           placeAutoBet();

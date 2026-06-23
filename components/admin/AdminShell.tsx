@@ -42,8 +42,10 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
   const { height, isWide } = useAdminLayoutMetrics();
 
   const currentPath = segments.join("/");
+  const isOverview = currentPath.includes("admin-dashboard");
   const isUsers = currentPath.includes("admin/users");
-  const isOverview = !isUsers;
+  const isTransactions = currentPath.includes("admin/transactions");
+  const isReports = currentPath.includes("admin/reports");
 
   const navItems = [
     {
@@ -53,7 +55,27 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
       icon: "chart.bar" as const,
       active: isOverview,
     },
-    { key: "users", label: t("users"), href: "/admin/users", icon: "person.2" as const, active: isUsers },
+    {
+      key: "transactions",
+      label: t("transactions"),
+      href: "/admin/transactions",
+      icon: "arrow.left.arrow.right" as const,
+      active: isTransactions,
+    },
+    {
+      key: "reports",
+      label: t("reports"),
+      href: "/admin/reports",
+      icon: "doc.text" as const,
+      active: isReports,
+    },
+    {
+      key: "users",
+      label: t("users"),
+      href: "/admin/users",
+      icon: "person.2" as const,
+      active: isUsers,
+    },
   ];
 
   const goToPlatform = () => {
@@ -140,7 +162,7 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
           <View style={styles.main}>
             <View style={[styles.mobileTopBar, { borderBottomColor: theme.border }]}>
               {backButton}
-              <View style={styles.mobileNav}>
+              <View style={styles.mobileNavScroll}>
                 {navItems.map((item) => (
                   <TouchableOpacity
                     key={item.key}
@@ -162,6 +184,7 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
                         styles.mobileNavLabel,
                         { color: item.active ? theme.primary : theme.textSecondary },
                       ]}
+                      numberOfLines={1}
                     >
                       {item.label}
                     </Text>
@@ -293,12 +316,18 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 10,
   },
+  mobileNavScroll: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   mobileNav: {
     flexDirection: "row",
     gap: 8,
   },
   mobileNavItem: {
-    flex: 1,
+    minWidth: "47%",
+    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

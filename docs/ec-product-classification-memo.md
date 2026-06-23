@@ -146,3 +146,13 @@ Export for counsel session:
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-06-22 | Engineering | Initial counsel draft template |
+
+---
+
+## Related docs
+
+- [ec-counsel-launch-checklist.md](./ec-counsel-launch-checklist.md) — blocking items before public launch
+- [ecuador-compliance-framework.md](./ecuador-compliance-framework.md) — platform compliance architecture
+- [ec-uafe-sri-compliance-runbook.md](./ec-uafe-sri-compliance-runbook.md) — UAFE / SRI operations
+- [ec-local-presence-requirements.md](./ec-local-presence-requirements.md) — entity requirements
+- [ec-beta-e2e-checklist.md](./ec-beta-e2e-checklist.md) — sports gate and onboarding QA

@@ -157,7 +157,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
           value={modeValue}
           segments={[
             { value: 'play', label: 'Practice', description: 'Trial credits' },
-            { value: 'live', label: 'Live', description: 'Real money' },
+            { value: 'live', label: 'Live', description: 'Real money', testID: 'mode-toggle-live' },
           ]}
           onChange={(next) => {
             if (next === modeValue) return;
@@ -212,6 +212,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
             </View>
 
             <TouchableOpacity
+              testID="mode-switch-to-live"
               style={[styles.switchButton, { backgroundColor: theme.primary }]}
               onPress={async () => {
                 if (isPlayMode) {

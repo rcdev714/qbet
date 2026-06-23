@@ -537,6 +537,7 @@ export function TopUpScreen() {
 
                         <Text style={[styles.sectionTitle, { color: theme.textSecondary, marginTop: 16 }]}>Custom Amount</Text>
                          <TextInput
+                            testID="topup-amount"
                             style={[
                                 styles.input, 
                                 { backgroundColor: isDark ? theme.background : "#F2F2F7", color: theme.text },
@@ -556,6 +557,7 @@ export function TopUpScreen() {
                         )}
 
                         <TouchableOpacity 
+                            testID="topup-submit"
                             style={[
                                 styles.primaryButton, 
                                 { 

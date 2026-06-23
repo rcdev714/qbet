@@ -27,6 +27,7 @@ export function GroupTabBar({ activeTab, onTabChange, openCount }: GroupTabBarPr
         return (
           <TouchableOpacity
             key={tab.key}
+            testID={`group-tab-${tab.key}`}
             style={[
               styles.tab,
               { backgroundColor: theme.background },

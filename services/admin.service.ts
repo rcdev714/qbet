@@ -9,6 +9,75 @@ export interface KPISummary {
     predictionsPerUser: number;
 }
 
+export interface FinancialKPIs {
+    totalDeposits: number;
+    totalWithdrawals: number;
+    walletFloat: number;
+    openReports: number;
+}
+
+export interface DailyFinancialSeries {
+    dates: string[];
+    deposits: number[];
+    withdrawals: number[];
+    betVolume: number[];
+}
+
+export type AdminTransactionType =
+    | "deposit"
+    | "withdrawal"
+    | "bet_placed"
+    | "bet_won"
+    | "bet_refund"
+    | "bet_lost"
+    | "play_credit_refresh"
+    | "transfer_sent"
+    | "transfer_received"
+    | "crypto_onramp"
+    | "crypto_offramp"
+    | "provider_fee"
+    | "protocol_fee"
+    | "tax_withholding";
+
+export interface AdminTransactionRow {
+    id: string;
+    userId: string | null;
+    username: string | null;
+    amount: number;
+    type: AdminTransactionType;
+    status: "pending" | "completed" | "failed";
+    referenceId: string | null;
+    isPlayMode: boolean;
+    metadata: Record<string, unknown> | null;
+    createdAt: string;
+}
+
+export interface AdminTransactionListResult {
+    rows: AdminTransactionRow[];
+    totalCount: number;
+}
+
+export interface AdminContentReportRow {
+    id: string;
+    reporterId: string;
+    reporterUsername: string | null;
+    targetType: string;
+    targetId: string;
+    targetUserId: string | null;
+    targetUsername: string | null;
+    reason: string;
+    details: string | null;
+    status: "open" | "reviewing" | "resolved" | "dismissed";
+    adminNotes: string | null;
+    createdAt: string;
+    resolvedAt: string | null;
+}
+
+export interface AdminContentReportListResult {
+    rows: AdminContentReportRow[];
+    totalCount: number;
+}
+
 export interface GrowthMetric {
     date: string;
     count: number;
@@ -354,6 +423,118 @@ export const adminService = {
             // Return empty list or fallback alerts rather than crashing
             return [];
         }
+    },
+
+    async getFinancialKPIs(): Promise<FinancialKPIs> {
+        const { data, error } = await supabase.rpc(
+            "get_admin_financial_kpis",
+        );
+        if (error) throw error;
+
+        const payload = (data ?? {}) as Record<string, unknown>;
+
+        return {
+            totalDeposits: Number(payload.total_deposits ?? 0),
+            totalWithdrawals: Number(payload.total_withdrawals ?? 0),
+            walletFloat: Number(payload.wallet_float ?? 0),
+            openReports: Number(payload.open_reports ?? 0),
+        };
+    },
+
+    async getDailyFinancialSeries(days: number = 14): Promise<DailyFinancialSeries> {
+        const { data, error } = await supabase.rpc(
+            "get_admin_daily_financial_series",
+            { p_days: days },
+        );
+        if (error) throw error;
+
+        const payload = (data ?? {}) as Record<string, unknown>;
+
+        return {
+            dates: Array.isArray(payload.dates) ? payload.dates.map(String) : [],
+            deposits: Array.isArray(payload.deposits) ? payload.deposits.map(Number) : [],
+            withdrawals: Array.isArray(payload.withdrawals) ? payload.withdrawals.map(Number) : [],
+            betVolume: Array.isArray(payload.bet_volume) ? payload.bet_volume.map(Number) : [],
+        };
+    },
+
+    async listTransactions(input: {
+        limit?: number;
+        offset?: number;
+        type?: AdminTransactionType | null;
+        status?: "pending" | "completed" | "failed" | null;
+        isPlayMode?: boolean | null;
+        search?: string | null;
+    } = {}): Promise<AdminTransactionListResult> {
+        const { data, error } = await supabase.rpc(
+            "list_admin_transactions",
+            {
+                p_limit: input.limit ?? 50,
+                p_offset: input.offset ?? 0,
+                p_type: input.type ?? undefined,
+                p_status: input.status ?? undefined,
+                p_is_play_mode: input.isPlayMode ?? undefined,
+                p_search: input.search ?? undefined,
+            },
+        );
+        if (error) throw error;
+
+        const rows = (data ?? []) as any[];
+        const totalCount = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+
+        return {
+            totalCount,
+            rows: rows.map((row) => ({
+                id: row.id,
+                userId: row.user_id ?? null,
+                username: row.username ?? null,
+                amount: Number(row.amount ?? 0),
+                type: row.type,
+                status: row.status,
+                referenceId: row.reference_id ?? null,
+                isPlayMode: Boolean(row.is_play_mode),
+                metadata: row.metadata ?? null,
+                createdAt: row.created_at,
+            })),
+        };
+    },
+
+    async listContentReports(input: {
+        status?: "open" | "reviewing" | "resolved" | "dismissed" | null;
+        limit?: number;
+        offset?: number;
+    } = {}): Promise<AdminContentReportListResult> {
+        const { data, error } = await supabase.rpc(
+            "list_admin_content_reports",
+            {
+                p_status: input.status ?? undefined,
+                p_limit: input.limit ?? 100,
+                p_offset: input.offset ?? 0,
+            },
+        );
+        if (error) throw error;
+
+        const rows = (data ?? []) as any[];
+        const totalCount = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+
+        return {
+            totalCount,
+            rows: rows.map((row) => ({
+                id: row.id,
+                reporterId: row.reporter_id,
+                reporterUsername: row.reporter_username ?? null,
+                targetType: row.target_type,
+                targetId: row.target_id,
+                targetUserId: row.target_user_id ?? null,
+                targetUsername: row.target_username ?? null,
+                reason: row.reason,
+                details: row.details ?? null,
+                status: row.status,
+                adminNotes: row.admin_notes ?? null,
+                createdAt: row.created_at,
+                resolvedAt: row.resolved_at ?? null,
+            })),
+        };
     },
 
     /**

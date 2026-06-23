@@ -59,6 +59,8 @@ const MAPPING = {
   'shield': 'security',
   'arrow.left': 'arrow-back',
   'arrow.right': 'arrow-forward',
+  'arrow.left.arrow.right': 'swap-horiz',
+  'doc.text': 'description',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

@@ -1,29 +1,70 @@
 # Local development and verification
 
-Use this checklist before beta invites or web deploys.
+Use this checklist before beta invites, production deploys, or counsel demos.
+
+**See also:** [docs/README.md](./README.md) (index) · [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) · [deploy-web-production.md](./deploy-web-production.md)
+
+---
 
 ## Prerequisites
 
-- Node.js 20+
-- Docker (for local Supabase)
-- Supabase CLI (`npx supabase`)
+| Tool | Version / notes |
+|------|-----------------|
+| Node.js | 20+ |
+| Docker | For local Supabase |
+| Supabase CLI | `npx supabase` |
+| Deno | Optional; required for `npm run test:beta-approval-email` |
+| psql | Optional; SQL smoke tests |
 
-## Environment
+---
 
-1. Copy `.env.example` → `.env` and set client vars:
+## Environment variables
 
-   ```bash
-   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-   EXPO_PUBLIC_SUPABASE_KEY=<local publishable key from supabase status>
-   EXPO_PUBLIC_APP_URL=http://localhost:8081
-   EXPO_PUBLIC_LAUNCH_JURISDICTION=EC
-   EXPO_PUBLIC_BETA_REQUIRED=true
-   EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-   ```
+### App (`.env`)
 
-2. Optional server secrets in `.env.local` for share routes and Stripe webhooks.
+Copy from [`.env.example`](../.env.example). These are **client-safe** (`EXPO_PUBLIC_*`) and embedded in the web bundle.
 
-3. Beta access contact (WhatsApp) is configured in [`lib/contact.ts`](../lib/contact.ts).
+```bash
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_KEY=<publishable key from `npx supabase status`>
+EXPO_PUBLIC_APP_URL=http://localhost:8081
+EXPO_PUBLIC_LAUNCH_JURISDICTION=EC
+EXPO_PUBLIC_BETA_REQUIRED=true
+EXPO_PUBLIC_ADMIN_EMAIL=you@example.com
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+# Set true to show verbose contract-pipeline logs and the BetContractScreen debug panel
+EXPO_PUBLIC_DEBUG_LOGS=true
+```
+
+Restart `npm run web` after changing `.env`.
+
+### Edge functions (`supabase/functions/.env`)
+
+Copy from [`supabase/functions/.env.example`](../supabase/functions/.env.example). **Gitignored.** Used by `supabase functions serve`.
+
+```bash
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=AnyMarket <onboarding@camella.app>
+EXPO_PUBLIC_APP_URL=http://localhost:8081
+```
+
+| Tip | Detail |
+|-----|--------|
+| Local welcome links in email | Keep `EXPO_PUBLIC_APP_URL=http://localhost:8081` |
+| Real recipients during local dev | Set `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app` so email links open prod/staging web |
+| Resend test mode | Use `delivered@resend.dev` as recipient when domain unverified |
+
+Supabase auto-injects into functions (do not set manually): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+### Optional (`.env.local`)
+
+Server-only secrets for share routes and Stripe webhooks — see `.env.example` comments. **Never commit.**
+
+### WhatsApp contact
+
+Not env-configurable — see [`lib/contact.ts`](../lib/contact.ts).
+
+---
 
 ## Start Supabase locally
 
@@ -33,10 +74,16 @@ npx supabase migration up --local
 npx supabase status
 ```
 
-Studio: http://127.0.0.1:54323  
-Mailpit (auth emails): http://127.0.0.1:54324
+| Service | URL |
+|---------|-----|
+| API | http://127.0.0.1:54321 |
+| Studio | http://127.0.0.1:54323 |
+| Mailpit (auth email) | http://127.0.0.1:54324 |
+| Postgres | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
 
-### Seed a beta invite
+### Seed data
+
+**Beta invite (direct allowlist):**
 
 ```sql
 insert into public.beta_invites (email)
@@ -44,36 +91,15 @@ values ('your-test@example.com')
 on conflict (email) do nothing;
 ```
 
-## Health checks
+**Admin user:** sign up locally, then in Studio:
 
-```bash
-npm run health              # typecheck, lint, unit tests, SQL smoke (when Supabase local up)
-npm run test                # all Node unit tests
-npm run test:beta-approval-email   # Deno tests for email helpers (requires deno)
-npm run test:beta-approval-sql     # SQL smoke (local Supabase)
-npm run test:beta-approval-flow    # submit → approve → resolve integration
-npm run verify              # check:web:prod + unit + Deno email tests
-npm run predeploy:prod      # verify + Supabase/Resend infra warnings
+```sql
+update public.users set is_admin = true where email = 'you@example.com';
 ```
 
-Expected: no type errors, web export succeeds to `dist/`, 23+ unit tests pass.
+Or use [`supabase/scripts/grant_app_admin.sql`](../supabase/scripts/grant_app_admin.sql) on hosted projects.
 
-SQL regression checks live in `supabase/tests/` (beta approval + payment hardening).
-
-### Optional SQL smoke test (requires pgTap)
-
-Install pgTap in local Postgres, then:
-
-```bash
-npm run test:beta-approval-sql
-# or manually:
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -f supabase/tests/beta_approval_notify.sql
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -f supabase/tests/payment_flow_hardening.sql
-```
-
-Without pgTap, `test-beta-approval-sql.sh` runs basic column/function checks automatically.
+---
 
 ## Run the app
 
@@ -84,76 +110,179 @@ npm run web
 
 Open http://localhost:8081
 
+### Serve edge functions (beta approval email)
+
+Required for real Resend sends when approving locally:
+
+```bash
+npx supabase functions serve send-beta-approval-email --env-file supabase/functions/.env
+```
+
+Endpoint: `http://127.0.0.1:54321/functions/v1/send-beta-approval-email`
+
+---
+
+## Health checks and tests
+
+### npm scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run health` | Full local gate: typecheck, lint, unit tests, Deno email tests, policy hashes, hooks order, SQL smoke + beta env check (when Supabase up) |
+| `npm run verify` | `check:web:prod` + unit tests + Deno email tests |
+| `npm run predeploy:prod` | `verify` + Supabase secrets/function/migration/Resend domain checks |
+| `npm run test` | All Node unit tests (`lib/**/*.test.ts`, `services/**/*.test.ts`) |
+| `npm run test:beta-approval-email` | Deno tests for email HTML/URL helpers |
+| `npm run test:beta-approval-sql` | SQL smoke (columns, RPCs, migrations) |
+| `npm run test:beta-approval-flow` | Integration: submit → approve → resolve |
+| `npm run test:e2e:env` | Full-stack E2E environment check |
+| `npm run test:e2e:api` | Backend E2E (beta + bet contract API flows) |
+| `npm run test:e2e` | Full local E2E (orchestrator + Playwright) |
+| `npm run test:e2e:ui` | Playwright only (services must be running) |
+| `npm run check-beta-approval-local-env` | `./scripts/check-beta-approval-local-env.sh` |
+
+**Optional Resend in flow test:**
+
+```bash
+RUN_BETA_EMAIL_TEST=1 npm run test:beta-approval-flow
+```
+
+**Expected:** 23+ unit tests pass, web export succeeds to `dist/`, no type errors.
+
+### SQL regression tests
+
+Located in [`supabase/tests/`](../supabase/tests/):
+
+| File | Covers |
+|------|--------|
+| `beta_approval_notify.sql` | Approval columns, RPCs, privileges |
+| `payment_flow_hardening.sql` | Wallet top-up/refund RPCs |
+
+```bash
+npm run test:beta-approval-sql
+```
+
+With pgTap installed, runs full pgTap suite; otherwise basic column/function checks.
+
+---
+
 ## Auth and onboarding flow (EC beta)
 
-| Step | Where | Expected |
-|------|--------|----------|
+| Step | Route | Expected |
+|------|-------|----------|
 | Landing | `/` | **Request access** primary CTA; WhatsApp secondary; **Log in** in nav |
-| Request access | `/request-access` | Form submits to `beta_access_requests`; success banner shows submitted email |
+| Request access | `/request-access` | Form → `beta_access_requests`; success banner with email |
+| Welcome (email) | `/beta/welcome?token=...` | Approved screen; intent saved; signup/sign-in CTAs |
 | Sign up | `/login` → Create account | Email/password or Google (web) |
-| Beta gate | invited email | Proceeds to residence |
-| Beta gate | non-invited email | `/onboarding/beta-waitlist` (can submit via **Request access**) |
-| Admin review | `/admin/users` | Approve/decline pending requests (admin only) |
+| Beta gate | invited or approved email | Proceeds to residence |
+| Beta gate | non-invited, pending | `/onboarding/beta-waitlist` (polls every ~30s) |
+| Admin review | `/admin/users` | Approve/decline; green/red banner feedback |
 | Residence | `/onboarding/residence` | Ecuador only when `EC` launch |
-| Policies | `/onboarding/policies` | 17+ + policy acceptances required |
+| Policies | `/onboarding/policies` | 17+ + all policy links visible; acceptances required |
 | App | `/(tabs)` | Feed after onboarding complete |
 
-## Migrations to verify (EC launch)
+### Admin approve on web
 
-All four should appear in `supabase_migrations.schema_migrations`:
+The admin UI uses `window.confirm()` on web (not `Alert.alert`) so approve/decline works in browsers including Cursor's embedded preview.
 
-- `20260623120000_ec_launch_beta.sql` — beta allowlist, age attestation, UGC
-- `20260623120001_ec_policy_versions_sync.sql`
-- `20260623120002_legal_compliance_policy_pack.sql`
-- `20260623120003_legal_policy_references.sql`
+---
 
-- `20260625120000_beta_access_requests.sql` — public request form + admin approve/decline
-- `20260626120000_beta_approval_notify.sql` — approval token, email sent tracking, welcome link RPC
+## Migrations
 
-Quick check:
+Apply locally: `npx supabase migration up --local`
+
+| Version | Description |
+|---------|-------------|
+| `20260623120000` | EC launch beta, allowlist, age attestation, UGC |
+| `20260623120001` | EC policy versions sync |
+| `20260623120002` | Legal compliance policy pack |
+| `20260623120003` | Legal policy references |
+| `20260623140000` | EC sports gate + Spanish policies |
+| `20260624120000` | EC sports content detection |
+| `20260624130000` | Primary UI locale + ES-US policies |
+| `20260625120000` | Beta access requests + admin RPCs |
+| `20260626120000` | Approval token, email tracking, welcome RPC |
+
+Verify applied:
 
 ```bash
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -c "SELECT version FROM supabase_migrations.schema_migrations WHERE version LIKE '20260626%' OR version LIKE '20260625%' ORDER BY version;"
+  -c "SELECT version FROM supabase_migrations.schema_migrations WHERE version >= '20260623120000' ORDER BY version;"
 ```
 
-### Test the access request form locally
+---
 
-1. Ensure `.env` points at local Supabase (`EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` and the anon key from `npx supabase status`).
-2. Run `npm run web` and open http://localhost:8081/request-access
-3. Submit with an Ecuador country + test email — you should see a green **Request received** banner with your email.
-4. As admin, open http://localhost:8081/admin/users to approve the request.
+## Manual test: access request form
 
-If submit fails with a configuration error, run `npx supabase migration up --local` again.
+1. `.env` points at `http://127.0.0.1:54321`
+2. `npm run web` → http://localhost:8081/request-access
+3. Submit with Ecuador + test email → green **Request received** banner
+4. Admin → http://localhost:8081/admin/users → approve
 
-### Test beta approval email + welcome link
+If submit fails with missing function error: `npx supabase migration up --local`
 
-Mailpit (local Supabase) handles **auth** emails only. Beta approval emails go through **Resend** via the `send-beta-approval-email` edge function.
+---
 
-1. Set Supabase edge function secrets (local `.env` in `supabase/functions/.env` or `supabase secrets set` for remote):
+## Manual test: beta approval email + welcome link
 
-   ```bash
-   RESEND_API_KEY=re_...
-   RESEND_FROM_EMAIL="AnyMarket <onboarding@yourdomain.com>"
-   EXPO_PUBLIC_APP_URL=http://localhost:8081
-   ```
+Mailpit handles **Supabase Auth** emails only. Beta approval uses **Resend** + edge function.
 
-   Resend test mode accepts `delivered@resend.dev` as recipient.
+1. Configure `supabase/functions/.env` (see above)
+2. Run `supabase functions serve send-beta-approval-email ...`
+3. Submit at `/request-access` → approve in admin
+4. **Approved** tab: **Approval email sent** (or **Resend approval email**)
+5. Open link from email or Studio `approval_token`:
 
-2. Apply migrations: `npx supabase migration up --local`
+   `http://localhost:8081/beta/welcome?token=<uuid>`
 
-3. Submit a request at `/request-access`, then approve it in **Admin → Users**.
+6. Sign up with **same email** → skip waitlist → `/onboarding/residence`
 
-4. Confirm the approved row shows **Approval email sent** (or use **Resend approval email** if it failed).
+**Waitlist user already signed in:** approve in admin; within ~30s or on app focus, waitlist shows **Continue onboarding**.
 
-5. Open the welcome link from the email (or from DB: `approval_token` on `beta_access_requests`):
+Full Resend + prod walkthrough: [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md)
 
-   `http://localhost:8081/beta/welcome?token=<approval_token>`
+---
 
-6. You should see **You're approved**, intent saved in local storage, and CTAs to sign up or sign in with the same email.
+## Manual test: wager agreement (bet contract)
 
-Full deploy walkthrough (Resend + Supabase secrets + prod): [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md).
+Requires live mode, private group market, and migrations through `20260627150000_bet_contracts_evidence.sql`.
+
+1. Set `EXPO_PUBLIC_DEBUG_LOGS=true` in `.env` and restart the app
+2. Join or create a **private group** market (not public feed)
+3. Switch to **live mode** (not practice) and place a bet from Group or Market screen
+4. Confirm post-bet alert offers **View agreement** when the contract pipeline succeeds
+5. Open `/contract/{betId}` — verify agreement content, email status chips, and debug panel (dev only)
+6. From profile bet history, tap the contract link on the same bet
+7. Resolve the market as group admin — check logs for `[marketService] resolution contract emails dispatched`
+8. Re-open contract screen — **resolved** email chip should update after dispatch
+
+Edge function logs (local): `supabase functions serve send-bet-contract-email dispatch-market-contract-emails` — look for `[send-bet-contract-email:*]` / `[dispatch-market-contract-emails:*]` request ids in the terminal.
+
+Deploy notes: [deploy-bet-contract-email.md](./deploy-bet-contract-email.md)
+
+Automated full-stack E2E (Playwright + Stripe test mode): [e2e-local.md](./e2e-local.md)
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Approve button does nothing (web) | Hard refresh; confirm dialog should appear (fixed vs `Alert.alert`) |
+| `Could not find the function` | Run migrations |
+| `RESEND_API_KEY is not configured` | Add to `supabase/functions/.env`; restart `functions serve` |
+| Email failed after approve | Check Resend logs; verify `@camella.app` domain |
+| Welcome link wrong host | Match `EXPO_PUBLIC_APP_URL` in functions env |
+| Realtime `subscribe()` error | Use `createPostgresChannel` pattern in [`lib/supabase-realtime.ts`](../lib/supabase-realtime.ts) |
+
+---
 
 ## Deploy web (production)
 
 See [deploy-web-production.md](./deploy-web-production.md).
+
+```bash
+npm run predeploy:prod
+npm run deploy:web:prod
+# or push to master for automatic EAS workflow
+```

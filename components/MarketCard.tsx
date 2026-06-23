@@ -132,6 +132,7 @@ export function MarketCard({
             <View style={styles.binaryContainer}>
               <View style={styles.binaryButtons}>
                 <TouchableOpacity
+                  testID="bet-side-yes"
                   style={[
                     styles.predictButton,
                     { 
@@ -186,6 +187,13 @@ export function MarketCard({
           return (
             <View key={option.id} style={styles.optionWrapper}>
               <TouchableOpacity
+                testID={
+                  option.label?.toLowerCase().trim() === "yes"
+                    ? "bet-side-yes"
+                    : option.label?.toLowerCase().trim() === "no"
+                      ? "bet-side-no"
+                      : undefined
+                }
                 style={[
                   styles.optionPill,
                   { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8F9FA', borderColor: theme.border, borderWidth: 1 },

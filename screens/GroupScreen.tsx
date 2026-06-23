@@ -48,6 +48,7 @@ import { useGroup, useGroupMembers } from "../hooks/useGroups";
 import { useGroupMarkets } from "../hooks/useMarket";
 import { useMessages } from "../hooks/useMessages";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
+import { alertBetPlacedWithContract } from "../lib/bet-contract-ui";
 import { getSportsBlockMessage, scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { formatCurrency } from "../lib/parimutuel";
 import { getParamString } from "../lib/route-params";
@@ -450,11 +451,17 @@ export function GroupScreen() {
             const options = await marketService.getMarketOptions(market.id);
             const optionToBet = options?.find((o: MarketOption) => o.label === filteredOptions[selectedInitialOption]);
             if (optionToBet) {
-              const { error: betError } = await betService.placeBet({ marketId: market.id, optionId: optionToBet.id, amount, isPlayMode });
+              const { bet, error: betError, contractPipeline } = await betService.placeBet({ marketId: market.id, optionId: optionToBet.id, amount, isPlayMode });
               if (betError) setStatusBanner(`Prediction created. Initial bet failed: ${betError.message}`);
               else {
                 refreshWallet();
                 setStatusBanner("Prediction created and initial bet placed.");
+                alertBetPlacedWithContract({
+                  router,
+                  betId: bet?.id,
+                  isPlayMode,
+                  contractPipeline,
+                });
               }
             }
           }
@@ -504,7 +511,7 @@ export function GroupScreen() {
 
     Keyboard.dismiss();
     setIsPlacingBet(true);
-    const { error } = await betService.placeBet({ marketId: selectedMarket.id, optionId: selectedOptionId, amount, side: selectedSide, isPlayMode });
+    const { bet, error, contractPipeline } = await betService.placeBet({ marketId: selectedMarket.id, optionId: selectedOptionId, amount, side: selectedSide, isPlayMode });
     setIsPlacingBet(false);
 
     if (error) {
@@ -517,6 +524,12 @@ export function GroupScreen() {
       refreshMarkets();
       setMarketRefreshTrigger((prev: number) => prev + 1);
       setStatusBanner("Prediction placed.");
+      alertBetPlacedWithContract({
+        router,
+        betId: bet?.id,
+        isPlayMode,
+        contractPipeline,
+      });
     }
   };
 
@@ -1188,6 +1201,7 @@ export function GroupScreen() {
               <View style={[styles.betInputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1 }]}>
                 <Text style={[styles.currencyPrefix, { color: theme.text }]}>$</Text>
                 <TextInput
+                  testID="bet-amount"
                   style={[styles.betInput, { color: theme.text, backgroundColor: "transparent" }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
                   placeholder="0.00" placeholderTextColor={theme.textSecondary}
                   value={betAmount} onChangeText={setBetAmount} keyboardType="numeric" autoFocus
@@ -1206,6 +1220,7 @@ export function GroupScreen() {
               })()}
 
               <TouchableOpacity
+                testID="bet-place"
                 style={[styles.betButton, { backgroundColor: theme.primary }, (isPlacingBet || !betAmount) && { opacity: 0.5 }]}
                 onPress={handlePlaceBet} disabled={isPlacingBet || !betAmount}
               >

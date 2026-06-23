@@ -151,3 +151,12 @@ See migration `20260623140000_ec_sports_gate_and_spanish_policies.sql`.
 | Ecuador counsel | | | [ ] |
 | Compliance officer | | | [ ] |
 | Engineering lead | | | [ ] |
+
+---
+
+## Related docs
+
+- [ec-counsel-launch-checklist.md](./ec-counsel-launch-checklist.md) — master counsel gate
+- [ec-product-classification-memo.md](./ec-product-classification-memo.md) — product classification
+- [ec-local-presence-requirements.md](./ec-local-presence-requirements.md) — entity matrix
+- [ec-beta-e2e-checklist.md](./ec-beta-e2e-checklist.md) — compliance gate QA

@@ -116,3 +116,12 @@ Until counsel confirms entity structure:
 | DPD / LOPDP registration required? | | |
 
 **Counsel signature:** _______________
+
+---
+
+## Related docs
+
+- [ec-counsel-launch-checklist.md](./ec-counsel-launch-checklist.md) — master counsel gate
+- [ec-product-classification-memo.md](./ec-product-classification-memo.md) — LOPD vs non-sports
+- [ec-uafe-sri-compliance-runbook.md](./ec-uafe-sri-compliance-runbook.md) — UAFE / tax
+- [ec-beta-e2e-checklist.md](./ec-beta-e2e-checklist.md) — engineering QA before beta expansion

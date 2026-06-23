@@ -1,71 +1,208 @@
-# Web production deploy (Expo/EAS)
+# Web production deploy (Expo / EAS Hosting)
 
-This project uses Expo Router server web export plus EAS deploy for production web releases.
-Server output is required so `https://anymarket.expo.app/share/...` can render per-link Open Graph HTML for social crawlers.
+Production web: **https://anymarket.expo.app**
+
+This project uses Expo Router **server web export** plus **EAS Hosting** for production releases. Server output is required so `https://anymarket.expo.app/share/...` can render per-link Open Graph HTML for social crawlers.
+
+**Related:** [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) · [local-dev-verification.md](./local-dev-verification.md) · [docs/README.md](./README.md)
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph dev [Developer]
+    code[Code push master]
+    manual[npm run deploy:web:prod]
+  end
+  subgraph eas [Expo EAS]
+    workflow[deploy-web-production.yml]
+    export[expo export web]
+    deploy[eas deploy --prod]
+  end
+  subgraph prod [Production]
+    site[anymarket.expo.app]
+    supabase[Supabase jweyqlcvvmdyyqgqcsjd]
+  end
+  code --> workflow
+  workflow --> export --> deploy --> site
+  manual --> export
+  site --> supabase
+```
+
+**Native iOS/Android are NOT auto-deployed.** Only web hosting runs on push to `master`.
+
+---
 
 ## One-time setup
 
-1. Install dependencies:
-   - `npm install`
-2. Log in to Expo/EAS:
-   - `npx eas login`
-3. Confirm project linkage:
-   - `npx eas project:info`
+1. **Dependencies:** `npm install`
+2. **EAS login:** `npx eas login`
+3. **Project linkage:** `npx eas project:info`
+4. **GitHub integration:**
+   - Expo dashboard → Project → **GitHub**
+   - Install GitHub app; connect `rcdev714/qbet`
+   - Confirm workflow [`.eas/workflows/deploy-web-production.yml`](../.eas/workflows/deploy-web-production.yml) appears under **Workflows**
+5. **EAS production environment variables** (expo.dev → Environment variables → production):
+
+   | Variable | Value |
+   |----------|-------|
+   | `EXPO_PUBLIC_APP_URL` | `https://anymarket.expo.app` |
+   | `EXPO_PUBLIC_SUPABASE_URL` | `https://jweyqlcvvmdyyqgqcsjd.supabase.co` |
+   | `EXPO_PUBLIC_SUPABASE_KEY` | Project anon / publishable key |
+   | `EXPO_PUBLIC_ADMIN_EMAIL` | Admin email(s), comma-separated |
+   | `EXPO_PUBLIC_BETA_REQUIRED` | `true` |
+   | `EXPO_PUBLIC_LAUNCH_JURISDICTION` | `EC` |
+   | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` or test key for staging |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Server routes only — never expose in client |
+
+6. **Supabase production:** link, migrate, deploy functions — see [deploy-beta-approval-notify.md § production](./deploy-beta-approval-notify.md#3-production-walkthrough)
+
+7. **Remove conflicting workflows:** In Expo dashboard, disable any workflow that auto-builds iOS/Android on push. Only **Deploy Web Production** should run on `master`.
+
+---
+
+## Release gates (run before deploy)
+
+```bash
+npm run health          # optional local full check
+npm run verify          # typecheck + lint + web export + unit + Deno tests
+npm run predeploy:prod  # verify + Supabase/Resend infra warnings
+```
+
+`predeploy:prod` hard-fails if `verify` fails; Supabase/Resend issues are warnings.
+
+---
 
 ## Manual production deploy
 
-Use the single command:
+```bash
+npm run deploy:web:prod
+```
 
-- `npm run deploy:web:prod`
+This runs:
 
-This command does:
+1. `npx eas env:exec production "npm run check:web:prod"`
+   - `tsc --noEmit`
+   - `expo lint`
+   - `expo export --platform web` → `dist/`
+2. `eas deploy --prod --environment production --export-dir dist`
 
-1. `npm run typecheck` (`tsc --noEmit`)
-2. `npm run lint`
-3. `expo export --platform web` (creates `dist/` with server routes)
-4. `eas deploy --prod --environment production --export-dir dist`
+### Granular commands
 
-## Optional direct commands
+| Command | Purpose |
+|---------|---------|
+| `npm run check:web:prod` | typecheck + lint + export only |
+| `npm run web:export:prod` | export only |
+| `npm run web:deploy:prod` | deploy existing `dist/` |
 
-- `npm run web:export:prod`
-- `npm run check:web:prod`
-- `npm run web:deploy:prod`
+---
 
-## Required production environment
+## Automatic deploy (GitHub → EAS)
 
-Set these in the EAS production environment before deploying:
+**Workflow file:** [`.eas/workflows/deploy-web-production.yml`](../.eas/workflows/deploy-web-production.yml)
 
-- `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app`
-- `EXPO_PUBLIC_SUPABASE_URL`
-- `EXPO_PUBLIC_SUPABASE_KEY`
-- `EXPO_PUBLIC_ADMIN_EMAIL=admin@example.com` (comma-separated for multiple admins; controls admin UI visibility on web)
-- `SUPABASE_SERVICE_ROLE_KEY` (server route only; do not expose this in client code). `SERVICE_ROLE_KEY` is also accepted for local compatibility.
+```yaml
+on:
+  push:
+    branches: ['master']
+jobs:
+  deploy_web:
+    type: deploy
+    environment: production
+    params:
+      prod: true
+```
 
-Admin resolve/delete actions also require `users.is_admin = true` in the production Supabase database. Use `supabase/scripts/grant_app_admin.sql` in the SQL Editor if admin UI works but resolve/delete fail.
+**Trigger:** every push to `master` on https://github.com/rcdev714/qbet
 
-Beta approval emails (Resend + edge function secrets + migrations): see [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md).
+**Monitor runs:**
 
-## Automatic web deploy (GitHub → EAS Hosting)
+```bash
+npx eas workflow:list
+npx eas workflow:runs --limit 5
+```
 
-This repo includes [`.eas/workflows/deploy-web-production.yml`](../.eas/workflows/deploy-web-production.yml), which deploys **web only** on push to `master`. It does **not** build or submit iOS/Android.
+**Dashboard:** https://expo.dev/projects/5f9fbca3-cb6b-4b24-8918-2717c150019b/hosting/deployments
 
-One-time Expo dashboard setup:
+### What the workflow does NOT do
 
-1. Open [Expo project GitHub settings](https://expo.dev/accounts/[account]/projects/[project]/github)
-2. Install the GitHub app and connect `rcdev714/qbet`
-3. Enable **EAS Workflows** for the linked repo
+- `eas build` for iOS or Android
+- `eas submit` to App Store / Play Store
+- `eas update` OTA bundles
 
-After linking, every push to `master` runs `type: deploy` with `prod: true` (same as `npm run deploy:web:prod` export + promote).
-
-Native builds remain **manual** only:
+Native releases remain manual:
 
 ```bash
 eas build --profile production --platform ios
 eas build --profile production --platform android
+eas submit --profile production --platform ios
 ```
 
-If you previously added dashboard workflows that auto-build iOS/Android on push, remove or disable those in the Expo dashboard — only `deploy-web-production.yml` should trigger on push.
+---
+
+## Supabase production (with every release)
+
+Run when migrations or edge functions changed:
+
+```bash
+npx supabase link --project-ref jweyqlcvvmdyyqgqcsjd
+npx supabase db push
+npx supabase functions deploy send-beta-approval-email
+# ... other functions as needed — see scripts/deploy-production.sh
+```
+
+Beta approval email secrets (Supabase, not EAS):
+
+```bash
+npx supabase secrets set RESEND_API_KEY=re_...
+npx supabase secrets set RESEND_FROM_EMAIL="AnyMarket <onboarding@camella.app>"
+npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+```
+
+---
+
+## Post-deploy smoke test
+
+1. https://anymarket.expo.app/request-access — submit test request
+2. https://anymarket.expo.app/admin/users — approve (admin session)
+3. Email arrives from `@camella.app`; link is `https://anymarket.expo.app/beta/welcome?token=...`
+4. Sign up with same email → residence onboarding
+5. Share route OG: `https://anymarket.expo.app/share/market/<id>`
+
+Key static routes exported (verify in build log): `/beta/welcome`, `/request-access`, `/admin/users`, `/onboarding/beta-waitlist`.
+
+---
 
 ## Rollback
 
-If a deploy is bad, promote the previous deployment alias in Expo dashboard, or redeploy the last known good commit with `npm run deploy:web:prod`.
+1. **Expo dashboard** → Hosting → Deployments → promote previous deployment to production
+2. Or redeploy known-good commit:
+   ```bash
+   git checkout <good-sha>
+   npm run deploy:web:prod
+   ```
+3. Database rollbacks are separate — use Supabase migration repair / point-in-time recovery if needed
+
+---
+
+## Troubleshooting
+
+| Issue | Action |
+|-------|--------|
+| Workflow not triggering | Confirm GitHub repo linked; push is to `master` |
+| Workflow fails on export | Run `npm run verify` locally; fix type/lint errors |
+| EAS env conflict warning | EAS production vars override local `.env` — intentional |
+| `/beta/welcome` 404 | Redeploy web; confirm route in export log |
+| Admin approve works but no email | Supabase function + Resend secrets; not an EAS issue |
+| Share OG broken | Confirm server export (not static-only); check `+api.ts` routes in `dist/` |
+
+---
+
+## Security notes
+
+- Never commit `.env`, `supabase/functions/.env`, or service role keys
+- `EXPO_PUBLIC_*` vars are visible in the client bundle
+- Admin UI requires `users.is_admin = true` or `EXPO_PUBLIC_ADMIN_EMAIL` match for RPCs
+- Security headers for web are in [`vercel.json`](../vercel.json) (used if deploying via Vercel mirror; primary host is EAS)

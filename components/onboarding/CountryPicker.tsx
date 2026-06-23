@@ -17,12 +17,14 @@ type CountryPickerProps = {
   selectedCountry?: string | null;
   onSelect: (country: SupportedCountryRow) => void;
   variant?: "light" | "dark";
+  testID?: string;
 };
 
 export function CountryPicker({
   selectedCountry,
   onSelect,
   variant = "light",
+  testID,
 }: CountryPickerProps) {
   const [countries, setCountries] = useState<SupportedCountryRow[]>(FALLBACK_COUNTRIES);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export function CountryPicker({
   }, [countries, query]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={testID}>
       <TextInput
         value={query}
         onChangeText={setQuery}
@@ -83,6 +85,7 @@ export function CountryPicker({
             return (
               <TouchableOpacity
                 key={country.country_code}
+                testID={`country-option-${country.country_code}`}
                 onPress={() => onSelect(country)}
                 style={[
                   styles.row,

@@ -52,4 +52,12 @@ app-example
 # Commands
 commands/
 
-package-lock.json
+# E2E runtime artifacts
+tests/e2e/.runtime/
+tests/e2e/.stripe-secrets.env
+tests/e2e/.stripe-listen.pids
+tests/e2e/.functions.log
+tests/e2e/.web.log
+test-results/
+playwright-report/
+playwright/.cache/

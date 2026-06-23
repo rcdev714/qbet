@@ -217,6 +217,7 @@ export default function RequestAccessScreen() {
                 <View style={styles.field}>
                   <Text style={styles.label}>{t("emailLabel")}</Text>
                   <TextInput
+                    testID="access-email"
                     value={email}
                     onChangeText={(value) => {
                       setEmail(value);
@@ -238,6 +239,7 @@ export default function RequestAccessScreen() {
                 <View style={styles.field}>
                   <Text style={styles.label}>{t("nameLabel")}</Text>
                   <TextInput
+                    testID="access-name"
                     value={fullName}
                     onChangeText={(value) => {
                       setFullName(value);
@@ -260,6 +262,7 @@ export default function RequestAccessScreen() {
                     <Text style={styles.fieldError}>{t("countryRequired")}</Text>
                   ) : null}
                   <CountryPicker
+                    testID="access-country-trigger"
                     variant="dark"
                     selectedCountry={selectedCountry?.country_code ?? null}
                     onSelect={(country) => {
@@ -287,6 +290,7 @@ export default function RequestAccessScreen() {
                 </View>
 
                 <AppButton
+                  testID="access-submit"
                   title={t("submit")}
                   loading={submitting}
                   onPress={() => void handleSubmit()}

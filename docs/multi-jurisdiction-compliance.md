@@ -13,12 +13,23 @@ Residence is **locked after onboarding** because Stripe Connect accounts bind KY
 
 ## Onboarding flow
 
+When `EXPO_PUBLIC_BETA_REQUIRED=true` (EC private beta):
+
+1. **Beta gate** — request access at `/request-access`, waitlist at `/onboarding/beta-waitlist`, or direct invite in `beta_invites`
+2. **Approval** — admin approves at `/admin/users`; user receives email → `/beta/welcome?token=...`
+3. Auth signup / login (same email as request or invite)
+4. `/onboarding/residence` — select country (required), optional phone with dial prefix
+5. `/onboarding/policies` — accept jurisdiction-specific policy pack
+6. Main app
+
+Without beta gate:
+
 1. Auth signup / login
-2. `/onboarding/residence` — select country (required), optional phone with dial prefix
-3. `/onboarding/policies` — accept jurisdiction-specific policy pack
-4. Main app
+2. `/onboarding/residence` → `/onboarding/policies` → main app
 
 Legacy users without `country_of_residence` are redirected to residence onboarding before the app.
+
+See [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) for the approval email pipeline.
 
 ## Key database objects
 
@@ -65,6 +76,8 @@ See migration: `supabase/migrations/20260622130000_country_jurisdiction_complian
 ## Related docs
 
 - [Ecuador compliance framework](./ecuador-compliance-framework.md) — EC-specific deep dive
+- [EC beta E2E checklist](./ec-beta-e2e-checklist.md) — QA before inviting users
+- [Beta approval deploy](./deploy-beta-approval-notify.md) — Resend email + welcome link
 - [Product classification memo](./ec-product-classification-memo.md) — LOPD vs non-sports counsel template
 - [UAFE & SRI runbook](./ec-uafe-sri-compliance-runbook.md) — AML and tax operational checklist
 - [Local presence requirements](./ec-local-presence-requirements.md) — entity / domicile checklist

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { groupService } from "../services/group.service";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { createPostgresChannel, teardownChannel } from "../lib/supabase-realtime";
+import { groupService } from "../services/group.service";
 import type { GroupSummary } from "../types/group";
 
 export function useGroups() {
@@ -40,30 +41,32 @@ export function useGroups() {
   }, [refresh]);
 
   // Real-time subscription for group membership changes
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
   useEffect(() => {
     if (!userId) return;
 
-    const channel = supabase
-      .channel(`user-groups-${userId}`)
+    const channelName = `user-groups-${userId}`;
+    const channel = createPostgresChannel(channelName)
       .on(
         "postgres_changes",
         {
-          event: "*", // INSERT, UPDATE, DELETE
+          event: "*",
           schema: "public",
           table: "group_members",
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          // Silently refresh when membership changes
-          refresh();
-        }
+          void refreshRef.current();
+        },
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void teardownChannel(channel);
     };
-  }, [userId, refresh]);
+  }, [userId]);
 
   const createGroup = async (name: string, description?: string) => {
     // Optimistic update: add temp group immediately
@@ -154,11 +157,14 @@ export function useGroupMembers(groupId: string | null) {
   }, [groupId, fetchMembers]);
 
   // Real-time subscription for member changes
+  const fetchMembersRef = useRef(fetchMembers);
+  fetchMembersRef.current = fetchMembers;
+
   useEffect(() => {
     if (!groupId) return;
 
-    const channel = supabase
-      .channel(`group-members-${groupId}`)
+    const channelName = `group-members-${groupId}`;
+    const channel = createPostgresChannel(channelName)
       .on(
         "postgres_changes",
         {
@@ -168,15 +174,15 @@ export function useGroupMembers(groupId: string | null) {
           filter: `group_id=eq.${groupId}`,
         },
         () => {
-          fetchMembers();
-        }
+          void fetchMembersRef.current();
+        },
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void teardownChannel(channel);
     };
-  }, [groupId, fetchMembers]);
+  }, [groupId]);
 
   const promoteToAdmin = async (userId: string) => {
     if (!groupId) return { error: new Error("Missing groupId") };

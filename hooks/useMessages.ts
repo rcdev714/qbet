@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { teardownChannel } from "../lib/supabase-realtime";
 import { messageService } from "../services/message.service";
 import type { Message, MessageInsert, MessageStatus } from "../types/message";
 
@@ -40,34 +41,38 @@ export function useMessages(groupId: string | null) {
     }
 
     fetchMessages();
+  }, [groupId, fetchMessages]);
+
+  useEffect(() => {
+    if (!groupId) return;
 
     const channel = messageService.subscribeToMessages(groupId, (newMessage) => {
       setMessages((prev) => {
-        // Check if this message already exists (from optimistic update)
         const existingIndex = prev.findIndex(
-          (m) => m.id === newMessage.id ||
-            (m.id.startsWith('temp_') && m.content === newMessage.content && m.user_id === newMessage.user_id)
+          (m) =>
+            m.id === newMessage.id ||
+            (m.id.startsWith("temp_") &&
+              m.content === newMessage.content &&
+              m.user_id === newMessage.user_id),
         );
 
         if (existingIndex !== -1) {
-          // Update the optimistic message with the real one (mark as delivered)
           const updated = [...prev];
           updated[existingIndex] = {
             ...newMessage,
-            status: 'delivered' as MessageStatus
+            status: "delivered" as MessageStatus,
           };
           return updated;
         }
 
-        // New message from another user - add with delivered status
-        return [...prev, { ...newMessage, status: 'delivered' as MessageStatus }];
+        return [...prev, { ...newMessage, status: "delivered" as MessageStatus }];
       });
     });
 
     return () => {
-      channel.unsubscribe();
+      void teardownChannel(channel);
     };
-  }, [groupId, fetchMessages]);
+  }, [groupId]);
 
   const sendMessage = async (data: Omit<MessageInsert, 'group_id'>) => {
     if (!groupId) return { message: null, error: new Error("No group selected") };

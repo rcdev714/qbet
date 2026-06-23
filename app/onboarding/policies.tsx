@@ -9,14 +9,14 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function PolicyOnboardingScreen() {
@@ -71,7 +71,7 @@ export default function PolicyOnboardingScreen() {
       await complianceService.recordAgeAttestation();
       await complianceService.acceptCurrentPolicies("onboarding", jurisdiction);
       await refreshOnboardingStatus();
-      router.replace("/(tabs)" as any);
+      router.replace("/(tabs)/feed" as any);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("savePoliciesError");
       Alert.alert(t("saveError"), message);
@@ -120,6 +120,7 @@ export default function PolicyOnboardingScreen() {
           </View>
 
           <PolicyConsentBlock
+            testID="policies-consent-checkbox"
             accepted={accepted}
             onAcceptedChange={setAccepted}
             jurisdiction={jurisdiction}
@@ -128,6 +129,7 @@ export default function PolicyOnboardingScreen() {
           />
 
           <TouchableOpacity
+            testID="policies-age-checkbox"
             style={styles.ageRow}
             onPress={() => setAgeConfirmed(!ageConfirmed)}
             activeOpacity={0.75}
@@ -139,6 +141,7 @@ export default function PolicyOnboardingScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            testID="policies-continue"
             style={[styles.button, (!accepted || !ageConfirmed || submitting) && styles.buttonDisabled]}
             onPress={handleContinue}
             disabled={!accepted || !ageConfirmed || submitting}

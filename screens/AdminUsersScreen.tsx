@@ -179,9 +179,11 @@ export default function AdminUsersScreen() {
   const renderItem = ({ item }: { item: BetaAccessRequest }) => {
     const isActing = actionId === item.id;
     const showActions = status === "pending";
+    const requestTestId = `beta-request-${item.email.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
 
     return (
       <View
+        testID={requestTestId}
         style={[
           styles.card,
           { backgroundColor: theme.surface, borderColor: theme.border },
@@ -217,6 +219,7 @@ export default function AdminUsersScreen() {
           {showActions && isWide ? (
             <View style={styles.actionsWide}>
               <TouchableOpacity
+                testID={`${requestTestId}-approve`}
                 disabled={isActing}
                 onPress={() => confirmAction(item, "approve")}
                 style={[styles.approveBtn, styles.actionBtnWide, isActing && styles.btnDisabled]}
@@ -278,6 +281,7 @@ export default function AdminUsersScreen() {
         {showActions && !isWide ? (
           <View style={styles.actionsMobile}>
             <TouchableOpacity
+              testID={`${requestTestId}-approve`}
               disabled={isActing}
               onPress={() => confirmAction(item, "approve")}
               style={[styles.approveBtn, styles.actionBtnMobile, isActing && styles.btnDisabled]}

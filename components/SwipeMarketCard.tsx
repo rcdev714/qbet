@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
 import { isAppAdmin } from "@/lib/admin";
+import { alertBetPlacedWithContract } from "@/lib/bet-contract-ui";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "@/lib/parimutuel";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +17,7 @@ import type { Market, MarketWithStats } from "@/types/market";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Alert,
@@ -49,6 +51,7 @@ const SWIPE_THRESHOLD = 120;
 const DRAG_AMOUNT_MAPPING = [10, 25, 50, 100, 250, 500];
 
 export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSwipeComplete }: SwipeMarketCardProps) {
+  const router = useRouter();
   const { navigate } = usePremiumNavigation();
   const { user } = useAuthContext();
   const { isDark, theme } = useTheme();
@@ -180,7 +183,7 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
 
           // Trigger bet
           try {
-             const { error } = await betService.placeBet({
+             const { bet, error, contractPipeline } = await betService.placeBet({
                  marketId: market.id,
                  optionId: optionIdToBet,
                  amount: currentStake,
@@ -188,6 +191,13 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
                  isPlayMode
              });
              if (error) throw error;
+
+             alertBetPlacedWithContract({
+               router,
+               betId: bet?.id,
+               isPlayMode,
+               contractPipeline,
+             });
              
              // Rely on real-time subscription for global refresh to avoid custom non-existent methods
           } catch (e: any) {
