@@ -1,8 +1,12 @@
+import { MentionMessage } from "@/components/chat/MentionMessage";
+import { MentionPicker } from "@/components/chat/MentionPicker";
 import { ReportContentButton } from "@/components/moderation/ReportContentButton";
 import { Brand } from "@/constants/theme";
+import { detectMentionQuery, stripMentionTrigger } from "@/lib/mentions";
+import type { MentionEmbedPayload } from "@/types/mention";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
@@ -26,9 +30,15 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
   const { t } = useTranslation("feed");
-  const { messages, loading, sendMessage } = useMarketChat(marketId);
+  const { messages, loading, sendMessage, sendMentionMessage } = useMarketChat(marketId);
   const [inputText, setInputText] = useState("");
+  const [selectionStart, setSelectionStart] = useState<number | undefined>(undefined);
   const flatListRef = useRef<FlatList<MarketChatMessage>>(null);
+
+  const mentionState = useMemo(
+    () => detectMentionQuery(inputText, selectionStart),
+    [inputText, selectionStart],
+  );
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -37,7 +47,13 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
     await sendMessage(text);
   };
 
-  // Auto-scroll to bottom on new messages
+  const handleSendMention = async (payload: MentionEmbedPayload) => {
+    if (mentionState) {
+      setInputText(stripMentionTrigger(inputText, mentionState.triggerStart));
+    }
+    await sendMentionMessage(payload);
+  };
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -50,7 +66,6 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
     const isMe = item.user_id === user?.id;
     const isOptimistic = item.id.startsWith('temp-');
     
-    // Display Name Logic
     const displayName = item.user?.username || 
                        item.user?.email?.split('@')[0] || 
                        "User";
@@ -74,7 +89,37 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
       </TouchableOpacity>
     );
 
-    const isBetNotification = item.content.startsWith('bet $');
+    if (item.message_type === "shared_group" && item.referenced_group_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="group" id={item.referenced_group_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "shared_profile" && item.referenced_user_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="profile" id={item.referenced_user_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "shared_bet" && item.bet_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="bet" id={item.bet_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    const isBetNotification = item.message_type === "text" && item.content.startsWith('bet $');
 
     return (
       <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
@@ -101,7 +146,7 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
           ]}>
             {isBetNotification && "💸 "}
             {isBetNotification && (
-              <Text style={{ fontWeight: '600' }}>@{displayName}: </Text>
+              <Text style={{ fontWeight: '400' }}>@{displayName}: </Text>
             )}
             {item.content}
           </Text>
@@ -160,13 +205,23 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
+        {mentionState?.active ? (
+          <MentionPicker
+            visible
+            query={mentionState.query}
+            context={{ marketId }}
+            onSelect={(payload) => void handleSendMention(payload)}
+            onClose={() => undefined}
+          />
+        ) : null}
         <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <TextInput
-            style={[styles.input, { backgroundColor: isDark ? theme.background : "#F2F2F7", color: theme.text }, Platform.OS === 'web' && { cursor: 'text' } as any]}
+            style={[styles.input, { backgroundColor: isDark ? theme.background : theme.input, color: theme.text }, Platform.OS === 'web' && { cursor: 'text' } as any]}
             placeholder={t("chatPlaceholder")}
             placeholderTextColor={theme.textSecondary}
             value={inputText}
             onChangeText={setInputText}
+            onSelectionChange={(event) => setSelectionStart(event.nativeEvent.selection.start)}
             multiline
             maxLength={500}
           />
@@ -213,7 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 12,
     alignItems: "flex-end",
-    maxWidth: "85%",
+    maxWidth: "100%",
   },
   messageRowLeft: {
     alignSelf: "flex-start",
@@ -240,23 +295,20 @@ const styles = StyleSheet.create({
   avatarInitials: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   messageBubble: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 18,
     minWidth: 60,
+    maxWidth: "85%",
   },
-  myMessage: {
-    // defined in render
-  },
-  theirMessage: {
-    // defined in render
-  },
+  myMessage: {},
+  theirMessage: {},
   senderName: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 2,
     marginLeft: 2,
   },
@@ -302,6 +354,6 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

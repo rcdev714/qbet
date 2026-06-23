@@ -1,9 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Platform,
     Pressable,
@@ -15,14 +17,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PlayModeToggle } from '@/components/PlayModeToggle';
+import { UserAvatar } from '@/components/social/UserAvatar';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
+import { SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED_MAX } from '@/constants/layout';
 import { FontWeight } from '@/constants/typography';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNavigationLayout } from '@/contexts/NavigationLayoutContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useWalletContext } from '@/contexts/WalletContext';
-import { isAppAdmin } from '@/lib/admin';
-import { formatCurrency } from '@/lib/parimutuel';
+import { useDesktopSidebarShortcuts } from '@/hooks/useDesktopSidebarShortcuts';
+import { useNotifications } from '@/hooks/useNotifications';
+import type { GroupSummary } from '@/types/group';
 
 const MOBILE_ICON_SIZE = Platform.OS === 'ios' ? 22 : 24;
 
@@ -54,26 +59,40 @@ const ROUTE_ICONS: Record<SidebarRouteName, { active: IconSymbolName; inactive: 
   settings: { active: 'gearshape', inactive: 'gearshape' },
 };
 
+function WalletNavIcon({ focused, size, color }: { focused: boolean; size: number; color: string }) {
+  return (
+    <Ionicons
+      name={focused ? 'wallet' : 'wallet-outline'}
+      size={size}
+      color={color}
+    />
+  );
+}
+
 function SidebarNavItem({
   label,
   focused,
   collapsed,
   onPress,
   icon,
+  iconOverride,
   avatarUrl,
   avatarInitial,
   hint,
   badge,
+  subtle = false,
 }: {
   label: string;
   focused: boolean;
   collapsed: boolean;
   onPress: () => void;
   icon?: IconSymbolName;
+  iconOverride?: React.ReactNode;
   avatarUrl?: string | null;
   avatarInitial?: string;
   hint?: string;
   badge?: number;
+  subtle?: boolean;
 }) {
   const { theme: colors } = useTheme();
   const [hovered, setHovered] = React.useState(false);
@@ -82,14 +101,28 @@ function SidebarNavItem({
   const iconNode =
     avatarUrl || avatarInitial ? (
       avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={[styles.sidebarAvatar, focused && styles.sidebarAvatarActive]} contentFit="cover" transition={200} />
+        <Image
+          source={{ uri: avatarUrl }}
+          style={[
+            collapsed ? styles.sidebarAvatarLarge : styles.sidebarAvatar,
+            focused && { borderWidth: 1.5, borderColor: colors.primary },
+          ]}
+          contentFit="cover"
+          transition={200}
+        />
       ) : (
-        <View style={[styles.sidebarAvatarFallback, { backgroundColor: colors.input, borderColor: focused ? colors.primary : colors.border }]}>
+        <View
+          style={[
+            collapsed ? styles.sidebarAvatarFallbackLarge : styles.sidebarAvatarFallback,
+            { backgroundColor: colors.input, borderColor: focused ? colors.primary : colors.border },
+          ]}>
           <Text style={[styles.sidebarAvatarInitial, { color: focused ? colors.primary : colors.text }]}>{avatarInitial}</Text>
         </View>
       )
+    ) : iconOverride ? (
+      iconOverride
     ) : icon ? (
-      <IconSymbol name={icon} size={19} color={color} />
+      <IconSymbol name={icon} size={collapsed ? 20 : 19} color={color} />
     ) : null;
 
   return (
@@ -100,7 +133,7 @@ function SidebarNavItem({
       style={({ pressed }) => [
         styles.sidebarItem,
         collapsed && styles.sidebarItemCollapsed,
-        focused && { backgroundColor: colors.primarySoft },
+        focused && !collapsed && { backgroundColor: colors.primarySoft },
         !focused && hovered && Platform.OS === 'web' && ({ backgroundColor: `${colors.textSecondary}12` } as ViewStyle),
         pressed && { opacity: 0.88 },
         Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
@@ -108,11 +141,27 @@ function SidebarNavItem({
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}>
-      {focused ? <View style={[styles.sidebarActiveBar, { backgroundColor: colors.primary }]} /> : null}
-      <View style={[styles.sidebarIconShell, focused && { backgroundColor: `${colors.primary}22` }]}>{iconNode}</View>
+      {focused && !collapsed ? <View style={[styles.sidebarActiveBar, { backgroundColor: colors.primary }]} /> : null}
+      <View
+        style={[
+          styles.sidebarIconShell,
+          collapsed && styles.sidebarIconShellCollapsed,
+          focused && (collapsed ? { backgroundColor: colors.primarySoft } : { backgroundColor: `${colors.primary}22` }),
+        ]}>
+        {iconNode}
+        {collapsed && badge && badge > 0 ? (
+          <View style={[styles.sidebarBadgeDot, { backgroundColor: colors.primary, borderColor: colors.surface }]} />
+        ) : null}
+      </View>
       {!collapsed ? (
         <>
-          <Text style={[styles.sidebarLabel, { color: focused ? colors.text : colors.textSecondary }, focused && styles.sidebarLabelActive]} numberOfLines={1}>
+          <Text
+            style={[
+              styles.sidebarLabel,
+              subtle && styles.sidebarLabelSubtle,
+              { color: focused ? colors.text : colors.textSecondary },
+            ]}
+            numberOfLines={1}>
             {label}
           </Text>
           {hint ? (
@@ -133,12 +182,14 @@ function SidebarNavItem({
 
 function SidebarAccountItem({
   username,
+  email,
   avatarUrl,
   focused,
   collapsed,
   onPress,
 }: {
   username: string;
+  email?: string | null;
   avatarUrl?: string | null;
   focused: boolean;
   collapsed: boolean;
@@ -146,7 +197,8 @@ function SidebarAccountItem({
 }) {
   const { theme: colors } = useTheme();
   const [hovered, setHovered] = React.useState(false);
-  const initial = username.substring(0, 1).toUpperCase();
+  const displayName = username.trim() || email?.split('@')[0] || 'Member';
+  const avatarSize = collapsed ? 36 : 28;
 
   return (
     <Pressable
@@ -156,18 +208,86 @@ function SidebarAccountItem({
       style={({ pressed }) => [
         styles.sidebarItem,
         collapsed && styles.sidebarItemCollapsed,
-        focused && { backgroundColor: colors.primarySoft },
+        focused && !collapsed && { backgroundColor: colors.primarySoft },
         !focused && hovered && Platform.OS === 'web' && ({ backgroundColor: `${colors.textSecondary}12` } as ViewStyle),
         pressed && { opacity: 0.88 },
         Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
-      accessibilityLabel={`Profile, ${username}`}>
-      {focused ? <View style={[styles.sidebarActiveBar, { backgroundColor: colors.primary }]} /> : null}
-      <View style={[styles.sidebarIconShell, focused && { backgroundColor: `${colors.primary}22` }]}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={[styles.sidebarAvatar, focused && styles.sidebarAvatarActive]} contentFit="cover" transition={200} />
+      accessibilityLabel={`Profile, ${displayName}`}>
+      {focused && !collapsed ? <View style={[styles.sidebarActiveBar, { backgroundColor: colors.primary }]} /> : null}
+      <View
+        style={[
+          styles.sidebarIconShell,
+          collapsed && styles.sidebarIconShellCollapsed,
+          focused && (collapsed ? { backgroundColor: colors.primarySoft } : { backgroundColor: `${colors.primary}22` }),
+        ]}>
+        <UserAvatar
+          uri={avatarUrl}
+          username={username}
+          email={email}
+          size={avatarSize}
+          accessibilityLabel={displayName}
+        />
+      </View>
+      {!collapsed ? (
+        <Text style={[styles.sidebarLabel, { color: focused ? colors.text : colors.textSecondary }]} numberOfLines={1}>
+          {displayName}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function SidebarGroupItem({
+  group,
+  focused,
+  collapsed,
+  onPress,
+  subtle = false,
+}: {
+  group: GroupSummary;
+  focused: boolean;
+  collapsed: boolean;
+  onPress: () => void;
+  subtle?: boolean;
+}) {
+  const { theme: colors } = useTheme();
+  const [hovered, setHovered] = React.useState(false);
+  const initial = group.name.substring(0, 1).toUpperCase();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        styles.sidebarItem,
+        subtle && styles.sidebarShortcutItem,
+        collapsed && styles.sidebarItemCollapsed,
+        focused && !collapsed && { backgroundColor: colors.primarySoft },
+        !focused && hovered && Platform.OS === 'web' && ({ backgroundColor: `${colors.textSecondary}12` } as ViewStyle),
+        pressed && { opacity: 0.88 },
+        Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
+      ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={group.name}>
+      {focused && !collapsed ? <View style={[styles.sidebarActiveBar, { backgroundColor: colors.primary }]} /> : null}
+      <View
+        style={[
+          styles.sidebarIconShell,
+          collapsed && styles.sidebarIconShellCollapsed,
+          focused && (collapsed ? { backgroundColor: colors.primarySoft } : { backgroundColor: `${colors.primary}22` }),
+        ]}>
+        {group.avatar_url ? (
+          <Image
+            source={{ uri: group.avatar_url }}
+            style={[styles.sidebarAvatar, focused && { borderWidth: 1.5, borderColor: colors.primary }]}
+            contentFit="cover"
+            transition={200}
+          />
         ) : (
           <View style={[styles.sidebarAvatarFallback, { backgroundColor: colors.input, borderColor: focused ? colors.primary : colors.border }]}>
             <Text style={[styles.sidebarAvatarInitial, { color: focused ? colors.primary : colors.text }]}>{initial}</Text>
@@ -175,12 +295,15 @@ function SidebarAccountItem({
         )}
       </View>
       {!collapsed ? (
-        <>
-          <Text style={[styles.sidebarLabel, { color: focused ? colors.text : colors.textSecondary }, focused && styles.sidebarLabelActive]} numberOfLines={1}>
-            {username}
-          </Text>
-          <IconSymbol name="chevron.right" size={14} color={colors.textSecondary} />
-        </>
+        <Text
+          style={[
+            styles.sidebarLabel,
+            subtle && styles.sidebarShortcutLabel,
+            { color: focused ? colors.text : colors.textSecondary },
+          ]}
+          numberOfLines={1}>
+          {group.name}
+        </Text>
       ) : null}
     </Pressable>
   );
@@ -189,11 +312,16 @@ function SidebarAccountItem({
 export function PremiumDesktopSidebar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { theme: colors } = useTheme();
   const { user } = useAuthContext();
-  const { balance } = useWalletContext();
   const router = useRouter();
+  const segments = useSegments();
+  const { t } = useTranslation('tabs');
   const { sidebarCollapsed, setSidebarCollapsed } = useNavigationLayout();
-  const isAdmin = isAppAdmin(user);
-  const isAuthenticated = Boolean(user);
+  const { pinnedGroups, isAuthenticated } = useDesktopSidebarShortcuts();
+  const { unreadCount } = useNotifications();
+
+  const activeGroupId = segments[0] === 'group' ? segments[1] : undefined;
+  const isDiscoverActive = segments[0] === 'discover';
+  const isNotificationsActive = segments[0] === 'notifications';
 
   const navigateRoute = (routeName: string, routeKey: string, routeParams: object | undefined, focused: boolean) => {
     const event = navigation.emit({ type: 'tabPress', target: routeKey, canPreventDefault: true });
@@ -211,10 +339,8 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
     const options = descriptors[route.key]?.options;
     const label = typeof options?.title === 'string' ? options.title : route.name;
     const icons = ROUTE_ICONS[routeName];
-    const walletHint =
-      routeName === 'wallet' && !sidebarCollapsed && isAuthenticated
-        ? formatCurrency(balance)
-        : undefined;
+    const tint = focused ? colors.primary : colors.textSecondary;
+    const iconSize = sidebarCollapsed ? 20 : 19;
 
     return (
       <SidebarNavItem
@@ -222,8 +348,12 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
         label={label}
         focused={focused}
         collapsed={sidebarCollapsed}
-        icon={focused ? icons.active : icons.inactive}
-        hint={walletHint}
+        icon={routeName === 'wallet' ? undefined : focused ? icons.active : icons.inactive}
+        iconOverride={
+          routeName === 'wallet' ? (
+            <WalletNavIcon focused={focused} size={iconSize} color={tint} />
+          ) : undefined
+        }
         onPress={() => navigateRoute(route.name, route.key, route.params, focused)}
       />
     );
@@ -233,12 +363,14 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
   const profileIndex = profileRoute ? state.routes.findIndex((r) => r.key === profileRoute.key) : -1;
   const profileFocused = profileIndex === state.index;
 
-  const settingsRoute = state.routes.find((r) => r.name === 'settings');
-  const settingsIndex = settingsRoute ? state.routes.findIndex((r) => r.key === settingsRoute.key) : -1;
-  const settingsFocused = settingsIndex === state.index;
-
   return (
-    <View style={styles.sidebar}>
+    <View
+      style={[
+        styles.sidebar,
+        sidebarCollapsed ? styles.sidebarCollapsedShell : styles.sidebarExpandedShell,
+        { backgroundColor: colors.surface, borderRightColor: colors.borderSubtle },
+        Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : { minHeight: '100%' },
+      ]}>
       <View style={[styles.sidebarHeader, sidebarCollapsed && styles.sidebarHeaderCollapsed]}>
         <Pressable
           onPress={() => router.push('/feed')}
@@ -261,39 +393,61 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
             </Text>
           ) : null}
         </Pressable>
+        {!sidebarCollapsed ? (
+          <View style={styles.sidebarModeSlot}>
+            <PlayModeToggle compact variant="sidebar" />
+          </View>
+        ) : null}
       </View>
 
       <ScrollView style={styles.sidebarScroll} contentContainerStyle={styles.sidebarScrollContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.sidebarSection}>{DESKTOP_MAIN_ROUTES.map(renderMainRoute)}</View>
+        <View style={styles.sidebarSection}>
+          {DESKTOP_MAIN_ROUTES.map(renderMainRoute)}
+
+          <View style={styles.sidebarSecondary}>
+            <SidebarNavItem
+              label={t('discover')}
+              focused={isDiscoverActive}
+              collapsed={sidebarCollapsed}
+              icon="magnifyingglass"
+              onPress={() => router.push('/discover' as any)}
+            />
+            <SidebarNavItem
+              label={t('notifications')}
+              focused={isNotificationsActive}
+              collapsed={sidebarCollapsed}
+              icon="bell"
+              badge={unreadCount}
+              onPress={() => router.push('/notifications' as any)}
+            />
+          </View>
+
+          {isAuthenticated && pinnedGroups.length > 0 ? (
+            <View style={styles.sidebarShortcuts}>
+              <View style={[styles.sidebarShortcutsDivider, { backgroundColor: colors.border }]} />
+              {pinnedGroups.map((group) => (
+                <SidebarGroupItem
+                  key={group.id}
+                  group={group}
+                  focused={activeGroupId === group.id}
+                  collapsed={sidebarCollapsed}
+                  subtle
+                  onPress={() => router.push(`/group/${group.id}` as any)}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
 
       <View style={styles.sidebarFooter}>
         {!sidebarCollapsed ? <View style={[styles.sidebarDivider, { backgroundColor: colors.border }]} /> : null}
 
-        {isAdmin ? (
-          <SidebarNavItem
-            label="Admin"
-            focused={false}
-            collapsed={sidebarCollapsed}
-            icon="shield"
-            onPress={() => router.push('/admin-dashboard')}
-          />
-        ) : null}
-
-        {settingsRoute ? (
-          <SidebarNavItem
-            label={typeof descriptors[settingsRoute.key]?.options?.title === 'string' ? descriptors[settingsRoute.key].options.title! : 'Settings'}
-            focused={settingsFocused}
-            collapsed={sidebarCollapsed}
-            icon={settingsFocused ? ROUTE_ICONS.settings.active : ROUTE_ICONS.settings.inactive}
-            onPress={() => navigation.navigate(settingsRoute.name)}
-          />
-        ) : null}
-
         {profileRoute ? (
           user ? (
             <SidebarAccountItem
-              username={user.username ?? 'Member'}
+              username={user.username ?? ''}
+              email={user.email}
               avatarUrl={user.avatar_url}
               focused={profileFocused}
               collapsed={sidebarCollapsed}
@@ -301,7 +455,7 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
             />
           ) : (
             <SidebarNavItem
-              label="Sign in"
+              label={t('signIn')}
               focused={profileFocused}
               collapsed={sidebarCollapsed}
               icon={profileFocused ? ROUTE_ICONS.profile.active : ROUTE_ICONS.profile.inactive}
@@ -324,10 +478,10 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
             Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
           ]}}
           accessibilityRole="button"
-          accessibilityLabel={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          accessibilityLabel={sidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}>
           <IconSymbol name={sidebarCollapsed ? 'chevron.right' : 'chevron.left'} size={16} color={colors.textSecondary} />
           {!sidebarCollapsed ? (
-            <Text style={[styles.collapseLabel, { color: colors.textSecondary }]}>Collapse</Text>
+            <Text style={[styles.collapseLabel, { color: colors.textSecondary }]}>{t('collapse')}</Text>
           ) : null}
         </Pressable>
       </View>
@@ -400,7 +554,7 @@ export function PremiumMobileTabBar({ state, descriptors, navigation }: BottomTa
                 />
               )}
             </View>
-            <Text style={[styles.mobileLabel, { color: tint }, focused && styles.mobileLabelActive]} numberOfLines={1}>
+            <Text style={[styles.mobileLabel, { color: tint }]} numberOfLines={1}>
               {label}
             </Text>
             {focused ? <View style={[styles.mobileIndicator, { backgroundColor: colors.primary }]} /> : <View style={styles.mobileIndicatorSpacer} />}
@@ -433,14 +587,24 @@ export function PremiumMobileTabBar({ state, descriptors, navigation }: BottomTa
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: '100%',
     height: '100%',
+    borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
     paddingTop: 16,
     paddingBottom: 14,
   },
+  sidebarExpandedShell: {
+    width: Platform.OS === 'web' ? ('fit-content' as any) : 'auto',
+    maxWidth: SIDEBAR_WIDTH_EXPANDED_MAX,
+    alignSelf: 'flex-start',
+  },
+  sidebarCollapsedShell: {
+    width: SIDEBAR_WIDTH_COLLAPSED,
+    paddingHorizontal: 10,
+  },
   sidebarScroll: {
     flex: 1,
+    minHeight: 0,
   },
   sidebarScrollContent: {
     flexGrow: 1,
@@ -453,6 +617,10 @@ const styles = StyleSheet.create({
   sidebarHeaderCollapsed: {
     alignItems: 'center',
     marginBottom: 10,
+  },
+  sidebarModeSlot: {
+    marginTop: 8,
+    alignSelf: 'stretch',
   },
   sidebarBrandRow: {
     flexDirection: 'row',
@@ -479,28 +647,37 @@ const styles = StyleSheet.create({
   },
   brandMarkLetter: {
     fontSize: 14,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     letterSpacing: -0.2,
   },
   sidebarBrand: {
-    flex: 1,
     fontSize: 15,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     letterSpacing: -0.25,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: FontWeight.semibold,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    paddingHorizontal: 8,
-  },
-  sectionSpacer: {
-    height: 6,
   },
   sidebarSection: {
     gap: 2,
+    alignItems: 'stretch',
+  },
+  sidebarSecondary: {
+    marginTop: 10,
+    gap: 2,
+  },
+  sidebarShortcuts: {
+    marginTop: 10,
+    gap: 2,
+  },
+  sidebarShortcutsDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+    marginHorizontal: 6,
+  },
+  sidebarShortcutItem: {
+    minHeight: 36,
+  },
+  sidebarShortcutLabel: {
+    fontSize: 12,
+    letterSpacing: -0.05,
   },
   sidebarDivider: {
     height: StyleSheet.hairlineWidth,
@@ -518,6 +695,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   sidebarItemCollapsed: {
+    width: 40,
+    minHeight: 40,
+    alignSelf: 'center',
     justifyContent: 'center',
     paddingHorizontal: 0,
   },
@@ -536,19 +716,25 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  sidebarIconShellCollapsed: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
   },
   sidebarLabel: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 14,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     letterSpacing: -0.1,
   },
-  sidebarLabelActive: {
-    fontWeight: FontWeight.semibold,
+  sidebarLabelSubtle: {
+    fontWeight: FontWeight.regular,
   },
   sidebarHint: {
     fontSize: 11,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     fontVariant: ['tabular-nums'],
     marginLeft: 'auto',
     maxWidth: 72,
@@ -565,17 +751,27 @@ const styles = StyleSheet.create({
   },
   sidebarBadgeText: {
     fontSize: 11,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     fontVariant: ['tabular-nums'],
+  },
+  sidebarBadgeDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
   },
   sidebarAvatar: {
     width: 22,
     height: 22,
     borderRadius: 11,
   },
-  sidebarAvatarActive: {
-    borderWidth: 1.5,
-    borderColor: '#A78BFA',
+  sidebarAvatarLarge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
   },
   sidebarAvatarFallback: {
     width: 22,
@@ -585,13 +781,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sidebarAvatarFallbackLarge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sidebarAvatarInitial: {
     fontSize: 10,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
   },
   sidebarFooter: {
     marginTop: 'auto',
     gap: 2,
+    alignItems: 'stretch',
+    flexShrink: 0,
   },
   collapseToggle: {
     marginTop: 8,
@@ -612,7 +818,7 @@ const styles = StyleSheet.create({
   },
   collapseLabel: {
     fontSize: 12,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
   },
   mobileShell: {
     flex: 1,
@@ -647,11 +853,8 @@ const styles = StyleSheet.create({
   },
   mobileLabel: {
     fontSize: 10,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
     letterSpacing: 0.1,
-  },
-  mobileLabelActive: {
-    fontWeight: FontWeight.semibold,
   },
   mobileIndicator: {
     width: 18,
@@ -680,6 +883,6 @@ const styles = StyleSheet.create({
   },
   mobileAvatarInitial: {
     fontSize: 10,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
   },
 });

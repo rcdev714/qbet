@@ -14,12 +14,14 @@ interface SegmentedControlProps<T extends string> {
   value: T;
   segments: Segment<T>[];
   onChange: (value: T) => void;
+  compact?: boolean;
 }
 
 export function SegmentedControl<T extends string>({
   value,
   segments,
   onChange,
+  compact = false,
 }: SegmentedControlProps<T>) {
   const { theme } = useTheme();
   const [focusedValue, setFocusedValue] = React.useState<T | null>(null);
@@ -57,6 +59,7 @@ export function SegmentedControl<T extends string>({
             activeOpacity={0.8}
             style={[
               styles.item,
+              compact && styles.itemCompact,
               { borderRadius: theme.radius.sm },
               isActive && {
                 backgroundColor: theme.surface,
@@ -70,12 +73,13 @@ export function SegmentedControl<T extends string>({
             <Text
               style={[
                 styles.label,
+                compact && styles.labelCompact,
                 { color: isActive ? theme.text : theme.textSecondary },
               ]}
             >
               {segment.label}
             </Text>
-            {segment.description ? (
+            {segment.description && !compact ? (
               <Text
                 style={[
                   styles.description,
@@ -98,18 +102,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderWidth: StyleSheet.hairlineWidth,
     gap: 4,
+    alignItems: "center",
   },
   item: {
     flex: 1,
     minHeight: 44,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 8,
     paddingVertical: 8,
   },
+  itemCompact: {
+    minHeight: 32,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
   label: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  labelCompact: {
+    fontSize: 12,
   },
   description: {
     marginTop: 2,

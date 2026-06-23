@@ -199,7 +199,7 @@ export default function AdminUsersScreen() {
       >
         <View style={[styles.cardBody, isWide && showActions && styles.cardBodyWide]}>
           <View style={styles.rowMain}>
-            <AppText variant="bodySm" style={{ fontWeight: "600" }}>{item.email}</AppText>
+            <AppText variant="bodySm" style={{ fontWeight: '400' }}>{item.email}</AppText>
             {item.full_name ? (
               <AppText variant="bodySm" color="secondary">{item.full_name}</AppText>
             ) : null}
@@ -213,7 +213,7 @@ export default function AdminUsersScreen() {
             ) : null}
             {item.user_id ? (
               <View style={[styles.linkedBadge, { backgroundColor: theme.primarySoft }]}>
-                <AppText variant="caption" color="primary" style={{ fontWeight: "600" }}>
+                <AppText variant="caption" color="primary" style={{ fontWeight: '400' }}>
                   {t("linkedAccount")}
                 </AppText>
               </View>
@@ -239,7 +239,7 @@ export default function AdminUsersScreen() {
                 {isActing ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: "600" }}>{t("approve")}</AppText>
+                  <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: '400' }}>{t("approve")}</AppText>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
@@ -248,7 +248,7 @@ export default function AdminUsersScreen() {
                 style={[styles.declineBtn, styles.actionBtnWide, isActing && styles.btnDisabled]}
                 activeOpacity={0.85}
               >
-                <AppText variant="bodySm" color="destructive" style={{ fontWeight: "600" }}>{t("decline")}</AppText>
+                <AppText variant="bodySm" color="destructive" style={{ fontWeight: '400' }}>{t("decline")}</AppText>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -284,7 +284,7 @@ export default function AdminUsersScreen() {
             {isActing ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : (
-              <AppText variant="bodySm" color="primary" style={{ fontWeight: "600" }}>{t("resendApprovalEmail")}</AppText>
+              <AppText variant="bodySm" color="primary" style={{ fontWeight: '400' }}>{t("resendApprovalEmail")}</AppText>
             )}
           </TouchableOpacity>
         ) : null}
@@ -301,7 +301,7 @@ export default function AdminUsersScreen() {
               {isActing ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: "600" }}>{t("approve")}</AppText>
+                <AppText variant="bodySm" color="onPrimary" style={{ fontWeight: '400' }}>{t("approve")}</AppText>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -310,7 +310,7 @@ export default function AdminUsersScreen() {
               style={[styles.declineBtn, styles.actionBtnMobile, isActing && styles.btnDisabled]}
               activeOpacity={0.85}
             >
-              <AppText variant="bodySm" color="destructive" style={{ fontWeight: "600" }}>{t("decline")}</AppText>
+              <AppText variant="bodySm" color="destructive" style={{ fontWeight: '400' }}>{t("decline")}</AppText>
             </TouchableOpacity>
           </View>
         ) : null}

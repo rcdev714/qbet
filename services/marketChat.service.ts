@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
-import type { MarketChatMessage } from "../types/marketChat";
+import type { MarketChatMessage, MarketChatMessageInsert } from "../types/marketChat";
 
 export const marketChatService = {
     /**
@@ -23,12 +23,11 @@ export const marketChatService = {
           )
         `)
                 .eq("market_id", marketId)
-                .order("created_at", { ascending: false }) // Newest first for fetching
+                .order("created_at", { ascending: false })
                 .limit(limit);
 
             if (error) throw error;
 
-            // Reverse to oldest first for display
             const messages = (data || [])
                 .reverse() as unknown as MarketChatMessage[];
             return { messages, error: null };
@@ -39,7 +38,7 @@ export const marketChatService = {
     },
 
     /**
-     * Send a message to a market chat
+     * Send a text message to a market chat
      */
     async sendMessage(
         marketId: string,
@@ -55,6 +54,7 @@ export const marketChatService = {
                     market_id: marketId,
                     user_id: user.id,
                     content: content.trim(),
+                    message_type: "text",
                 })
                 .select(`
           *,
@@ -79,6 +79,47 @@ export const marketChatService = {
         }
     },
 
+    async sendMentionMessage(
+        data: MarketChatMessageInsert,
+    ): Promise<{ message: MarketChatMessage | null; error: Error | null }> {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not authenticated");
+
+            const { data: message, error } = await supabase
+                .from("market_chat_messages")
+                .insert({
+                    market_id: data.market_id,
+                    user_id: data.user_id,
+                    content: data.content ?? "",
+                    message_type: data.message_type ?? "text",
+                    referenced_group_id: data.referenced_group_id,
+                    referenced_user_id: data.referenced_user_id,
+                    bet_id: data.bet_id,
+                })
+                .select(`
+          *,
+          user:users (
+            id,
+            username,
+            email,
+            avatar_url
+          )
+        `)
+                .single();
+
+            if (error) throw error;
+
+            return {
+                message: message as unknown as MarketChatMessage,
+                error: null,
+            };
+        } catch (error) {
+            console.error("Error sending mention message:", error);
+            return { message: null, error: error as Error };
+        }
+    },
+
     /**
      * Subscribe to new messages for a market
      */
@@ -96,7 +137,6 @@ export const marketChatService = {
                     filter: `market_id=eq.${marketId}`,
                 },
                 async (payload) => {
-                    // Fetch user details for the new message
                     const { data: userData } = await supabase
                         .from("users")
                         .select("id, username, email, avatar_url")

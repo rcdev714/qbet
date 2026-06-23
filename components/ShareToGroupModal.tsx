@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   closeButton: {
     padding: 4,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   groupAvatarInitials: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   groupInfo: {
     flex: 1,
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 2,
   },
   groupDescription: {

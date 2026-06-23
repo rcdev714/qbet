@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   totalRow: {
     flexDirection: "row",
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   optionRow: {
     padding: 12,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   optionPct: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   progressBg: {
     height: 6,

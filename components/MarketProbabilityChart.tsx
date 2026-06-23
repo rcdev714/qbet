@@ -259,6 +259,6 @@ const styles = StyleSheet.create({
   },
   legendPercentage: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

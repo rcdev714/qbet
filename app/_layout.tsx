@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { WebContainer } from '@/components/WebContainer';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
 import { LocaleProvider } from '@/contexts/LocaleContext';
+import { NavigationLayoutProvider } from '@/contexts/NavigationLayoutContext';
 import { OnboardingGuardProvider } from '@/contexts/OnboardingGuardContext';
 import { PolicyFrameworkProvider } from '@/contexts/PolicyFrameworkContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -156,6 +157,7 @@ function isPublicSegment(segment: string | undefined) {
   return (
     isLandingSegment(segment) ||
     segment === 'login' ||
+    segment === 'auth' ||
     segment === 'request-access' ||
     segment === 'beta' ||
     segment === 'market' ||
@@ -529,6 +531,8 @@ function RootLayoutNav() {
       segment === 'market' ||
       segment === 'bet' ||
       segment === 'contract' ||
+      segment === 'notifications' ||
+      segment === 'discover' ||
       adminBypassOnboarding;
 
     if (!isAuthenticated && inviteIntent) {
@@ -593,6 +597,10 @@ function RootLayoutNav() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="login" />
+          <Stack.Screen name="auth/reset-password" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="discover" />
+          <Stack.Screen name="settings" />
           <Stack.Screen name="request-access" />
           <Stack.Screen name="beta/welcome" />
           <Stack.Screen name="admin-dashboard" />
@@ -660,33 +668,35 @@ function WebShell({ children }: { children: React.ReactNode }) {
 
 export default Sentry.wrap(function RootLayout() {
   return (
-    <Sentry.ErrorBoundary
-      fallback={({ resetError }) => (
-        <EmptyState
-          variant="destructive"
-          icon="warning-outline"
-          title="Something went wrong"
-          description="An unexpected error occurred."
-          actionLabel="Try again"
-          onAction={resetError}
-        />
-      )}
-    >
-      <ThemeProvider>
+    <ThemeProvider>
+      <Sentry.ErrorBoundary
+        fallback={({ resetError }) => (
+          <EmptyState
+            variant="destructive"
+            icon="warning-outline"
+            title="Something went wrong"
+            description="An unexpected error occurred."
+            actionLabel="Try again"
+            onAction={resetError}
+          />
+        )}
+      >
         <WebShell>
           <AuthProvider>
             <LocaleProvider>
               <PolicyFrameworkProvider>
               <WalletProvider>
-                <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
-                  <RootLayoutNav />
-                </StripeProvider>
+                <NavigationLayoutProvider>
+                  <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
+                    <RootLayoutNav />
+                  </StripeProvider>
+                </NavigationLayoutProvider>
               </WalletProvider>
               </PolicyFrameworkProvider>
             </LocaleProvider>
           </AuthProvider>
         </WebShell>
-      </ThemeProvider>
-    </Sentry.ErrorBoundary>
+      </Sentry.ErrorBoundary>
+    </ThemeProvider>
   );
 });

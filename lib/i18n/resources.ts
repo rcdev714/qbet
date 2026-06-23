@@ -13,6 +13,7 @@ import marketEn from "./locales/en/market.json";
 import onboardingEn from "./locales/en/onboarding.json";
 import profileEn from "./locales/en/profile.json";
 import settingsEn from "./locales/en/settings.json";
+import socialEn from "./locales/en/social.json";
 import tabsEn from "./locales/en/tabs.json";
 import walletEn from "./locales/en/wallet.json";
 import accessRequestEs from "./locales/es/accessRequest.json";
@@ -30,6 +31,7 @@ import marketEs from "./locales/es/market.json";
 import onboardingEs from "./locales/es/onboarding.json";
 import profileEs from "./locales/es/profile.json";
 import settingsEs from "./locales/es/settings.json";
+import socialEs from "./locales/es/social.json";
 import tabsEs from "./locales/es/tabs.json";
 import walletEs from "./locales/es/wallet.json";
 
@@ -44,6 +46,7 @@ export const i18nResources = {
     group: groupEn,
     groups: groupsEn,
     settings: settingsEn,
+    social: socialEn,
     errors: errorsEn,
     compliance: complianceEn,
     accessRequest: accessRequestEn,
@@ -63,6 +66,7 @@ export const i18nResources = {
     group: groupEs,
     groups: groupsEs,
     settings: settingsEs,
+    social: socialEs,
     errors: errorsEs,
     compliance: complianceEs,
     accessRequest: accessRequestEs,
@@ -84,6 +88,7 @@ export const I18N_NAMESPACES = [
   "group",
   "groups",
   "settings",
+  "social",
   "errors",
   "compliance",
   "accessRequest",

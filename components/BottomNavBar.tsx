@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   bottomAvatarInitials: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#fff',
   },
 });

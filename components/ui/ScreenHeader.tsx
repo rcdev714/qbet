@@ -1,15 +1,14 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HEADER_HEIGHT } from "@/constants/layout";
-import { ACTIVE_OPACITY } from "@/constants/motion";
+import { HEADER_HEIGHT, resolveGutter } from "@/constants/layout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/ui/cn";
 
 import { AppText } from "./AppText";
+import { BackButton } from "./BackButton";
 
 export interface ScreenHeaderProps {
   title?: string;
@@ -31,6 +30,8 @@ export function ScreenHeader({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const gutter = resolveGutter(width);
 
   const handleBack = () => {
     if (onBack) {
@@ -43,15 +44,7 @@ export function ScreenHeader({
   const leftSlot =
     left ??
     (showBack ? (
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        activeOpacity={ACTIVE_OPACITY}
-        onPress={handleBack}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons name="chevron-back" size={24} color={theme.text} />
-      </TouchableOpacity>
+      <BackButton onPress={handleBack} />
     ) : (
       <View style={{ width: 24 }} />
     ));
@@ -61,10 +54,10 @@ export function ScreenHeader({
       style={cn({
         minHeight: HEADER_HEIGHT,
         paddingTop: ignoreTopInset ? 0 : insets.top,
-        paddingHorizontal: 16,
+        paddingHorizontal: gutter,
         flexDirection: "row",
         alignItems: "center",
-        borderBottomWidth: 1,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.borderSubtle,
         backgroundColor: theme.surface,
       })}
@@ -77,7 +70,9 @@ export function ScreenHeader({
           </AppText>
         ) : null}
       </View>
-      <View style={{ width: 44, alignItems: "flex-end" }}>{right}</View>
+      <View style={{ minWidth: 44, maxWidth: 148, alignItems: "flex-end", justifyContent: "center" }}>
+        {right ?? <View style={{ width: 24 }} />}
+      </View>
     </View>
   );
 }

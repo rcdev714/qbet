@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   title: {
     color: Brand.deep,
     fontSize: 24,
-    fontWeight: "600",
+    fontWeight: '400',
     textAlign: "center",
   },
   subtitle: {
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   bannerTitle: {
     color: Brand.deep,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
     textAlign: "center",
   },
   bannerBody: {
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   ageCheckmark: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '400',
   },
   ageLabel: {
     flex: 1,
@@ -263,6 +263,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

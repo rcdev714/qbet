@@ -1,5 +1,5 @@
 import { WalletScreen } from "../../screens/WalletScreen";
 
 export default function WalletPage() {
-  return <WalletScreen />;
+  return <WalletScreen hideBackButton />;
 }

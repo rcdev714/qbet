@@ -1,12 +1,15 @@
+import { AuraBadge } from "@/components/profile/AuraBadge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/parimutuel";
 import { supabase } from "@/lib/supabase";
 import type { Market } from "@/types/market";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
+    Pressable,
     RefreshControl,
     StyleSheet,
     Text,
@@ -33,6 +36,7 @@ const MEDAL = ["🥇", "🥈", "🥉"];
 
 export function RankingsTab({ groupId, members, markets, currentUserId }: RankingsTabProps) {
   const { theme, isDark } = useTheme();
+  const router = useRouter();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +45,9 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
       setLoading(true);
 
       // Get resolved markets in this group
-      const resolvedMarkets = markets.filter((m) => m.status === "resolved" || m.status === "closed");
+      const resolvedMarkets = markets.filter(
+        (m) => (m.status === "resolved" || m.status === "closed") && m.group_id === groupId,
+      );
       if (resolvedMarkets.length === 0) {
         // Still build entries for all members with zero stats
         const entries: LeaderboardEntry[] = members.map((m) => ({
@@ -145,8 +151,10 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
       keyExtractor={(item) => item.userId}
       renderItem={({ item, index }) => {
         const isMe = item.userId === currentUserId;
+        const winRate = item.totalBets > 0 ? item.wins / item.totalBets : 0;
         return (
-          <View
+          <Pressable
+            onPress={() => router.push(`/profile/${item.userId}` as any)}
             style={[
               styles.row,
               {
@@ -168,13 +176,16 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
             </View>
 
             <View style={styles.userCol}>
-              <Text
-                style={[styles.username, { color: theme.text }]}
-                numberOfLines={1}
-              >
-                {item.username}
-                {isMe ? " (You)" : ""}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text
+                  style={[styles.username, { color: theme.text }]}
+                  numberOfLines={1}
+                >
+                  {item.username}
+                  {isMe ? " (You)" : ""}
+                </Text>
+                {item.totalBets >= 5 ? <AuraBadge winRate={winRate} compact /> : null}
+              </View>
               <Text style={[styles.statsLine, { color: theme.textSecondary }]}>
                 {item.totalBets} bet{item.totalBets !== 1 ? "s" : ""} · {item.wins}W / {item.losses}L
               </Text>
@@ -198,7 +209,7 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
                 {formatCurrency(item.netPnL)}
               </Text>
             </View>
-          </View>
+          </Pressable>
         );
       }}
       contentContainerStyle={[
@@ -260,7 +271,7 @@ const styles = StyleSheet.create({
   },
   headerLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   headerUser: {
@@ -284,15 +295,21 @@ const styles = StyleSheet.create({
   },
   rankNum: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   userCol: {
     flex: 1,
     marginLeft: 12,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
   username: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   statsLine: {
     fontSize: 12,
@@ -304,7 +321,7 @@ const styles = StyleSheet.create({
   },
   pnl: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   emptyState: {
     alignItems: "center",
@@ -312,7 +329,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   emptySubtitle: {
     fontSize: 14,

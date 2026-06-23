@@ -68,7 +68,7 @@ const PAGES = [
           <Text style={[styles.cardTag, { color: '#9B59B6' }]}>GLOBAL FEED</Text>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Curated Markets</Text>
           <Text style={[styles.cardBody, { color: theme.textSecondary }]}>
-            For now, only official <Text style={{fontWeight: '600', color: '#0090ff'}}>AnyMarket</Text> hosts can publish to the global feed to ensure quality and fair resolution.
+            For now, only official <Text style={{fontWeight: '400', color: '#0090ff'}}>AnyMarket</Text> hosts can publish to the global feed to ensure quality and fair resolution.
           </Text>
         </View>
       </View>
@@ -107,15 +107,15 @@ const PAGES = [
           <View style={styles.table}>
             <View style={styles.row}>
               <Text style={[styles.td, { color: theme.text }]}>$15 Withdrawal</Text>
-              <Text style={[styles.td, { color: theme.error, fontWeight: '600' }]}>~12%</Text>
+              <Text style={[styles.td, { color: theme.error, fontWeight: '400' }]}>~12%</Text>
             </View>
             <View style={styles.row}>
               <Text style={[styles.td, { color: theme.text }]}>$100 Withdrawal</Text>
-              <Text style={[styles.td, { color: theme.text, fontWeight: '600' }]}>~5%</Text>
+              <Text style={[styles.td, { color: theme.text, fontWeight: '400' }]}>~5%</Text>
             </View>
             <View style={[styles.row, { borderBottomWidth: 0 }]}>
               <Text style={[styles.td, { color: theme.text }]}>$500+ Withdrawal</Text>
-              <Text style={[styles.td, { color: '#34C759', fontWeight: '600' }]}>~2%</Text>
+              <Text style={[styles.td, { color: '#34C759', fontWeight: '400' }]}>~2%</Text>
             </View>
           </View>
         </View>
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 16,
     textAlign: 'center',
     letterSpacing: -0.5,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   featureDesc: {
     fontSize: 14,
@@ -280,13 +280,13 @@ const styles = StyleSheet.create({
   },
   cardTag: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 1,
     marginBottom: 4,
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 8,
   },
   cardBody: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   playModeLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 1,
     marginBottom: 16,
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   feeHeader: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 20,
@@ -364,6 +364,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#fff',
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
   }
 });

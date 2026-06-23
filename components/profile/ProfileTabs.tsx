@@ -1,8 +1,9 @@
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
-export type ProfileTab = "open" | "closed" | "stats";
+export type ProfileTab = "open" | "closed" | "stats" | "groups";
 
 interface ProfileTabsProps {
   activeTab: ProfileTab;
@@ -11,55 +12,75 @@ interface ProfileTabsProps {
 
 export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation("social");
 
   const tabs: { key: ProfileTab; label: string }[] = [
-    { key: "stats", label: "Stats" },
-    { key: "open", label: "Open Bets" },
-    { key: "closed", label: "History" },
+    { key: "stats", label: t("tabStats") },
+    { key: "groups", label: t("tabGroups") },
+    { key: "open", label: t("tabOpenBets") },
+    { key: "closed", label: t("tabHistory") },
   ];
 
   return (
-    <View style={[styles.container, { borderBottomColor: theme.border }]}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.key}
-          style={[
-            styles.tab,
-            activeTab === tab.key && styles.activeTab,
-            activeTab === tab.key && { borderBottomColor: theme.text },
-            Platform.OS === 'web' && { cursor: 'pointer' } as any,
-          ]}
-          onPress={() => onTabChange(tab.key)}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === tab.key ? theme.text : theme.textSecondary },
-            ]}
-          >
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+    <View
+      style={[styles.container, { borderBottomColor: theme.border }]}
+      accessibilityRole="tablist">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}>
+        {tabs.map((tab) => {
+          const selected = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[
+                styles.tab,
+                selected && { borderBottomColor: theme.text },
+              ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={tab.label}
+              onPress={() => onTabChange(tab.key)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: selected ? theme.text : theme.textSecondary },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  row: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+  },
   tab: {
-    flex: 1,
-    paddingVertical: 16,
+    minHeight: 48,
+    minWidth: 88,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
+    ...(Platform.OS === "web" ? { cursor: "pointer" } as any : {}),
   },
-  activeTab: {},
   tabText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

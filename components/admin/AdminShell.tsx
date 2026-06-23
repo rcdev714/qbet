@@ -1,3 +1,4 @@
+import { AppText } from "@/components/ui/AppText";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
     ADMIN_SIDEBAR_WIDTH,
@@ -104,8 +105,8 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
 
   const pageHeader =
     title != null ? (
-      <View style={[styles.pageHeader, { borderBottomColor: theme.border }]}>
-        <Text style={[styles.pageTitle, { color: theme.text }]}>{title}</Text>
+      <View style={[styles.pageHeader, { borderBottomColor: theme.borderSubtle }]}>
+        <AppText variant="title2">{title}</AppText>
         {badge != null && badge > 0 ? (
           <View style={[styles.badge, { backgroundColor: theme.primary }]}>
             <Text style={[styles.badgeText, { color: theme.onPrimary }]}>{badge}</Text>
@@ -230,7 +231,8 @@ const styles = StyleSheet.create({
   },
   sidebarBrand: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "400",
+    letterSpacing: -0.2,
   },
   sidebarSubtext: {
     fontSize: 12,
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   badge: {
     minWidth: 22,
@@ -297,7 +299,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '400',
   },
   contentSlot: {
     flex: 1,
@@ -342,6 +344,6 @@ const styles = StyleSheet.create({
   },
   mobileNavLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

@@ -197,6 +197,17 @@ export const marketService = {
       const market = await this.getMarket(marketId);
 
       try {
+        await supabase.functions.invoke("dispatch-notification", {
+          body: { marketId },
+        });
+      } catch (dispatchError) {
+        log.warn("notification dispatch invoke failed", {
+          marketId,
+          error: dispatchError instanceof Error ? dispatchError.message : String(dispatchError),
+        });
+      }
+
+      try {
         const { data, error: emailError } = await supabase.functions.invoke(
           "dispatch-market-contract-emails",
           { body: { marketId } },

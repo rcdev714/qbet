@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     flex: 1,
     lineHeight: 22,
   },
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   cardBottom: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   emptySubtitle: {
     fontSize: 14,

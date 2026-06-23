@@ -105,5 +105,20 @@
     "provider_fee": "Provider fee",
     "protocol_fee": "Protocol fee",
     "tax_withholding": "Tax withholding"
-  }
+  },
+  "openSocialGraph": "Open social graph",
+  "socialGraphTitle": "Social graph",
+  "backToDashboard": "Back to dashboard",
+  "socialTotalFollows": "Total follows",
+  "socialFollows7d": "Follows (7d)",
+  "socialActiveBettors7d": "Social bettors (7d)",
+  "socialActiveGroups": "Active groups",
+  "socialFollowChart": "Follow growth",
+  "socialFollowChartSub": "New follows per day ({{days}}d)",
+  "socialTopConnectors": "Top connectors",
+  "socialCoBetClusters": "Co-bet clusters",
+  "socialConnectorMeta": "{{followers}} followers · {{bets}} bets · {{volume}} volume",
+  "socialClusterMeta": "{{users}} users · {{bets}} bets · {{volume}} · {{side}} lean",
+  "socialClusterRiskNote": "Informational only — review clusters manually before taking action.",
+  "retry": "Try again"
 }

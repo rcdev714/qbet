@@ -193,14 +193,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     marginLeft: 6,
     letterSpacing: 0.5,
   },
   value: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: -0.5,
   },
   infoBanner: {
@@ -226,12 +226,12 @@ const styles = StyleSheet.create({
   emptyBadgeText: {
     color: "#fff",
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   emptySubtext: {
     fontSize: 13,

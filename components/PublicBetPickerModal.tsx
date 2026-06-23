@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   closeButton: {
     padding: 4,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 4,
   },
   metadata: {

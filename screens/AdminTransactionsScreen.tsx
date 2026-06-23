@@ -139,10 +139,10 @@ export default function AdminTransactionsScreen() {
     <View style={[styles.row, { borderBottomColor: theme.border }]}>
       <View style={styles.rowMain}>
         <View style={styles.rowTop}>
-          <AppText variant="bodySm" style={{ fontWeight: "700", textTransform: "capitalize", color: typeColor(item.type, theme) }}>
+          <AppText variant="bodySm" style={{ textTransform: "capitalize", color: typeColor(item.type, theme) }}>
             {t(`txType.${item.type}`, { defaultValue: item.type })}
           </AppText>
-          <AppText variant="bodySm" style={{ fontWeight: "700", fontVariant: ["tabular-nums"] }}>
+          <AppText variant="bodySm" style={{ fontVariant: ["tabular-nums"] }}>
             {formatAmount(item.type, item.amount)}
           </AppText>
         </View>
@@ -151,17 +151,17 @@ export default function AdminTransactionsScreen() {
         </AppText>
         <View style={styles.tagRow}>
           <View style={[styles.tag, { backgroundColor: theme.background }]}>
-            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
+            <AppText variant="label" color="secondary" style={{ textTransform: "uppercase" }}>
               {item.status}
             </AppText>
           </View>
           {item.isPlayMode ? (
             <View style={[styles.tag, { backgroundColor: theme.primarySoft }]}>
-              <AppText variant="caption" color="primary" style={{ fontWeight: "700" }}>{t("playMode")}</AppText>
+              <AppText variant="label" color="primary">{t("playMode")}</AppText>
             </View>
           ) : (
             <View style={[styles.tag, { backgroundColor: theme.background }]}>
-              <AppText variant="caption" color="secondary" style={{ fontWeight: "700" }}>{t("liveMode")}</AppText>
+              <AppText variant="label" color="secondary">{t("liveMode")}</AppText>
             </View>
           )}
           {item.referenceId ? (
@@ -202,7 +202,7 @@ export default function AdminTransactionsScreen() {
         </View>
 
         <View style={styles.filters}>
-          <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+          <AppText variant="caption" color="secondary" style={{ fontWeight: '400', textTransform: "uppercase", marginBottom: 8 }}>
             {t("filterType")}
           </AppText>
           <FlatList
@@ -224,7 +224,7 @@ export default function AdminTransactionsScreen() {
 
         <View style={[styles.dualFilter, isWide && styles.dualFilterWide]}>
           <View style={styles.filterBlock}>
-            <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: '400', textTransform: "uppercase", marginBottom: 8 }}>
               {t("filterStatus")}
             </AppText>
             <SegmentedControl
@@ -237,7 +237,7 @@ export default function AdminTransactionsScreen() {
             />
           </View>
           <View style={styles.filterBlock}>
-            <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase", marginBottom: 8 }}>
+            <AppText variant="caption" color="secondary" style={{ fontWeight: '400', textTransform: "uppercase", marginBottom: 8 }}>
               {t("filterMode")}
             </AppText>
             <SegmentedControl
@@ -313,7 +313,7 @@ function FilterChip({
         Platform.OS === "web" && ({ cursor: "pointer" } as any),
       ]}
     >
-      <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: "600" }}>
+      <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: '400' }}>
         {label}
       </AppText>
     </TouchableOpacity>
@@ -335,10 +335,10 @@ function SummaryChip({
     tone === "success" ? theme.success : tone === "error" ? theme.error : theme.text;
   return (
     <View style={[styles.summaryChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <AppText variant="caption" color="secondary" style={{ fontWeight: "600", textTransform: "uppercase" }}>
+      <AppText variant="caption" color="secondary" style={{ fontWeight: '400', textTransform: "uppercase" }}>
         {label}
       </AppText>
-      <AppText variant="title3" style={{ color: valueColor, marginTop: 4, fontWeight: "700" }}>{value}</AppText>
+      <AppText variant="title3" style={{ color: valueColor, marginTop: 4 }}>{value}</AppText>
     </View>
   );
 }

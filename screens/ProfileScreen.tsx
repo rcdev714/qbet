@@ -1,26 +1,32 @@
-import { decode } from "base64-arraybuffer";
+import { AppText, EmptyState } from "@/components/ui";
+import { BackButton } from "@/components/ui/BackButton";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import * as Haptics from "expo-haptics";
-import { ImagePickerAsset } from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Alert, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
+import { GlobalHeader } from "../components/GlobalHeader";
+import { JoinGroupPanel } from "../components/groups/JoinGroupPanel";
+import { WebContentColumn } from "../components/layout/WebContentColumn";
 import { ReportContentButton } from "../components/moderation/ReportContentButton";
+import { NotificationBell } from "../components/notifications/NotificationBell";
 import { PlayStatsView } from "../components/play-mode/PlayStatsView";
 import { AuraScoreModal } from "../components/profile/AuraScoreModal";
 import { BetHistoryCard } from "../components/profile/BetHistoryCard";
 import { FollowersModal } from "../components/profile/FollowersModal";
+import { FollowingModal } from "../components/profile/FollowingModal";
 import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileTab, ProfileTabs } from "../components/profile/ProfileTabs";
-import { SettingsModal } from "../components/profile/SettingsModal";
 import { StatsView } from "../components/profile/StatsView";
+import { UserGroupsSection } from "../components/profile/UserGroupsSection";
 import { SEO } from "../components/SEO";
-import { AppText, EmptyState } from "@/components/ui";
 import { useAuthContext } from "../contexts/AuthContext";
+import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { isAppAdmin } from "../lib/admin";
-import { supabase } from "../lib/supabase";
-import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { moderationService } from "../services/moderation.service";
@@ -39,15 +45,19 @@ interface UserStats {
     averageBet: number;
     followersCount: number;
     followingCount: number;
+    groupsCount: number;
 }
 
 import { SocialShareProfileCard } from "../components/profile/SocialShareProfileCard";
 
 export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   const router = useRouter();
-  const { user: currentUser, signOut, refreshUser } = useAuthContext();
+  const { user: currentUser, refreshUser } = useAuthContext();
   const { theme, isDark } = useTheme();
+  const { t: tTabs } = useTranslation('tabs');
+  const isDesktopWebNav = useIsDesktopWebNav();
   const { isPlayMode } = useWalletContext();
+  const { t } = useTranslation("settings");
 
   const [showShareOverlay, setShowShareOverlay] = useState(false);
 
@@ -71,9 +81,9 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   // View State
   const [viewedUser, setViewedUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
-  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const [isAuraModalVisible, setIsAuraModalVisible] = useState(false);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
+  const [followingModalVisible, setFollowingModalVisible] = useState(false);
   const [bets, setBets] = useState<BetWithDetails[]>([]);
   const [stats, setStats] = useState<UserStats>({
       totalBets: 0,
@@ -85,6 +95,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       averageBet: 0,
       followersCount: 0,
       followingCount: 0,
+      groupsCount: 0,
   });
   
   const [loading, setLoading] = useState(true);
@@ -104,13 +115,27 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
     try {
       // 1. Fetch Profile & Stats via Social Service
       const { profile, error } = await socialService.getProfile(targetUserId, currentUser?.id);
+      let profileData: UserProfile | null = null;
       
       if (!error && profile) {
+          profileData = profile;
           setViewedUser(profile);
-          // If we have server-side stats, we could use them.
-          // For now, let's stick to client-side calc from bets for consistency with previous implementation 
-          // unless `profile.stats` is robust.
-          // Let's use bets to populate the detailed stats object `stats` state.
+
+          if (profile.stats) {
+            const followStats = await socialService.getFollowStats(targetUserId);
+            const groupsCount = isOwnProfile
+              ? (await groupService.getAdministeredGroups()).length
+              : (await groupService.getProfileGroups(targetUserId)).length;
+
+            setStats((prev) => ({
+              ...prev,
+              totalBets: profile.stats?.total_bets ?? prev.totalBets,
+              winRate: profile.stats?.win_rate ?? prev.winRate,
+              followersCount: followStats.followers,
+              followingCount: followStats.following,
+              groupsCount,
+            }));
+          }
       }
 
       // 2. Fetch Bets
@@ -119,6 +144,9 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       
       // 3. Fetch Follow Stats
       const followStats = await socialService.getFollowStats(targetUserId);
+      const groupsCount = isOwnProfile
+        ? (await groupService.getAdministeredGroups()).length
+        : (await groupService.getProfileGroups(targetUserId)).length;
 
       // Calculate stats
       const totalBets = userBets.length;
@@ -148,17 +176,19 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   
       const winRate = resolvedBets > 0 ? wins / resolvedBets : 0;
       const averageBet = totalBets > 0 ? wagered / totalBets : 0;
-  
+      const serverStats = profileData?.stats;
+
       setStats({
-        totalBets,
+        totalBets: serverStats?.total_bets ?? totalBets,
         activeBets,
-        winRate,
+        winRate: serverStats?.win_rate ?? winRate,
         totalWagered: wagered,
         totalWon: won,
         bestWin: best,
         averageBet,
         followersCount: followStats.followers,
-        followingCount: followStats.following
+        followingCount: followStats.following,
+        groupsCount,
       });
       
       
@@ -188,7 +218,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
 
   const handleOpenSettings = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsSettingsVisible(true);
+    router.push("/settings" as any);
   };
 
   // Social Actions
@@ -236,83 +266,14 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       try {
-        const groupName = `${currentUser.username || 'User'} & ${viewedUser.username || 'User'}`;
-        
-        // 1. Create Group
-        const { group, error } = await groupService.createGroup({
-            name: groupName,
-            description: "Direct Message Group",
-            avatar_url: viewedUser.avatar_url // Optionally use their avatar as group icon
-        });
-
-        if (error || !group) throw error || new Error("Failed to create group");
-
-        // 2. Create Invite Code
-        const { invite, error: inviteError } = await groupService.createInvite({
-            groupId: group.id
-        });
-
-        if (inviteError || !invite) {
-             showAppAlertRaw("Error", "Group created but failed to generate invite code.");
-        }
-
-        // 3. Navigate to Group (User is already admin/member)
-        router.push(`/group/${group.id}`);
-
-        // 4. (Optional) In a real app, we would send a notification or add them if allowed.
-        // For now, we rely on the user sharing the code or the "invite" system.
-        // However, the user request implied "message them" -> "create group".
-        // We've done that.
-        
+        const { groupId, error } = await socialService.findOrCreateDmGroup(targetUserId);
+        if (error || !groupId) throw error || new Error("Failed to start chat");
+        router.push(`/group/${groupId}`);
       } catch (err: any) {
           showAppAlertRaw("Error", err.message || "Failed to start chat");
       }
   };
 
-  // Update Settings Handlers
-  const handleUpdateUsername = async (newUsername: string) => {
-    if (!currentUser) return;
-    const { error } = await supabase
-      .from("users")
-      .update({ username: newUsername.trim() })
-      .eq("id", currentUser.id);
-      
-    if (error) {
-        showAppAlertRaw("Error", "Username might be taken.");
-        throw error;
-    }
-    await refreshUser();
-    loadData(); // Reload to reflect changes
-  };
-  
-  const handleUpdateAvatar = async (asset: ImagePickerAsset) => {
-      if(!currentUser || !asset.base64) return;
-      
-      try {
-        const arrayBuffer = decode(asset.base64);
-        const ext = asset.uri.substring(asset.uri.lastIndexOf('.') + 1);
-        const fileName = `${currentUser.id}/${Date.now()}.${ext}`;
-        
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(fileName, arrayBuffer, {
-                contentType: asset.mimeType ?? 'image/jpeg',
-                upsert: true
-            });
-            
-        if(uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        
-        await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
-        await refreshUser();
-        loadData();
-      } catch (err: any) {
-          showAppAlertRaw("Error", err.message || "Failed to update avatar");
-      }
-  };
-
-  // Rendering Helpers
   const getFilteredBets = () => {
     if (activeTab === 'open') {
         return bets.filter(b => b.markets?.status === 'open');
@@ -322,9 +283,8 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
     return [];
   };
 
-  // Main UI
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO 
         title={viewedUser?.username ? `${viewedUser.username} on AnyMarket` : "AnyMarket Profile"}
         description={viewedUser?.username ? `See ${viewedUser.username}'s prediction track record on AnyMarket: ${stats.totalBets} predictions with a ${Math.round(stats.winRate * 100)}% win rate.` : "View an AnyMarket profile and prediction track record."}
@@ -340,115 +300,143 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
         onClose={() => setFollowersModalVisible(false)}
         userId={targetUserId || ""}
       />
-      
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-             <AppText variant="title1">←</AppText>
-        </TouchableOpacity>
-        
-        <AppText variant="title3">
-            {viewedUser?.username || "Profile"}
-        </AppText>
-        
-        {isOwnProfile ? (
-            <TouchableOpacity onPress={handleOpenSettings} style={styles.iconButton}>
-                 <AppText variant="title1">⚙️</AppText>
-            </TouchableOpacity>
-        ) : (
-            <View style={{ width: 40 }} /> // Spacer to balance back button
-        )}
-      </View>
-      
-      {/* Admin Dashboard Entry Point */}
-      {isOwnProfile && isAppAdmin(currentUser) && (
-        <TouchableOpacity 
-            style={{ 
-                backgroundColor: theme.surface, 
-                marginHorizontal: 16, 
-                marginBottom: 8,
-                padding: 12,
-                borderRadius: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: theme.border,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 2,
-                elevation: 1,
-            }}
-            onPress={() => router.push("/admin-dashboard" as any)}
-        >
-            <AppText style={{ marginRight: 8 }}>🛡️</AppText>
-            <AppText variant="body" style={{ fontWeight: "600" }}>Admin Dashboard</AppText>
-        </TouchableOpacity>
-      )}
-
-      <FlatList
-        data={activeTab === 'stats' ? [] : getFilteredBets()} 
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BetHistoryCard bet={item} />}
-        ListHeaderComponent={
-          <>
-            <ProfileHeader 
-                user={viewedUser} 
-                stats={{
-                    totalBets: stats.totalBets,
-                    followersCount: stats.followersCount,
-                    activeBets: stats.activeBets,
-                    winRate: stats.winRate
-                }}
-                isOwnProfile={isOwnProfile}
-                isFollowing={viewedUser?.is_following}
-                onFollow={handleToggleFollow}
-                onMessage={handleMessage}
-                onAuraPress={() => setIsAuraModalVisible(true)}
-                onShare={() => setShowShareOverlay(true)}
-                onFollowersPress={() => setFollowersModalVisible(true)}
-            />
-            {!isOwnProfile && targetUserId ? (
-              <View style={[styles.moderationRow, { borderColor: theme.border }]}>
-                <ReportContentButton
-                  targetType="user_profile"
-                  targetId={targetUserId}
-                  targetUserId={targetUserId}
-                  label="Report profile"
-                  theme={{
-                    text: theme.text,
-                    textSecondary: theme.textSecondary,
-                    surface: theme.surface,
-                    border: theme.border,
-                    primary: theme.primary,
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={handleBlockUser}
-                  style={[styles.blockButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
-                >
-                  <AppText variant="label" color="destructive">Block user</AppText>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
-          </>
-        }
-        ListFooterComponent={
-            activeTab === 'stats' ? (
-              isPlayMode ? <PlayStatsView userId={targetUserId} /> : <StatsView stats={stats} bets={bets} />
-            ) : (
-                getFilteredBets().length === 0 ? (
-                    <EmptyState icon="ticket-outline" title="No bets found." />
-                ) : null
-            )
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
-        contentContainerStyle={{ paddingBottom: 20 }}
+      <FollowingModal
+        visible={followingModalVisible}
+        onClose={() => setFollowingModalVisible(false)}
+        userId={targetUserId || currentUser?.id || ""}
       />
+      
+      <GlobalHeader
+        showToggle={!isDesktopWebNav}
+        left={!isOwnProfile || userIdProp ? <BackButton /> : undefined}
+        right={
+          isOwnProfile && !isDesktopWebNav ? (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <NotificationBell />
+              <TouchableOpacity
+                onPress={handleOpenSettings}
+                style={styles.iconButton}
+                accessibilityRole="button"
+                accessibilityLabel={t("title")}
+              >
+                <IconSymbol name="gearshape" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+          ) : !isOwnProfile ? undefined : (
+            <NotificationBell />
+          )
+        }
+      />
+
+      {isOwnProfile ? (
+        <View style={[styles.accountActions, { borderBottomColor: theme.border }]}>
+          <TouchableOpacity
+            style={[styles.accountActionRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={handleOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel={t("title")}
+          >
+            <View style={[styles.accountActionIcon, { backgroundColor: theme.primarySoft }]}>
+              <IconSymbol name="gearshape" size={18} color={theme.primary} />
+            </View>
+            <AppText variant="body" style={styles.accountActionLabel}>
+              {t("title")}
+            </AppText>
+            <IconSymbol name="chevron.right" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
+
+          {isAppAdmin(currentUser) ? (
+            <TouchableOpacity
+              style={[styles.accountActionRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={() => router.push("/admin-dashboard" as any)}
+              accessibilityRole="button"
+              accessibilityLabel={tTabs("admin")}
+            >
+              <View style={[styles.accountActionIcon, { backgroundColor: theme.primarySoft }]}>
+                <IconSymbol name="shield" size={18} color={theme.primary} />
+              </View>
+              <AppText variant="body" style={styles.accountActionLabel}>
+                {tTabs("admin")}
+              </AppText>
+              <IconSymbol name="chevron.right" size={16} color={theme.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      <WebContentColumn variant="social" style={{ flex: 1 }}>
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
+          }
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <ProfileHeader
+            user={viewedUser}
+            stats={{
+              totalBets: stats.totalBets,
+              followersCount: stats.followersCount,
+              followingCount: stats.followingCount,
+              groupsCount: stats.groupsCount,
+              activeBets: stats.activeBets,
+              winRate: stats.winRate,
+            }}
+            isOwnProfile={isOwnProfile}
+            isFollowing={viewedUser?.is_following}
+            onFollow={handleToggleFollow}
+            onMessage={handleMessage}
+            onAuraPress={() => setIsAuraModalVisible(true)}
+            onShare={() => setShowShareOverlay(true)}
+            onFollowersPress={() => setFollowersModalVisible(true)}
+            onFollowingPress={() => setFollowingModalVisible(true)}
+            onGroupsPress={() => handleTabChange("groups")}
+          />
+          {isOwnProfile ? (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <JoinGroupPanel />
+            </View>
+          ) : null}
+          {!isOwnProfile && targetUserId ? (
+            <View style={[styles.moderationRow, { borderColor: theme.border }]}>
+              <ReportContentButton
+                targetType="user_profile"
+                targetId={targetUserId}
+                targetUserId={targetUserId}
+                label="Report profile"
+                theme={{
+                  text: theme.text,
+                  textSecondary: theme.textSecondary,
+                  surface: theme.surface,
+                  border: theme.border,
+                  primary: theme.primary,
+                }}
+              />
+              <TouchableOpacity
+                onPress={handleBlockUser}
+                style={[styles.blockButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
+              >
+                <AppText variant="label" color="destructive">Block user</AppText>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
+
+          {activeTab === "stats" ? (
+            isPlayMode ? (
+              <PlayStatsView userId={targetUserId} />
+            ) : (
+              <StatsView stats={stats} bets={bets} />
+            )
+          ) : activeTab === "groups" ? (
+            <UserGroupsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile} />
+          ) : getFilteredBets().length === 0 ? (
+            <EmptyState icon="ticket-outline" title="No bets found." />
+          ) : (
+            getFilteredBets().map((bet) => <BetHistoryCard key={bet.id} bet={bet} />)
+          )}
+        </ScrollView>
+      </WebContentColumn>
 
       {showShareOverlay && viewedUser && (
         <SocialShareProfileCard 
@@ -469,21 +457,12 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
         />
       )}
 
-      <SettingsModal 
-        visible={isSettingsVisible} 
-        onClose={() => setIsSettingsVisible(false)}
-        user={currentUser}
-        onUpdateUsername={handleUpdateUsername}
-        onSignOut={signOut}
-        onUpdateAvatar={handleUpdateAvatar}
-      />
-
       <AuraScoreModal
         isVisible={isAuraModalVisible}
         onClose={() => setIsAuraModalVisible(false)}
         winRate={stats.winRate}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -491,23 +470,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    zIndex: 10,
-  },
   iconButton: {
     padding: 8,
   },
-  iconText: {
-    fontSize: 24,
+  accountActions: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    gap: 8,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  screenTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+  accountActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  accountActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountActionLabel: {
+    flex: 1,
+    fontWeight: '400',
   },
   moderationRow: {
     flexDirection: 'row',
@@ -523,6 +514,6 @@ const styles = StyleSheet.create({
   },
   blockButtonText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });

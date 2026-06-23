@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -7,21 +8,25 @@ import {
     MOBILE_TAB_BAR_HEIGHT,
     SIDEBAR_WIDTH_COLLAPSED,
     SIDEBAR_WIDTH_EXPANDED,
+    SIDEBAR_WIDTH_EXPANDED_MAX,
 } from "@/constants/layout";
 
 export {
     DESKTOP_BREAKPOINT,
     MOBILE_TAB_BAR_HEIGHT,
     SIDEBAR_WIDTH_COLLAPSED,
-    SIDEBAR_WIDTH_EXPANDED
+    SIDEBAR_WIDTH_EXPANDED,
+    SIDEBAR_WIDTH_EXPANDED_MAX
 };
+
+const SIDEBAR_COLLAPSED_KEY = "anymarket.sidebarCollapsed";
 
 type NavigationLayoutContextValue = {
   isDesktopWeb: boolean;
   isLayoutReady: boolean;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  sidebarWidth: number;
+  sidebarWidth: number | "auto";
 };
 
 const NavigationLayoutContext = createContext<NavigationLayoutContextValue | null>(null);
@@ -30,19 +35,46 @@ export function NavigationLayoutProvider({ children }: { children: React.ReactNo
   const { width } = useWindowDimensions();
   const [hasMounted, setHasMounted] = useState(Platform.OS !== "web");
   const isDesktopWeb = hasMounted && Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(false);
+  const [collapseHydrated, setCollapseHydrated] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    AsyncStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+      .then((value) => {
+        if (cancelled || value == null) return;
+        setSidebarCollapsedState(value === "true");
+      })
+      .finally(() => {
+        if (!cancelled) setCollapseHydrated(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!collapseHydrated) return;
+    AsyncStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "true" : "false").catch(() => {});
+  }, [collapseHydrated, sidebarCollapsed]);
+
+  useEffect(() => {
     if (!isDesktopWeb) {
-      setSidebarCollapsed(false);
+      setSidebarCollapsedState(false);
     }
   }, [isDesktopWeb]);
 
-  const sidebarWidth = sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
+  const setSidebarCollapsed = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((value) => {
+    setSidebarCollapsedState(value);
+  }, []);
+
+  const sidebarWidth: number | "auto" = sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : "auto";
 
   const value = useMemo(
     () => ({
@@ -52,7 +84,7 @@ export function NavigationLayoutProvider({ children }: { children: React.ReactNo
       setSidebarCollapsed,
       sidebarWidth,
     }),
-    [hasMounted, isDesktopWeb, sidebarCollapsed, sidebarWidth],
+    [hasMounted, isDesktopWeb, sidebarCollapsed, setSidebarCollapsed, sidebarWidth],
   );
 
   return <NavigationLayoutContext.Provider value={value}>{children}</NavigationLayoutContext.Provider>;

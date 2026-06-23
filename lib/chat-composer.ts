@@ -1,13 +1,18 @@
 import { Platform } from "react-native";
 
-export const CHAT_MESSAGE_MAX_LENGTH = 2000;
+import {
+    CHAT_MESSAGE_MAX_LENGTH,
+    isEnterWithModifier,
+    resolveSendShortcutLabel,
+} from "./chat-composer.logic";
+
+export { CHAT_MESSAGE_MAX_LENGTH, isEnterWithModifier, resolveSendShortcutLabel };
 
 export function getSendShortcutLabel(): string {
   if (Platform.OS !== "web") return "";
-  if (typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform)) {
-    return "⌘↵";
-  }
-  return "Ctrl↵";
+  const isApplePlatform =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform);
+  return resolveSendShortcutLabel(isApplePlatform);
 }
 
 export function shouldSendChatMessage(event: {
@@ -16,6 +21,5 @@ export function shouldSendChatMessage(event: {
   ctrlKey?: boolean;
 }): boolean {
   if (Platform.OS !== "web") return false;
-  if (event.key !== "Enter") return false;
-  return Boolean(event.metaKey || event.ctrlKey);
+  return isEnterWithModifier(event);
 }

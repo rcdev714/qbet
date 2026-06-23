@@ -13,6 +13,22 @@ export interface CreateInviteData {
   expiresAt?: Date;
 }
 
+export interface ProfileGroup {
+  group_id: string;
+  name: string | null;
+  description: string | null;
+  avatar_url: string | null;
+  member_count: number;
+  active_market_count: number;
+  is_member: boolean;
+}
+
+export interface AdministeredGroup extends ProfileGroup {
+  is_discoverable: boolean;
+  show_on_profile: boolean;
+  created_at: string;
+}
+
 /**
  * Group service
  * Handles PRIVATE prediction market groups and member management.
@@ -485,6 +501,110 @@ export const groupService = {
     } catch (error) {
       console.error("Error getting group stats:", error);
       return { totalMarkets: 0, activeMarkets: 0, totalPool: 0 };
+    }
+  },
+
+  async sendGroupInviteByEmail(
+    groupId: string,
+    email: string,
+  ): Promise<{ ok: boolean; error: Error | null }> {
+    try {
+      const { data, error } = await supabase.functions.invoke("send-group-invite-email", {
+        body: { groupId, email },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(String(data.error));
+      return { ok: true, error: null };
+    } catch (error) {
+      return { ok: false, error: error as Error };
+    }
+  },
+
+  async getAdministeredGroups(): Promise<AdministeredGroup[]> {
+    try {
+      const { data, error } = await (supabase as any).rpc("get_groups_administered");
+      if (error) throw error;
+      return (data ?? []) as AdministeredGroup[];
+    } catch (error) {
+      console.error("Error fetching administered groups:", error);
+      return [];
+    }
+  },
+
+  async getProfileGroups(userId: string): Promise<ProfileGroup[]> {
+    try {
+      const { data, error } = await (supabase as any).rpc("get_user_profile_groups", {
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      return (data ?? []) as ProfileGroup[];
+    } catch (error) {
+      console.error("Error fetching profile groups:", error);
+      return [];
+    }
+  },
+
+  async joinGroupFromProfile(
+    groupId: string,
+  ): Promise<{ error: Error | null }> {
+    try {
+      const { error } = await (supabase as any).rpc("join_group_from_profile", {
+        p_group_id: groupId,
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  },
+
+  async updateGroupVisibility(
+    groupId: string,
+    patch: { is_discoverable?: boolean; show_on_profile?: boolean },
+  ): Promise<{ error: Error | null }> {
+    try {
+      const { error } = await (supabase as any).rpc("update_group_visibility", {
+        p_group_id: groupId,
+        p_is_discoverable: patch.is_discoverable ?? null,
+        p_show_on_profile: patch.show_on_profile ?? null,
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  },
+
+  async listDiscoverableGroups(limit = 20, offset = 0): Promise<ProfileGroup[]> {
+    try {
+      const { data, error } = await (supabase as any).rpc("list_discoverable_groups", {
+        p_limit: limit,
+        p_offset: offset,
+      });
+      if (error) throw error;
+      return (data ?? []) as ProfileGroup[];
+    } catch (error) {
+      console.error("Error listing discoverable groups:", error);
+      return [];
+    }
+  },
+
+  async getGroupsCreatedCount(userId: string): Promise<number> {
+    try {
+      const { data, error } = await (supabase as any).rpc("get_groups_administered");
+      if (!error && Array.isArray(data)) {
+        return data.length;
+      }
+
+      const { count, error: countError } = await (supabase as any)
+        .from("groups")
+        .select("*", { count: "exact", head: true })
+        .eq("admin_id", userId);
+
+      if (countError) throw countError;
+      return count ?? 0;
+    } catch {
+      return 0;
     }
   },
 };

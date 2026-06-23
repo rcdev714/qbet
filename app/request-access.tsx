@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   },
   bannerTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   bannerBody: {
     fontSize: 14,
@@ -345,11 +345,11 @@ const styles = StyleSheet.create({
   },
   bannerDismissText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   title: {
     fontSize: 26,
-    fontWeight: "700",
+    fontWeight: "400",
     color: "#F8FAFC",
     textAlign: "center",
     letterSpacing: -0.5,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "rgba(248,250,252,0.85)",
     textTransform: "uppercase",
     letterSpacing: 0.4,

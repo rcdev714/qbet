@@ -19,6 +19,7 @@ import {
     View,
 } from "react-native";
 import { useAuthContext } from "../contexts/AuthContext";
+import { authService } from "../services/auth.service";
 
 export default function LoginScreen() {
   const { signIn, signUp, signInWithGoogle } = useAuthContext();
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const signupMode = getParamString(params.mode) === "signup";
   const [isLogin, setIsLogin] = useState(!signupMode);
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [approvedIntent, setApprovedIntent] = useState(false);
 
   useEffect(() => {
@@ -187,6 +189,31 @@ export default function LoginScreen() {
                   />
                 )}
               </FieldGroup>
+
+              {isLogin ? (
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!email) {
+                      showAppAlertRaw(t("missingInfo"), t("missingInfoBody"));
+                      return;
+                    }
+                    setShowForgotPassword(true);
+                    const { error } = await authService.resetPasswordForEmail(email);
+                    setShowForgotPassword(false);
+                    if (error) {
+                      showAppAlertRaw(t("error"), error.message);
+                      return;
+                    }
+                    Alert.alert(t("resetEmailSent"), t("resetEmailSentBody"));
+                  }}
+                  disabled={showForgotPassword}
+                  style={Platform.OS === "web" ? ({ cursor: "pointer", alignSelf: "flex-end" } as any) : { alignSelf: "flex-end" }}
+                >
+                  <AppText variant="bodySm" color="secondary" style={{ marginBottom: 8 }}>
+                    {showForgotPassword ? t("sendingReset") : t("forgotPassword")}
+                  </AppText>
+                </TouchableOpacity>
+              ) : null}
 
               <AppButton
                 testID="login-submit"
@@ -374,7 +401,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "400",
   },
   googleButton: {
     height: 50,

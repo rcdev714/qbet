@@ -4,8 +4,25 @@ export const TABLET_BREAKPOINT = 768;
 
 export const CONTENT_MAX_WIDTH = 720;
 export const CONTENT_MAX_WIDTH_WIDE = 1120;
+/** Instagram-style centered social column */
+export const CONTENT_MAX_WIDTH_SOCIAL = 630;
+
+export type WebColumnVariant = "social" | "standard" | "wide";
+
+export function resolveWebColumnMaxWidth(variant: WebColumnVariant): number {
+  switch (variant) {
+    case "social":
+      return CONTENT_MAX_WIDTH_SOCIAL;
+    case "standard":
+      return CONTENT_MAX_WIDTH;
+    case "wide":
+      return CONTENT_MAX_WIDTH_WIDE;
+  }
+}
 
 export const SIDEBAR_WIDTH_EXPANDED = 248;
+/** Max width when expanded sidebar sizes to content */
+export const SIDEBAR_WIDTH_EXPANDED_MAX = 260;
 export const SIDEBAR_WIDTH_COLLAPSED = 84;
 export const MOBILE_TAB_BAR_HEIGHT = 84;
 export const HEADER_HEIGHT = 56;

@@ -251,7 +251,7 @@ export function BetDetailScreen() {
               <AppText
                 variant="caption"
                 style={{
-                  fontWeight: "600",
+                  fontWeight: '400',
                   color: market.status === "open" ? (isPlayMode ? theme.primary : theme.success) : theme.textSecondary,
                 }}
               >
@@ -288,7 +288,7 @@ export function BetDetailScreen() {
                   <AppText
                     variant="caption"
                     style={{
-                      fontWeight: "600",
+                      fontWeight: '400',
                       color: market.status === "open" ? (isPlayMode ? theme.primary : theme.success) : theme.textSecondary,
                     }}
                   >
@@ -333,7 +333,7 @@ export function BetDetailScreen() {
                           {items.map((item: any, idx: number) => (
                             <View key={idx} style={styles.pointerRow}>
                               <View style={[styles.pointerDot, { backgroundColor: item.color }]} />
-                              <AppText variant="caption" style={{ fontWeight: "600" }}>
+                              <AppText variant="caption" style={{ fontWeight: '400' }}>
                                 {item.value.toFixed(1)}%
                               </AppText>
                             </View>
@@ -352,7 +352,7 @@ export function BetDetailScreen() {
                     <AppText variant="caption" numberOfLines={1} style={{ flexShrink: 1 }}>
                       {group.option.label}
                     </AppText>
-                    <AppText variant="caption" style={{ fontWeight: "600", color: group.color }}>
+                    <AppText variant="caption" style={{ fontWeight: '400', color: group.color }}>
                       {group.percentage.toFixed(0)}%
                     </AppText>
                   </View>
@@ -366,9 +366,9 @@ export function BetDetailScreen() {
                 <View style={styles.optionHeader}>
                   <View style={styles.optionTitleRow}>
                     <View style={[styles.optionIndicator, { backgroundColor: group.color }]} />
-                    <AppText variant="body" style={{ fontWeight: "600" }}>{group.option.label}</AppText>
+                    <AppText variant="body" style={{ fontWeight: '400' }}>{group.option.label}</AppText>
                   </View>
-                  <AppText variant="bodySm" style={{ fontWeight: "600" }}>{formatCurrency(group.total)}</AppText>
+                  <AppText variant="bodySm" style={{ fontWeight: '400' }}>{formatCurrency(group.total)}</AppText>
                 </View>
 
                 {group.bets.length === 0 ? (
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 22,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
     letterSpacing: -0.5,
     lineHeight: 28,
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#8E8E93",
   },
   statusTextOpen: {
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#8E8E93",
     letterSpacing: 0.5,
   },
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   legendValue: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   pointerLabel: {
     padding: 10,
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   },
   pointerText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   optionSection: {
     marginTop: 20,
@@ -635,12 +635,12 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
   },
   optionTotal: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
   },
   noBetsText: {

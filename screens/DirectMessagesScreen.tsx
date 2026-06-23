@@ -1,14 +1,15 @@
+import { AppButton, AppText, StaggerGroup } from "@/components/ui";
 import { Brand } from "@/constants/theme";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { Image } from "expo-image";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
     FlatList,
     Keyboard,
     Platform,
     Pressable,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -18,15 +19,17 @@ import {
 } from "react-native";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { CreateGroupModal } from "../components/CreateGroupModal";
-import { AppButton, AppText, StaggerGroup } from "@/components/ui";
+import { GlobalHeader } from "../components/GlobalHeader";
+import { WebContentColumn } from "../components/layout/WebContentColumn";
+import { NotificationBell } from "../components/notifications/NotificationBell";
 import { CodeInput } from "../components/ui/CodeInput";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
+import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useGroups } from "../hooks/useGroups";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
 import { formatCurrency } from "../lib/parimutuel";
-import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { messageService } from "../services/message.service";
@@ -70,10 +73,13 @@ type GroupMarketStats = {
 };
 
 export function DirectMessagesScreen() {
+  const router = useRouter();
   const { navigate } = usePremiumNavigation();
   const { groups, loading: groupsLoading, createGroup, joinGroup, refresh } = useGroups();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
+  const isDesktopWebNav = useIsDesktopWebNav();
+  const { t: tSocial } = useTranslation("social");
   const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [groupMarketStats, setGroupMarketStats] = useState<Record<string, GroupMarketStats>>({});
@@ -308,6 +314,15 @@ export function DirectMessagesScreen() {
       if (lastMessage.message_type === "market") {
         return `${isMyMessage ? "You" : senderName} started a prediction`;
       }
+      if (lastMessage.message_type === "shared_group") {
+        return `${isMyMessage ? "You" : senderName} shared a group`;
+      }
+      if (lastMessage.message_type === "shared_profile") {
+        return `${isMyMessage ? "You" : senderName} shared a profile`;
+      }
+      if (lastMessage.message_type === "shared_bet") {
+        return `${isMyMessage ? "You" : senderName} shared a bet`;
+      }
       return lastMessage.content || "Message";
     };
 
@@ -357,7 +372,11 @@ export function DirectMessagesScreen() {
         </View>
         <View style={styles.groupInfo}>
           <View style={styles.groupHeaderRow}>
-            <AppText variant="body" style={{ fontWeight: "600" }} numberOfLines={1}>{item.name}</AppText>
+            <AppText variant="body" style={{ fontWeight: '400', flex: 1 }} numberOfLines={1}>{item.name}</AppText>
+            <Text style={[styles.groupTime, { color: theme.textSecondary }]}>{messageTime}</Text>
+            {tradingSummary.isLive ? (
+              <View style={[styles.liveDot, { backgroundColor: theme.primary }]} />
+            ) : null}
           </View>
           <View style={styles.previewRow}>
             {!isMyMessage && (
@@ -374,29 +393,6 @@ export function DirectMessagesScreen() {
             )}
           </View>
         </View>
-        <View style={styles.groupTradingInfo}>
-          <Text style={[styles.groupTime, { color: theme.textSecondary }]}>{messageTime}</Text>
-          <View style={[
-            styles.tradingPill,
-            {
-              backgroundColor: tradingSummary.isLive ? theme.primarySoft : "transparent",
-              borderColor: tradingSummary.isLive ? theme.primary : theme.border,
-            },
-          ]}>
-            <Text
-              style={[
-                styles.tradingPrimary,
-                { color: tradingSummary.isLive ? theme.primary : theme.text },
-              ]}
-              numberOfLines={1}
-            >
-              {tradingSummary.primary}
-            </Text>
-            <Text style={[styles.tradingSecondary, { color: theme.textSecondary }]} numberOfLines={1}>
-              {tradingSummary.secondary}
-            </Text>
-          </View>
-        </View>
       </Pressable>
     );
   };
@@ -406,66 +402,47 @@ export function DirectMessagesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <AppText variant="title3">Groups</AppText>
-          <AppText variant="caption" color="secondary">Chats, predictions, and unread activity</AppText>
-          <View style={styles.statsWheelContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statRow}
-              style={styles.statsWheel}
-            >
-              <View style={[styles.statPill, { borderColor: theme.primary, backgroundColor: `${theme.primary}15` }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Gained</Text>
-                <Text style={[styles.statValue, { color: theme.primary }]}>${betStats.gained.toFixed(2)}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.error, backgroundColor: `${theme.error}15` }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Loss</Text>
-                <Text style={[styles.statValue, { color: theme.error }]}>${betStats.loss.toFixed(2)}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.border }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Total Bets</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{betStats.totalBets}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.border }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Groups</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{groups.length}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.border }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Unread</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{totalUnread}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.border }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Active Bets</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{betStats.activeBets}</Text>
-              </View>
-              <View style={[styles.statPill, { borderColor: theme.border }]}>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Closed Bets</Text>
-                <Text style={[styles.statValue, { color: theme.text }]}>{betStats.closedBets}</Text>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
+      <GlobalHeader
+        showToggle={!isDesktopWebNav}
+        right={
           <View style={styles.headerButtons}>
-            <TouchableOpacity 
+            {!isDesktopWebNav ? <NotificationBell /> : null}
+            {!isDesktopWebNav ? (
+              <TouchableOpacity
+                style={[styles.headerButton, { marginRight: 8 }]}
+                onPress={() => router.push("/discover" as any)}
+                accessibilityRole="button"
+                accessibilityLabel={tSocial("openDiscover")}
+              >
+                <IconSymbol name="magnifyingglass" size={22} color={theme.text} />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
               style={[styles.headerButton, { marginRight: 8 }]}
               onPress={() => {
                 setShowJoinInput(!showJoinInput);
               }}
+              accessibilityRole="button"
+              accessibilityLabel={tSocial("joinGroup")}
             >
-              <IconSymbol name="person.3.fill" size={24} color={theme.text} />
+              <IconSymbol name="link" size={24} color={theme.text} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => openModal()}
-            >
+            <TouchableOpacity style={styles.headerButton} onPress={() => openModal()}>
               <IconSymbol name="plus" size={24} color={theme.text} />
             </TouchableOpacity>
           </View>
+        }
+      />
+      <WebContentColumn variant="social" style={styles.socialColumn}>
+      <View style={styles.pageTitle}>
+        <View style={styles.headerLeft}>
+          <AppText variant="title3">Groups</AppText>
+          <AppText variant="caption" color="secondary">
+            {groups.length} groups{totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+          </AppText>
+        </View>
       </View>
 
       {groups.length === 0 ? (
@@ -491,7 +468,7 @@ export function DirectMessagesScreen() {
                     <AppText variant="label" color="primary">{step}</AppText>
                   </View>
                   <View style={styles.onboardingStepCopy}>
-                    <AppText variant="body" style={{ fontWeight: "600" }}>{title}</AppText>
+                    <AppText variant="body" style={{ fontWeight: '400' }}>{title}</AppText>
                     <AppText variant="bodySm" color="secondary">{copy}</AppText>
                   </View>
                 </View>
@@ -578,8 +555,9 @@ export function DirectMessagesScreen() {
         loading={createLoading}
       />
 
+      </WebContentColumn>
 
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -588,32 +566,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000000",
   },
+  socialColumn: {
+    flex: 1,
+  },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#000000",
   },
-  header: {
+  pageTitle: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    paddingTop: 4,
+    paddingBottom: 12,
   },
   headerLeft: {
     flex: 1,
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "400",
-    color: "#000",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontWeight: "400",
-    marginBottom: 6,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -656,7 +624,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     fontVariant: ["tabular-nums"],
   },
   list: {
@@ -704,7 +672,7 @@ const styles = StyleSheet.create({
   },
   groupInitials: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   badge: {
     position: "absolute",
@@ -722,7 +690,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   groupInfo: {
     flex: 1,
@@ -733,19 +701,25 @@ const styles = StyleSheet.create({
   },
   groupHeaderRow: {
     flexDirection: "row",
-    alignItems: "flex-end", // Align text baselines nicely
+    alignItems: "center",
     marginBottom: 4,
+    gap: 6,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   groupName: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     flex: 1,
     marginRight: 8,
     letterSpacing: -0.3,
   },
   groupTime: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     lineHeight: 14,
     height: 14,
     marginBottom: 5,
@@ -785,13 +759,13 @@ const styles = StyleSheet.create({
   },
   tradingPrimary: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     lineHeight: 14,
     fontVariant: ["tabular-nums"],
   },
   tradingSecondary: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: '400',
     lineHeight: 12,
     marginTop: 1,
     fontVariant: ["tabular-nums"],
@@ -826,14 +800,14 @@ const styles = StyleSheet.create({
   },
   onboardingEyebrow: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 1,
     marginBottom: 8,
   },
   onboardingTitle: {
     fontSize: 30,
     lineHeight: 34,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: -0.8,
     marginBottom: 12,
   },
@@ -860,14 +834,14 @@ const styles = StyleSheet.create({
   },
   onboardingStepNumber: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   onboardingStepCopy: {
     flex: 1,
   },
   onboardingStepTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 3,
   },
   onboardingStepBody: {
@@ -884,7 +858,7 @@ const styles = StyleSheet.create({
   onboardingPrimaryText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   onboardingSecondaryButton: {
     minHeight: 48,
@@ -895,7 +869,7 @@ const styles = StyleSheet.create({
   },
   onboardingSecondaryText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   onboardingExploreButton: {
     minHeight: 44,
@@ -905,7 +879,7 @@ const styles = StyleSheet.create({
   },
   onboardingExploreText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   onboardingJoinPanel: {
     width: "100%",
@@ -920,7 +894,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#1A1A1A",
     marginBottom: 8,
   },
@@ -971,7 +945,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#111B21",
   },
   closeModalText: {
@@ -1013,7 +987,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   // New styles for CodeInput integration
   confirmJoinBtn: {
@@ -1026,7 +1000,7 @@ const styles = StyleSheet.create({
   confirmJoinBtnText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   headerJoinPanel: {
     paddingBottom: 20,
@@ -1045,7 +1019,7 @@ const styles = StyleSheet.create({
   headerJoinSubmitText: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });
 

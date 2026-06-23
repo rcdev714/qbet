@@ -21,6 +21,9 @@ export const messageService = {
           content: data.content,
           message_type: data.message_type || "text",
           market_id: data.market_id,
+          referenced_group_id: data.referenced_group_id,
+          referenced_user_id: data.referenced_user_id,
+          bet_id: data.bet_id,
         })
         .select(`
           *,

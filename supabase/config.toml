@@ -363,6 +363,15 @@ verify_jwt = true
 [functions.dispatch-market-contract-emails]
 verify_jwt = true
 
+[functions.dispatch-notification]
+verify_jwt = true
+
+[functions.send-group-invite-email]
+verify_jwt = true
+
+[functions.send-welcome-email]
+verify_jwt = true
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

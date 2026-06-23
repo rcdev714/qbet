@@ -835,24 +835,36 @@ export type Database = {
       }
       market_chat_messages: {
         Row: {
+          bet_id: string | null
           content: string
           created_at: string | null
           id: string
           market_id: string
+          message_type: string
+          referenced_group_id: string | null
+          referenced_user_id: string | null
           user_id: string
         }
         Insert: {
+          bet_id?: string | null
           content: string
           created_at?: string | null
           id?: string
           market_id: string
+          message_type?: string
+          referenced_group_id?: string | null
+          referenced_user_id?: string | null
           user_id: string
         }
         Update: {
+          bet_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
           market_id?: string
+          message_type?: string
+          referenced_group_id?: string | null
+          referenced_user_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1196,30 +1208,39 @@ export type Database = {
       }
       messages: {
         Row: {
+          bet_id: string | null
           content: string | null
           created_at: string | null
           group_id: string
           id: string
           market_id: string | null
           message_type: string
+          referenced_group_id: string | null
+          referenced_user_id: string | null
           user_id: string
         }
         Insert: {
+          bet_id?: string | null
           content?: string | null
           created_at?: string | null
           group_id: string
           id?: string
           market_id?: string | null
           message_type?: string
+          referenced_group_id?: string | null
+          referenced_user_id?: string | null
           user_id: string
         }
         Update: {
+          bet_id?: string | null
           content?: string | null
           created_at?: string | null
           group_id?: string
           id?: string
           market_id?: string | null
           message_type?: string
+          referenced_group_id?: string | null
+          referenced_user_id?: string | null
           user_id?: string
         }
         Relationships: [

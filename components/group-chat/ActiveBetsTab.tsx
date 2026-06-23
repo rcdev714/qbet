@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: -0.4,
   },
   listSubtitle: {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   countPillText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   loadingCard: {
     height: 120,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   emptySubtitle: {
     fontSize: 14,

@@ -1,16 +1,17 @@
+import { ModalHeader } from "@/components/ui/ModalHeader";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Modal,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -151,12 +152,7 @@ export function FollowersModal({ visible, onClose, userId }: FollowersModalProps
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={{ flex: 1 }}>
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Followers</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: theme.primary }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <ModalHeader title="Followers" onClose={onClose} closeLabel="Done" />
 
           {loading ? (
             <View style={styles.centerContainer}>
@@ -199,7 +195,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   closeButton: {
     position: 'absolute',
@@ -230,7 +226,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 2,
   },
   timestamp: {
@@ -245,7 +241,7 @@ const styles = StyleSheet.create({
   },
   followButtonText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   centerContainer: {
     flex: 1,

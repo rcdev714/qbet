@@ -1,12 +1,15 @@
+import { MentionMessage } from "@/components/chat/MentionMessage";
+import { FeedTradingPanel } from "@/components/feed/FeedTradingPanel";
+import { ChatComposer } from "@/components/group-chat/ChatComposer";
 import { ReportContentButton } from "@/components/moderation/ReportContentButton";
 import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Brand } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMarket } from "@/hooks/useMarket";
 import { getRandomColor } from "@/lib/colors";
 import { marketService } from "@/services/market.service";
 import type { Market } from "@/types/market";
+import type { MentionEmbedPayload } from "@/types/mention";
 import type { Message } from "@/types/message";
 import { Image } from "expo-image";
 import { Router } from "expo-router";
@@ -18,7 +21,6 @@ import {
     Platform,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View
 } from "react-native";
@@ -69,8 +71,20 @@ function MarketMessage({
     );
   }
 
-  // If it's a shared market in chat, we use the nice SocialShareMarketCard
-  // But we need to make sure it handles interactions correctly (navigate to market)
+  // Shared public markets navigate away; group markets can bet inline via onBet
+  if (!isShared && market.group_id) {
+    return (
+      <View style={styles.marketMessageContainer}>
+        <FeedTradingPanel
+          market={market}
+          stats={stats}
+          variant="surface"
+          onTrade={({ side, optionId }) => onBet(market, optionId, side)}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.marketMessageContainer}>
       <SocialShareMarketCard
@@ -78,7 +92,7 @@ function MarketMessage({
         stats={stats}
         inline
         onPredict={() => {router.push(`/market/${market.id}` as any)}}
-        onClose={() => {}} // No close button needed here strictly, or we can hide it via prop if we add one
+        onClose={() => {}}
       />
     </View>
   );
@@ -97,6 +111,8 @@ interface ChatTabProps {
   onSendMessage: () => void;
   onAttachPress: () => void;
   isUploadingImage: boolean;
+  groupId: string;
+  onSendMention: (payload: MentionEmbedPayload) => void | Promise<void>;
   onBet: (market: Market, optionId: string, side: "yes" | "no") => void;
   onResolve: (marketId: string, optionId: string) => void;
   currentUserId?: string;
@@ -115,6 +131,8 @@ export function ChatTab({
   onSendMessage,
   onAttachPress,
   isUploadingImage,
+  groupId,
+  onSendMention,
   onBet,
   onResolve,
   currentUserId,
@@ -244,6 +262,37 @@ export function ChatTab({
         )}
       </TouchableOpacity>
     );
+
+    // Mention embed cards
+    if (item.message_type === "shared_group" && item.referenced_group_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="group" id={item.referenced_group_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "shared_profile" && item.referenced_user_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="profile" id={item.referenced_user_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "shared_bet" && item.bet_id) {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <MentionMessage variant="bet" id={item.bet_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
 
     // Image messages
     if (item.message_type === "image" && item.content) {
@@ -377,35 +426,15 @@ export function ChatTab({
         onEndReachedThreshold={0.1}
       />
 
-      <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-        <TouchableOpacity 
-          style={[styles.attachButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]} 
-          onPress={onAttachPress}
-        >
-          {isUploadingImage ? (
-            <ActivityIndicator size="small" color={theme.primary} />
-          ) : (
-            <IconSymbol name="paperclip" size={24} color={theme.primary} />
-          )}
-        </TouchableOpacity>
-        <View style={[styles.inputWrapper, { backgroundColor: isDark ? theme.background : "#F0F2F5" }]}>
-          <TextInput
-            style={[styles.input, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-            placeholder="Type a message"
-            placeholderTextColor={theme.textSecondary}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-          />
-        </View>
-        <TouchableOpacity
-          style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
-          onPress={onSendMessage}
-          disabled={!inputText.trim()}
-        >
-          <Text style={styles.sendButtonText}>➔</Text>
-        </TouchableOpacity>
-      </View>
+      <ChatComposer
+        value={inputText}
+        onChangeText={setInputText}
+        onSend={onSendMessage}
+        onAttachPress={onAttachPress}
+        isUploadingImage={isUploadingImage}
+        mentionContext={{ groupId }}
+        onSendMention={onSendMention}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -430,7 +459,7 @@ const styles = StyleSheet.create({
   },
   emptyMessagesText: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#8E8E93",
     marginTop: 12,
   },
@@ -483,7 +512,7 @@ const styles = StyleSheet.create({
   },
   messageAvatarInitials: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#fff",
   },
   messageBubble: {
@@ -538,7 +567,7 @@ const styles = StyleSheet.create({
   },
   marketAnnounce: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     color: Brand.primary,
   },
   marketStatusRow: {
@@ -557,7 +586,7 @@ const styles = StyleSheet.create({
   },
   optimisticMarketText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 4,
   },
   optimisticMarketSubtext: {
@@ -600,47 +629,5 @@ const styles = StyleSheet.create({
     width: 250,
     height: 180,
     borderRadius: 10,
-  },
-  // Input bar
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    padding: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 8,
-  },
-  attachButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  inputWrapper: {
-    flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    maxHeight: 100,
-  },
-  input: {
-    fontSize: 16,
-    maxHeight: 80,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Brand.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendButtonDisabled: {
-    opacity: 0.4,
-  },
-  sendButtonText: {
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "600",
   },
 });

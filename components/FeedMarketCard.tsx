@@ -467,10 +467,10 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                               return (
                                 <View style={{ flexDirection: 'row', gap: 16 }}>
                                   <Text style={styles.previewText}>
-                                    Yes: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '600', fontSize: 18 }}>{formatCurrency(yesPayout)}</Text>
+                                    Yes: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '400', fontSize: 18 }}>{formatCurrency(yesPayout)}</Text>
                                   </Text>
                                   <Text style={styles.previewText}>
-                                    No: <Text style={{ color: '#F87171', fontWeight: '600', fontSize: 18 }}>{formatCurrency(noPayout)}</Text>
+                                    No: <Text style={{ color: '#F87171', fontWeight: '400', fontSize: 18 }}>{formatCurrency(noPayout)}</Text>
                                   </Text>
                                 </View>
                               );
@@ -485,7 +485,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                         return (
                             <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
                                 <Text style={styles.previewText}>
-                                    Est. Payout: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '600', fontSize: 18 }}>{formatCurrency(payout)}</Text>
+                                    Est. Payout: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '400', fontSize: 18 }}>{formatCurrency(payout)}</Text>
                                 </Text>
                             </View>
                         );
@@ -617,10 +617,10 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                   ]} />
                   
                   <View style={styles.optionContent}>
-                      <Text style={[styles.optionLabel, { color: isDark ? '#fff' : '#1A1A1A', fontWeight: isSelected ? '600' : '400' }]} numberOfLines={1}>
+                      <Text style={[styles.optionLabel, { color: isDark ? '#fff' : '#1A1A1A', fontWeight: '400' }]} numberOfLines={1}>
                         {opt.label}
                       </Text>
-                      <Text style={[styles.optionPercent, { color: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'), fontWeight: isSelected ? '600' : '400' }]}>
+                      <Text style={[styles.optionPercent, { color: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'), fontWeight: '400' }]}>
                         {Math.round(opt.percentage)}%
                       </Text>
                   </View>
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#fff',
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   iconButton: {
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#fff',
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
@@ -905,7 +905,7 @@ const styles = StyleSheet.create({
   },
   optionPercent: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   tradingBar: {
     width: '100%',
@@ -987,6 +987,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
       color: '#000',
       fontSize: 15,
-      fontWeight: '600'
+      fontWeight: '400'
   },
 });

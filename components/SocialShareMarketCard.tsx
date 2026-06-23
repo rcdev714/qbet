@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#fff',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   contentOverlay: {
@@ -358,13 +358,13 @@ const styles = StyleSheet.create({
   categoryText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   statText: {
     color: '#fff',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   divider: {
     width: 3,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   question: {
     color: "#fff",
     fontSize: 24,
-    fontWeight: "600",
+    fontWeight: '400',
     lineHeight: 30,
     letterSpacing: -0.5,
     marginBottom: 20,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   optionLabel: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   binaryBarContainer: {
@@ -437,13 +437,13 @@ const styles = StyleSheet.create({
   multiLabel: {
     color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
     maxWidth: '80%',
   },
   multiPercent: {
     color: "rgba(255,255,255,0.7)",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   multiBarBg: {
     height: 6,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   shareTitle: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 1.5,
     textAlign: 'center',
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   closeButton: {
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   likeCount: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });
 

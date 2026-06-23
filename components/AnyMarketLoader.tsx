@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   caption: {
     marginTop: 16,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.4,
     textTransform: "uppercase",
     textAlign: "center",

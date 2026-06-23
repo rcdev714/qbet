@@ -1,15 +1,14 @@
+import { AppButton, AppInput, AppText } from "@/components/ui";
+import { AppScreen } from "@/components/ui/AppScreen";
+import { showAppAlertRaw } from "@/lib/ui/feedback";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Alert,
-    KeyboardAvoidingView,
     Linking,
     Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
     StyleSheet,
     Text,
     TextInput,
@@ -18,7 +17,7 @@ import {
 } from "react-native";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { RulesModal } from "../components/profile/RulesModal";
-import { AppButton, AppInput, AppSkeleton, AppText, EmptyState } from "@/components/ui";
+import { BackButton } from "../components/ui/BackButton";
 import { WalletActionRail, type WalletActionKey } from "../components/wallet/WalletActionRail";
 import {
     WalletHistoryFilters,
@@ -26,13 +25,14 @@ import {
 } from "../components/wallet/WalletHistoryFilters";
 import { WalletOnboardingCard } from "../components/wallet/WalletOnboardingCard";
 import { WalletOverviewCard } from "../components/wallet/WalletOverviewCard";
+import { WalletTransactionList } from "../components/wallet/WalletTransactionList";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useAppLocale } from "../contexts/LocaleContext";
+import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { formatCurrency } from "../lib/parimutuel";
 import { isStripeNativeAvailable, useStripe } from "../lib/stripe-bridge";
-import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { walletService } from "../services/wallet.service";
 
 const PREDEFINED_AMOUNTS = [10, 20, 50, 100];
@@ -67,32 +67,18 @@ function mapTxCategory(type: string): WalletHistoryFilter {
   return "all";
 }
 
-function txTitle(type: string, t: (key: string) => string): string {
-  switch (type) {
-    case "deposit":
-      return t("depositLabel");
-    case "withdrawal":
-      return t("withdrawLabel");
-    case "transfer_sent":
-      return t("sent");
-    case "transfer_received":
-      return t("received");
-    case "bet_placed":
-      return t("betPlaced");
-    case "bet_won":
-      return t("betWon");
-    case "bet_lost":
-      return t("betLost");
-    default:
-      return t("history");
-  }
-}
-
-export function WalletScreen() {
+export function WalletScreen({
+  initialAction = "deposit",
+  hideBackButton = false,
+}: {
+  initialAction?: WalletActionKey;
+  hideBackButton?: boolean;
+} = {}) {
   const router = useRouter();
   const stripe = useStripe();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
+  const isDesktopWebNav = useIsDesktopWebNav();
   const { locale } = useAppLocale();
   const { t } = useTranslation("wallet");
   const intlLocale = locale === "es" ? "es-EC" : "en-US";
@@ -108,7 +94,7 @@ export function WalletScreen() {
     requestLiveMode,
   } = useWalletContext();
 
-  const [walletAction, setWalletAction] = useState<WalletActionKey>("deposit");
+  const [walletAction, setWalletAction] = useState<WalletActionKey>(initialAction);
   const [amount, setAmount] = useState("");
   const [transactions, setTransactions] = useState<any[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
@@ -479,7 +465,7 @@ export function WalletScreen() {
               style={[
                 styles.input,
                 styles.lookupInput,
-                { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7" },
+                { color: theme.text, backgroundColor: theme.input },
               ]}
             />
             <TouchableOpacity
@@ -506,7 +492,7 @@ export function WalletScreen() {
             keyboardType="decimal-pad"
             style={[
               styles.input,
-              { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7" },
+              { color: theme.text, backgroundColor: theme.input },
             ]}
           />
           <TextInput
@@ -516,7 +502,7 @@ export function WalletScreen() {
             placeholderTextColor={theme.textSecondary}
             style={[
               styles.input,
-              { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7", marginTop: 10 },
+              { color: theme.text, backgroundColor: theme.input, marginTop: 10 },
             ]}
           />
           <AppButton
@@ -561,7 +547,7 @@ export function WalletScreen() {
           keyboardType="decimal-pad"
           style={[
             styles.input,
-            { color: theme.text, backgroundColor: isDark ? theme.background : "#F2F2F7" },
+            { color: theme.text, backgroundColor: theme.input },
           ]}
         />
         {amount ? (
@@ -583,26 +569,39 @@ export function WalletScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <GlobalHeader
-        ignoreTopInset
-        left={(
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerButtonLeft}>
-            <Text style={[styles.backButtonText, { color: theme.primary }]}>←</Text>
+  const showBackButton = !(hideBackButton || (Platform.OS === "web" && isDesktopWebNav));
+
+  const renderWebActionLinks = () => (
+    <View style={styles.webActionLinks}>
+      {(["send", "receive", "withdraw"] as WalletActionKey[]).map((action) => {
+        const labels: Record<WalletActionKey, string> = {
+          deposit: "Add funds",
+          send: "Send",
+          receive: "Receive",
+          withdraw: "Withdraw",
+        };
+        const active = walletAction === action;
+        return (
+          <TouchableOpacity key={action} onPress={() => setWalletAction(action)}>
+            <Text style={[styles.webActionLink, { color: active ? theme.primary : theme.textSecondary }]}>
+              {labels[action]}
+            </Text>
           </TouchableOpacity>
-        )}
+        );
+      })}
+    </View>
+  );
+
+  return (
+    <AppScreen maxWidth="narrow" scroll padBottomForTabBar={hideBackButton}>
+      <GlobalHeader
+        showToggle={!isDesktopWebNav}
+        left={
+          showBackButton ? (
+            <BackButton />
+          ) : undefined
+        }
       />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            Platform.OS === "web" && { maxWidth: 640, alignSelf: "center", width: "100%" } as any,
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <WalletOverviewCard
             balanceLabel={isPlayMode ? "Play balance" : "Live balance"}
             balanceDisplay={formatCurrency(balance, "USD", intlLocale)}
@@ -660,85 +659,54 @@ export function WalletScreen() {
                 onContinue={handleContinueOnboarding}
                 theme={theme}
               />
-              <WalletActionRail active={walletAction} onSelect={setWalletAction} theme={theme} />
+              {Platform.OS === "web" ? (
+                <>
+                  <AppButton
+                    title="Add funds"
+                    onPress={() => setWalletAction("deposit")}
+                    style={styles.primaryButton}
+                  />
+                  {renderWebActionLinks()}
+                </>
+              ) : (
+                <WalletActionRail active={walletAction} onSelect={setWalletAction} theme={theme} />
+              )}
               {renderActionPanel()}
             </>
           )}
 
           <View style={styles.historyHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Recent Activity</Text>
-            <WalletHistoryFilters
-              value={historyFilter}
-              onChange={(next) => {
-                setHistoryFilter(next);
-                setTxLimit(10);
-              }}
-              theme={theme}
-            />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent activity</Text>
           </View>
 
-          <View style={[styles.historyList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {transactionsLoading ? (
-              <AppSkeleton variant="text" style={{ marginVertical: 20, alignSelf: "center", width: "60%" }} />
-            ) : filteredTransactions.length === 0 ? (
-              <EmptyState icon="receipt-outline" title="No transactions yet." />
-            ) : (
-              filteredTransactions.map((tx, index) => {
-                const isPositive = Number(tx.amount) > 0;
-                const direction = tx.type === "transfer_sent"
-                  ? `To @${tx.metadata?.counterparty_username || "user"}`
-                  : tx.type === "transfer_received"
-                    ? `From @${tx.metadata?.counterparty_username || "user"}`
-                    : null;
-                const date = new Date(tx.created_at).toLocaleString();
-                return (
-                  <View
-                    key={tx.id}
-                    style={[
-                      styles.txRow,
-                      { borderBottomColor: theme.border },
-                      index === filteredTransactions.length - 1 && { borderBottomWidth: 0 },
-                    ]}
-                  >
-                    <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text style={[styles.txTitle, { color: theme.text }]}>{txTitle(tx.type, t)}</Text>
-                      <Text style={[styles.txSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {direction ? `${direction} • ${date}` : date}
-                      </Text>
-                    </View>
-                    <View style={styles.txRight}>
-                      <Text style={[styles.txAmount, { color: isPositive ? theme.success : theme.text }]}>
-                        {isPositive ? "+" : ""}
-                        {formatCurrency(Number(tx.amount || 0), "USD", intlLocale)}
-                      </Text>
-                      <Text style={[styles.txStatus, { color: theme.textSecondary }]}>
-                        {(tx.status || "completed").toUpperCase()}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })
-            )}
-            {transactions.length > txLimit ? (
-              <TouchableOpacity
-                style={[styles.moreButton, { borderTopColor: theme.border }]}
-                onPress={() => setTxLimit((prev) => prev + 10)}
-              >
-                <Text style={[styles.moreButtonText, { color: theme.primary }]}>
-                  See More ({Math.min(txLimit, transactions.length)} of {transactions.length})
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <WalletHistoryFilters
+            value={historyFilter}
+            onChange={(next) => {
+              setHistoryFilter(next);
+              setTxLimit(10);
+            }}
+          />
 
+          <WalletTransactionList
+            transactions={filteredTransactions}
+            loading={transactionsLoading}
+            totalCount={
+              historyFilter === "all"
+                ? transactions.length
+                : transactions.filter((tx) => mapTxCategory(tx.type) === historyFilter).length
+            }
+            visibleCount={filteredTransactions.length}
+            onLoadMore={() => setTxLimit((prev) => prev + 10)}
+            intlLocale={intlLocale}
+            t={t}
+            theme={theme}
+          />
       <RulesModal
         visible={isRulesVisible}
         onClose={() => setIsRulesVisible(false)}
         initialPage={3}
       />
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -764,11 +732,11 @@ const styles = StyleSheet.create({
   },
   bannerText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     marginBottom: 8,
     letterSpacing: 0.4,
@@ -781,7 +749,7 @@ const styles = StyleSheet.create({
   },
   walletGuideTitle: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 6,
   },
   walletGuideText: {
@@ -807,7 +775,7 @@ const styles = StyleSheet.create({
   walletModeText: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   quickRow: {
     flexDirection: "row",
@@ -824,7 +792,7 @@ const styles = StyleSheet.create({
   },
   quickChipText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   input: {
     height: 48,
@@ -843,7 +811,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: '400',
     fontSize: 15,
   },
   lookupRow: {
@@ -862,7 +830,7 @@ const styles = StyleSheet.create({
   },
   lookupButtonText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: '400',
     fontSize: 14,
   },
   infoBox: {
@@ -873,7 +841,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   infoSub: {
     marginTop: 4,
@@ -882,7 +850,7 @@ const styles = StyleSheet.create({
   receiveHandle: {
     marginTop: 6,
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   feeRow: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -895,6 +863,17 @@ const styles = StyleSheet.create({
   },
   historyHeader: {
     marginTop: 24,
+  },
+  webActionLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  webActionLink: {
+    fontSize: 14,
+    fontWeight: '400',
   },
   historyList: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -916,7 +895,7 @@ const styles = StyleSheet.create({
   },
   txTitle: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   txSubtitle: {
     marginTop: 2,
@@ -927,11 +906,11 @@ const styles = StyleSheet.create({
   },
   txAmount: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   txStatus: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: '400',
     marginTop: 2,
     letterSpacing: 0.3,
   },
@@ -942,6 +921,6 @@ const styles = StyleSheet.create({
   },
   moreButtonText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

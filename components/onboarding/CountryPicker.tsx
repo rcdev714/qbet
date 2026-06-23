@@ -185,6 +185,6 @@ const styles = StyleSheet.create({
   check: {
     color: Brand.primary,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '400',
   },
 });

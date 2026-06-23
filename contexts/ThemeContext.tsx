@@ -35,6 +35,8 @@ export interface ThemeColors {
   warning: string;
   input: string;
   overlay: string;
+  marketYes: string;
+  marketNo: string;
   radius: {
     sm: number;
     md: number;
@@ -95,6 +97,8 @@ function buildPalette(isDark: boolean): ThemeColors {
       warning: Brand.warning,
       input: "#1A222D",
       overlay: "rgba(8, 12, 18, 0.72)",
+      marketYes: "#2F80ED",
+      marketNo: "#E6485D",
       radius: sharedRadius,
       spacing: sharedSpacing,
       elevation: (level) => elevationMap[level],
@@ -122,6 +126,8 @@ function buildPalette(isDark: boolean): ThemeColors {
     warning: "#B45309",
     input: "#EEF2F7",
     overlay: "rgba(15, 23, 42, 0.5)",
+    marketYes: "#2F80ED",
+    marketNo: "#E6485D",
     radius: sharedRadius,
     spacing: sharedSpacing,
     elevation: (level) => elevationMap[level],

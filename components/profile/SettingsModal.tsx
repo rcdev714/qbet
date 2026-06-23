@@ -72,7 +72,7 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
                           <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
                        ) : (
                           <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? theme.surface : theme.primary, borderColor: isDark ? theme.primary : 'transparent', borderWidth: isDark ? 2 : 0 }]}>
-                               <Text style={{color: '#fff', fontSize: 24, fontWeight: '600'}}>
+                               <Text style={{color: '#fff', fontSize: 24, fontWeight: '400'}}>
                                    {user?.username?.substring(0,2).toUpperCase() || "U"}
                                </Text>
                           </View>
@@ -163,14 +163,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   closeButton: {
     padding: 4,
   },
   closeText: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   content: {
     padding: 20,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     marginBottom: 8,
     marginLeft: 4,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
       color: '#fff',
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '400',
   },
   signOutButton: {
       padding: 16,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   signOutText: {
       color: '#FF3B30',
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '400',
   },
   menuItem: {
       flexDirection: 'row',

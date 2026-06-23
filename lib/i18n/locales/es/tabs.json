@@ -7,5 +7,15 @@
   "settings": "Ajustes",
   "topUp": "Recargar",
   "admin": "Admin",
-  "navigation": "Navegación"
+  "navigation": "Navegación",
+  "discover": "Descubrir",
+  "notifications": "Notificaciones",
+  "groupsSection": "Grupos",
+  "exploreSection": "Explorar",
+  "shortcutsSection": "Accesos directos",
+  "viewAll": "Ver todo",
+  "collapse": "Contraer",
+  "expandSidebar": "Expandir barra lateral",
+  "collapseSidebar": "Contraer barra lateral",
+  "signIn": "Iniciar sesión"
 }

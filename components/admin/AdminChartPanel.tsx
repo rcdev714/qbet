@@ -60,7 +60,7 @@ export function AdminChartPanel({
                     ]}
                     activeOpacity={0.85}
                   >
-                    <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: "700" }}>
+                    <AppText variant="caption" style={{ color: active ? theme.primary : theme.textSecondary, fontWeight: '400' }}>
                       {option}D
                     </AppText>
                   </TouchableOpacity>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "400",
     letterSpacing: 0.2,
   },
   subtitle: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   rangeLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '400',
   },
   chartSlot: {
     overflow: "hidden",

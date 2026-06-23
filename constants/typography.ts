@@ -3,8 +3,8 @@ import type { TextStyle } from "react-native";
 import { Fonts } from "@/constants/theme";
 
 /**
- * App-wide font weights: heaviest allowed is semibold (600).
- * Prefer regular (400) and thin (300) for body and display copy.
+ * Premium light hierarchy: all reading copy uses regular (400).
+ * Semibold (600) is reserved for tiny badge counts and a few core controls.
  */
 export const FontWeight = {
   thin: "300" as const,
@@ -49,12 +49,13 @@ export const TextVariants: Record<TextVariant, TextStyle> = {
   title2: {
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
+    letterSpacing: -0.2,
   },
   title3: {
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
   },
   body: {
     fontSize: 15,
@@ -69,7 +70,7 @@ export const TextVariants: Record<TextVariant, TextStyle> = {
   label: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.regular,
   },
   caption: {
     fontSize: 12,
@@ -86,8 +87,8 @@ export const TextVariants: Record<TextVariant, TextStyle> = {
 
 /** @deprecated Use TextVariants via AppText instead. */
 export const Typography = {
-  label: { fontWeight: FontWeight.semibold },
-  emphasis: { fontWeight: FontWeight.semibold },
+  label: { fontWeight: FontWeight.regular },
+  emphasis: { fontWeight: FontWeight.regular },
   heading: { fontWeight: FontWeight.regular },
 } as const;
 

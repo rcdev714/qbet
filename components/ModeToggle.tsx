@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   balanceContainer: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },

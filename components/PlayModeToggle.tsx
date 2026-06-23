@@ -9,7 +9,9 @@ import {
     Text,
     TouchableOpacity,
     View,
+    type ViewStyle,
 } from 'react-native';
+import { FontWeight } from '../constants/typography';
 import { useTheme } from '../contexts/ThemeContext';
 import { useWalletContext } from '../contexts/WalletContext';
 import { formatCurrency } from '../lib/parimutuel';
@@ -18,9 +20,11 @@ import { SegmentedControl } from './ui/SegmentedControl';
 interface PlayModeToggleProps {
   compact?: boolean;
   transparent?: boolean;
+  /** Narrow sidebar rail — single-row control, no split wallet button */
+  variant?: 'default' | 'sidebar';
 }
 
-export function PlayModeToggle({ compact = false, transparent = false }: PlayModeToggleProps) {
+export function PlayModeToggle({ compact = false, transparent = false, variant = 'default' }: PlayModeToggleProps) {
   const { theme, isDark } = useTheme();
   const { isPlayMode, toggleMode, playBalance, liveBalance, requestLiveMode } = useWalletContext();
   const { t } = useTranslation('wallet');
@@ -30,6 +34,17 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
 
   const activeBalance = isPlayMode ? playBalance : liveBalance;
   const modeValue = isPlayMode ? 'play' : 'live';
+  const isSidebar = variant === 'sidebar';
+
+  const handleModeChange = (next: 'play' | 'live') => {
+    if (next === modeValue) return;
+    if (next === 'live') {
+      void requestLiveMode();
+      return;
+    }
+    void toggleMode();
+  };
+
   const focusRing =
     Platform.OS === 'web'
       ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as any)
@@ -40,6 +55,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
     <View
       style={[
         styles.liveSplitShell,
+        isSidebar && styles.liveSplitShellSidebar,
         { borderColor: theme.border },
         compact && transparent && styles.liveSplitShadow,
       ]}
@@ -54,6 +70,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
         // @ts-ignore
         style={[
           styles.liveSplitLeft,
+          isSidebar && styles.liveSplitLeftSidebar,
           { backgroundColor: theme.input },
           Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
           focusedControl === "balance" && focusRing,
@@ -65,11 +82,12 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
             { backgroundColor: theme.primary },
           ]}
         />
-        <Text style={[styles.liveSplitLabel, { color: theme.textSecondary }]}>Live</Text>
-        <Text style={[styles.liveSplitBalance, { color: theme.text }]} numberOfLines={1}>
+        <Text style={[styles.liveSplitLabel, isSidebar && styles.liveSplitLabelSidebar, { color: theme.textSecondary }]}>Live</Text>
+        <Text style={[styles.liveSplitBalance, isSidebar && styles.liveSplitBalanceSidebar, { color: theme.text }]} numberOfLines={1}>
           {formatCurrency(activeBalance)}
         </Text>
       </TouchableOpacity>
+      {!isSidebar ? (
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Open wallet"
@@ -87,11 +105,75 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
       >
         <Text style={[styles.liveSplitWalletLabel, { color: theme.onPrimary }]}>Wallet</Text>
       </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  const sidebarToggle = (
+    <View style={styles.sidebarCompact}>
+      <View style={[styles.sidebarCompactTrack, { backgroundColor: theme.input }]}>
+        {(['play', 'live'] as const).map((mode) => {
+          const active = mode === 'play' ? isPlayMode : !isPlayMode;
+          const label = mode === 'play' ? 'Play' : 'Live';
+          const activeColor = mode === 'play' ? theme.primary : theme.success;
+
+          return (
+            <Pressable
+              key={mode}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: active }}
+              accessibilityLabel={`${label} mode`}
+              onPress={() => handleModeChange(mode)}
+              style={({ pressed }) => [
+                styles.sidebarCompactSegment,
+                active && { backgroundColor: theme.surface },
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
+                pressed && { opacity: 0.85 },
+              ]}>
+              <Text
+                style={[
+                  styles.sidebarCompactSegmentLabel,
+                  { color: active ? activeColor : theme.textSecondary },
+                  active && styles.sidebarCompactSegmentLabelActive,
+                ]}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${isPlayMode ? 'Practice' : 'Live'} balance, ${formatCurrency(activeBalance)}`}
+        onPress={() => {
+          if (!isPlayMode) {
+            router.push('/topup' as any);
+            return;
+          }
+          setShowInfo(true);
+        }}
+        style={({ pressed }) => [
+          styles.sidebarCompactBalanceHit,
+          Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
+          pressed && { opacity: 0.75 },
+        ]}>
+        <Text
+          style={[
+            styles.sidebarCompactBalance,
+            { color: isPlayMode ? theme.primary : theme.success },
+          ]}
+          numberOfLines={1}>
+          {formatCurrency(activeBalance)}
+        </Text>
+      </Pressable>
     </View>
   );
 
   const walletTouchable =
-    compact && !isPlayMode ? (
+    isSidebar ? (
+      sidebarToggle
+    ) : compact && !isPlayMode ? (
       compactLiveSplit
     ) : (
       <TouchableOpacity
@@ -110,7 +192,16 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
         // @ts-ignore
         style={[
           styles.toggleRow,
+          isSidebar && styles.toggleRowSidebar,
           transparent ? styles.transparentRow : null,
+          compact && !transparent && isPlayMode && [
+            styles.headerModeChip,
+            { backgroundColor: theme.primarySoft, borderColor: theme.primary },
+          ],
+          compact && !transparent && !isPlayMode && [
+            styles.headerModeChip,
+            { backgroundColor: `${theme.success}18`, borderColor: `${theme.success}55` },
+          ],
           compact && transparent && isPlayMode && styles.headerPlayBackdrop,
           Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
           focusedControl === "mode" && focusRing,
@@ -125,7 +216,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
         <Text
           style={[
             styles.modeLabel,
-            { color: transparent ? '#fff' : theme.text },
+            { color: transparent ? '#fff' : isPlayMode ? theme.primary : theme.success },
             transparent &&
               isPlayMode && {
                 textShadowColor: 'rgba(0,0,0,0.5)',
@@ -159,14 +250,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
             { value: 'play', label: 'Practice', description: 'Trial credits' },
             { value: 'live', label: 'Live', description: 'Real money', testID: 'mode-toggle-live' },
           ]}
-          onChange={(next) => {
-            if (next === modeValue) return;
-            if (next === 'live') {
-              void requestLiveMode();
-              return;
-            }
-            void toggleMode();
-          }}
+          onChange={(next) => handleModeChange(next as 'play' | 'live')}
         />
       </View>
     ) : null;
@@ -258,7 +342,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
     return (
       <>
         {walletTouchable}
-        {segment}
+        {!isSidebar ? segment : null}
         {infoModal}
       </>
     );
@@ -281,7 +365,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    minHeight: 44,
+    minHeight: 32,
+  },
+  toggleRowSidebar: {
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  sidebarCompact: {
+    alignSelf: 'stretch',
+    gap: 4,
+  },
+  sidebarCompactTrack: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
+  },
+  sidebarCompactSegment: {
+    flex: 1,
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+  },
+  sidebarCompactSegmentLabel: {
+    fontSize: 12,
+    fontWeight: FontWeight.regular,
+    letterSpacing: -0.1,
+  },
+  sidebarCompactSegmentLabelActive: {
+    fontWeight: FontWeight.regular,
+  },
+  sidebarCompactBalanceHit: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 22,
+    paddingHorizontal: 4,
+  },
+  sidebarCompactBalance: {
+    fontSize: 13,
+    fontWeight: FontWeight.regular,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.2,
+    textAlign: 'center',
   },
   transparentRow: {
     backgroundColor: 'transparent',
@@ -290,12 +420,19 @@ const styles = StyleSheet.create({
   headerPlayBackdrop: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  headerModeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   liveSplitShell: {
     flexDirection: 'row',
@@ -303,6 +440,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  liveSplitShellSidebar: {
+    width: '100%',
+    maxWidth: '100%',
   },
   liveSplitShadow: {
     shadowColor: '#000',
@@ -320,6 +461,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     flexShrink: 1,
   },
+  liveSplitLeftSidebar: {
+    flex: 1,
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    gap: 4,
+  },
   liveSplitRight: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -332,15 +480,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  liveSplitLabelSidebar: {
+    fontSize: 11,
+  },
   liveSplitBalance: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: -0.2,
     fontVariant: ['tabular-nums'],
+    flexShrink: 1,
+  },
+  liveSplitBalanceSidebar: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   liveSplitWalletLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: -0.1,
   },
   modeDot: {

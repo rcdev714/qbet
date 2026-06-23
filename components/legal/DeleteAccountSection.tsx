@@ -174,7 +174,7 @@ export function DeleteAccountSection({ theme, style, onDeleted }: DeleteAccountS
 const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     marginBottom: 8,
     marginLeft: 4,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   confirmBlock: {
     padding: 16,
@@ -249,6 +249,6 @@ const styles = StyleSheet.create({
   },
   confirmDeleteText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

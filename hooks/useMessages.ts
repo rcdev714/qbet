@@ -89,8 +89,11 @@ export function useMessages(groupId: string | null) {
       content: data.content || null,
       message_type: data.message_type || 'text',
       market_id: data.market_id || null,
+      referenced_group_id: data.referenced_group_id || null,
+      referenced_user_id: data.referenced_user_id || null,
+      bet_id: data.bet_id || null,
       created_at: now,
-      status: 'sending', // Initially showing as sending (gray check)
+      status: 'sending',
     };
 
     // Add optimistic message immediately

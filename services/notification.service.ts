@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { createPostgresChannel, teardownChannel } from "../lib/supabase-realtime";
 
 /**
  * Notification service
@@ -110,8 +111,8 @@ export const notificationService = {
         userId: string,
         callback: (notification: Notification) => void,
     ) {
-        const channel = supabase
-            .channel(`notifications:${userId}`)
+        const channelName = `notifications:${userId}`;
+        const channel = createPostgresChannel(channelName)
             .on(
                 "postgres_changes",
                 {
@@ -127,5 +128,9 @@ export const notificationService = {
             .subscribe();
 
         return channel;
+    },
+
+    async unsubscribeFromNotifications(channel: ReturnType<typeof supabase.channel>) {
+        await teardownChannel(channel);
     },
 };

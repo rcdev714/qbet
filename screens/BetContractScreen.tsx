@@ -238,7 +238,7 @@ export function BetContractScreen() {
         </TouchableOpacity>
         {showDebugPanel && diagnosis ? (
           <View style={[styles.debugPanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", letterSpacing: 0.5 }}>
+            <AppText variant="label" color="secondary" style={{ letterSpacing: 0.5 }}>
               {t("debug")}
             </AppText>
             <AppText variant="caption" style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}>
@@ -371,7 +371,7 @@ export function BetContractScreen() {
 
         {showDebugPanel ? (
           <View style={[styles.debugPanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <AppText variant="caption" color="secondary" style={{ fontWeight: "700", letterSpacing: 0.5 }}>
+            <AppText variant="label" color="secondary" style={{ letterSpacing: 0.5 }}>
               {t("debugLog")}
             </AppText>
             <AppText variant="caption" style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}>
@@ -421,7 +421,7 @@ function EmailStatus({
   }
   return (
     <View style={styles.statusChip} testID={testID}>
-      <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
+      <AppText variant="label" color="secondary" style={{ textTransform: "uppercase" }}>
         {label}
       </AppText>
       <AppText variant="bodySm" style={{ color }}>{status}</AppText>
@@ -460,7 +460,7 @@ function Row({
   return (
     <View style={styles.row}>
       <AppText variant="bodySm" color="secondary" style={{ flex: 1 }}>{label}</AppText>
-      <AppText variant="bodySm" style={{ flex: 1.2, textAlign: "right", fontWeight: "600" }}>{value}</AppText>
+      <AppText variant="bodySm" style={{ flex: 1.2, textAlign: "right", fontWeight: '400' }}>{value}</AppText>
     </View>
   );
 }
@@ -490,7 +490,7 @@ function ActionButton({
         disabled ? { opacity: 0.6 } : null,
       ]}
     >
-      <AppText style={{ color: secondary ? theme.text : "#fff", fontWeight: "600", textAlign: "center" }}>
+      <AppText style={{ color: secondary ? theme.text : "#fff", fontWeight: '400', textAlign: "center" }}>
         {label}
       </AppText>
     </TouchableOpacity>

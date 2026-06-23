@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
   primaryText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });

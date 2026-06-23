@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../contexts/AuthContext";
 import { teardownChannel } from "../lib/supabase-realtime";
 import { marketChatService } from "../services/marketChat.service";
+import { mentionService } from "../services/mention.service";
 import type { MarketChatMessage } from "../types/marketChat";
+import type { MentionEmbedPayload } from "../types/mention";
 
 export function useMarketChat(marketId: string) {
     const { user } = useAuthContext();
@@ -10,20 +12,16 @@ export function useMarketChat(marketId: string) {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
 
-    // Ref to track if we're mounted and which market we're on
     const marketIdRef = useRef(marketId);
 
-    // Refresh when market changes
     useEffect(() => {
         marketIdRef.current = marketId;
         loadMessages();
 
-        // Subscribe to realtime updates
         const subscription = marketChatService.subscribeToMarket(
             marketId,
             (newMessage) => {
                 setMessages((prev) => {
-                    // Prevent duplicates
                     if (prev.some((m) => m.id === newMessage.id)) return prev;
                     return [...prev, newMessage];
                 });
@@ -49,13 +47,13 @@ export function useMarketChat(marketId: string) {
     const sendMessage = async (content: string) => {
         if (!content.trim() || !user) return;
 
-        // creating optimistic message
         const tempId = `temp-${Date.now()}`;
         const optimisticMessage: MarketChatMessage = {
             id: tempId,
             market_id: marketId,
             user_id: user.id,
             content: content.trim(),
+            message_type: "text",
             created_at: new Date().toISOString(),
             user: {
                 id: user.id,
@@ -65,7 +63,6 @@ export function useMarketChat(marketId: string) {
             },
         };
 
-        // Add optimistic message
         setMessages((prev) => [...prev, optimisticMessage]);
         setSending(true);
 
@@ -77,16 +74,59 @@ export function useMarketChat(marketId: string) {
         setSending(false);
 
         if (error) {
-            // Remove optimistic message on error
             setMessages((prev) => prev.filter((m) => m.id !== tempId));
             return { error };
         }
 
-        // Replace optimistic message with real one
         if (message) {
             setMessages((prev) =>
                 prev.map((m) => m.id === tempId ? message : m)
             );
+        }
+
+        return { error: null };
+    };
+
+    const sendMentionMessage = async (payload: MentionEmbedPayload) => {
+        if (!user) return { error: new Error("Not authenticated") };
+
+        const tempId = `temp-mention-${Date.now()}`;
+        const optimisticMessage: MarketChatMessage = {
+            id: tempId,
+            market_id: marketId,
+            user_id: user.id,
+            content: payload.type === "group" ? "Shared a group" : payload.type === "profile" ? "Shared a profile" : "Shared a bet",
+            message_type: payload.type === "group" ? "shared_group" : payload.type === "profile" ? "shared_profile" : "shared_bet",
+            referenced_group_id: payload.type === "group" ? payload.groupId : null,
+            referenced_user_id: payload.type === "profile" ? payload.userId : null,
+            bet_id: payload.type === "bet" ? payload.betId : null,
+            created_at: new Date().toISOString(),
+            user: {
+                id: user.id,
+                username: user.username || user.email?.split("@")[0] || "You",
+                email: user.email || null,
+                avatar_url: user.avatar_url || null,
+            },
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+        setSending(true);
+
+        const { message, error } = await mentionService.sendMarketMentionMessage(
+            marketId,
+            user.id,
+            payload,
+        );
+
+        setSending(false);
+
+        if (error) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
+            return { error };
+        }
+
+        if (message) {
+            setMessages((prev) => prev.map((m) => (m.id === tempId ? message : m)));
         }
 
         return { error: null };
@@ -97,6 +137,7 @@ export function useMarketChat(marketId: string) {
         loading,
         sending,
         sendMessage,
+        sendMentionMessage,
         refresh: loadMessages,
     };
 }

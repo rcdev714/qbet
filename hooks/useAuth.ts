@@ -195,6 +195,13 @@ export function useAuth() {
       setHasSession(true);
       if (signedUpUser) {
         setUser(signedUpUser);
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: { userId: signedUpUser.id },
+          });
+        } catch (welcomeError) {
+          console.warn("[useAuth] welcome email failed", welcomeError);
+        }
       }
     }
     setLoading(false);

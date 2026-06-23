@@ -84,10 +84,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   tabTextActive: {
-    fontWeight: "600",
+    fontWeight: '400',
   },
   badge: {
     minWidth: 18,
@@ -99,6 +99,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

@@ -14,13 +14,17 @@ import {
     SCREEN_PADDING_TOP,
     resolveContentMaxWidth,
     resolveGutter,
+    resolveWebColumnMaxWidth,
     type ContentMaxWidth,
+    type WebColumnVariant,
 } from "@/constants/layout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/ui/cn";
 
 export interface AppScreenProps extends ViewProps {
   maxWidth?: ContentMaxWidth;
+  /** Social/standard/wide column — overrides maxWidth when set */
+  columnVariant?: WebColumnVariant;
   scroll?: boolean;
   scrollProps?: ScrollViewProps;
   padBottomForTabBar?: boolean;
@@ -29,6 +33,7 @@ export interface AppScreenProps extends ViewProps {
 
 export function AppScreen({
   maxWidth = "full",
+  columnVariant,
   scroll = false,
   scrollProps,
   padBottomForTabBar = false,
@@ -40,7 +45,9 @@ export function AppScreen({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const gutter = resolveGutter(width);
-  const maxW = resolveContentMaxWidth(maxWidth);
+  const maxW = columnVariant
+    ? resolveWebColumnMaxWidth(columnVariant)
+    : resolveContentMaxWidth(maxWidth);
 
   const paddingBottom =
     SCREEN_PADDING_BOTTOM +

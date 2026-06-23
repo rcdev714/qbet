@@ -254,6 +254,12 @@ export default function AdminDashboardScreen() {
                     theme={theme}
                   />
                 </View>
+                <TouchableOpacity
+                  style={[styles.socialLink, { borderColor: theme.border }]}
+                  onPress={() => router.push("/admin/social" as any)}
+                >
+                  <AppText variant="bodySm" color="primary">{t("openSocialGraph")}</AppText>
+                </TouchableOpacity>
               </View>
 
               <AdminChartPanel
@@ -298,7 +304,7 @@ export default function AdminDashboardScreen() {
                     radius: 4,
                     pointerLabelComponent: (items: any[]) => (
                       <View style={[styles.tooltip, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                        <AppText variant="caption" style={{ fontWeight: "700" }}>
+                        <AppText variant="caption">
                           {items[0]?.value} {t("usersLabel")}
                         </AppText>
                       </View>
@@ -404,8 +410,8 @@ export default function AdminDashboardScreen() {
                       ]}
                     >
                       <View style={{ flex: 1 }}>
-                        <AppText variant="body" style={{ fontWeight: "700" }}>{alert.username}</AppText>
-                        <AppText variant="bodySm" color="destructive" style={{ marginTop: 2, fontWeight: "600" }}>
+                        <AppText variant="body">{alert.username}</AppText>
+                        <AppText variant="bodySm" color="destructive" style={{ marginTop: 2 }}>
                           {alert.reason}
                         </AppText>
                         <AppText variant="bodySm" color="secondary" style={{ marginTop: 2 }}>
@@ -418,7 +424,7 @@ export default function AdminDashboardScreen() {
                           { backgroundColor: alert.severity === "high" ? "#FF3B30" : "#FF9500" },
                         ]}
                       >
-                        <AppText variant="caption" color="onPrimary" style={{ fontWeight: "800" }}>
+                        <AppText variant="label" color="onPrimary">
                           {alert.severity.toUpperCase()}
                         </AppText>
                       </View>
@@ -455,7 +461,7 @@ function KPICard({
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.cardHeader}>
-        <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <AppText variant="label" color="secondary" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
           {title}
         </AppText>
         <Ionicons name={icon} size={20} color={iconColor} />
@@ -493,12 +499,12 @@ function QuickLinkCard({
         <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
       <View style={{ flex: 1 }}>
-        <AppText variant="bodySm" style={{ fontWeight: "700" }}>{title}</AppText>
+        <AppText variant="bodySm">{title}</AppText>
         <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>{subtitle}</AppText>
       </View>
       {badge != null && badge > 0 ? (
         <View style={[styles.linkBadge, { backgroundColor: theme.error }]}>
-          <AppText variant="caption" color="onPrimary" style={{ fontWeight: "800" }}>{badge}</AppText>
+          <AppText variant="label" color="onPrimary">{badge}</AppText>
         </View>
       ) : (
         <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
@@ -518,7 +524,7 @@ function StatItem({
 }) {
   return (
     <View style={styles.statItem}>
-      <AppText variant="title2" style={{ fontWeight: "700" }}>{value}</AppText>
+      <AppText variant="title2">{value}</AppText>
       <AppText variant="caption" color="secondary" style={{ marginTop: 4, textAlign: "center" }}>{label}</AppText>
     </View>
   );
@@ -582,6 +588,13 @@ const styles = StyleSheet.create({
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
   statsRow: { flexDirection: "row", justifyContent: "space-around" },
+  socialLink: {
+    marginTop: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
   statItem: { alignItems: "center", flex: 1 },
   alertRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12 },
   severityBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 },

@@ -28,12 +28,15 @@ import {
     View,
 } from "react-native";
 
+import { mentionService } from "@/services/mention.service";
 import { shareService } from "@/services/share.service";
+import type { MentionEmbedPayload } from "@/types/mention";
 import { useTranslation } from "react-i18next";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { ActiveBetsTab } from "../components/group-chat/ActiveBetsTab";
 import { ChatTab } from "../components/group-chat/ChatTab";
+import { GroupAttachSheet } from "../components/group-chat/GroupAttachSheet";
 import type { GroupTab } from "../components/group-chat/GroupTabBar";
 import { GroupTabBar } from "../components/group-chat/GroupTabBar";
 import { HistoryTab } from "../components/group-chat/HistoryTab";
@@ -260,9 +263,24 @@ export function GroupScreen() {
     if (!inputText.trim() || !user) return;
     const text = inputText.trim();
     setInputText("");
-    Keyboard.dismiss();
+    if (Platform.OS !== "web") {
+      Keyboard.dismiss();
+    }
     const { error } = await sendMessage({ user_id: user.id, content: text, message_type: "text" });
     if (error) { Alert.alert("Message wasn't sent", "Your text is back in the composer. Check your connection and try again."); setInputText(text); }
+  };
+
+  const handleSendMention = async (payload: MentionEmbedPayload) => {
+    if (!user || !groupId) return;
+    if (Platform.OS !== "web") {
+      Keyboard.dismiss();
+    }
+    const insert = mentionService.buildGroupMessageInsert(groupId, user.id, payload);
+    const { group_id: _groupId, ...messageData } = insert;
+    const { error } = await sendMessage(messageData);
+    if (error) {
+      Alert.alert("Couldn't share", error.message);
+    }
   };
 
   const handleAttachPress = () => {
@@ -664,6 +682,8 @@ export function GroupScreen() {
           onSendMessage={handleSendMessage}
           onAttachPress={handleAttachPress}
           isUploadingImage={isUploadingImage}
+          groupId={activeGroupId ?? ""}
+          onSendMention={handleSendMention}
           onBet={handleOpenBet}
           onResolve={handleResolveMarket}
         />
@@ -718,57 +738,27 @@ export function GroupScreen() {
         shareCode={shareCode}
       />
 
-      {/* ── Attach Menu Modal (Web/General) ─────────────────────────── */}
-      <Modal visible={isAttachMenuVisible} transparent animationType="fade" onRequestClose={() => setAttachMenuVisible(false)}>
-        <TouchableOpacity 
-          style={[styles.modalOverlay, { justifyContent: "center", alignItems: "center" }]} 
-          activeOpacity={1} 
-          onPress={() => setAttachMenuVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()} style={[styles.attachMenuContent, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.attachMenuTitle, { color: theme.textSecondary }]}>Group actions</Text>
-            
-            <TouchableOpacity 
-               style={[styles.attachMenuItem, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-               onPress={handleCopyInviteCode}
-            >
-              <IconSymbol name="list.bullet" size={20} color={theme.primary} />
-              <Text style={[styles.attachMenuItemText, { color: theme.text }]}>Invite</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-               style={[styles.attachMenuItem, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-               onPress={() => { setAttachMenuVisible(false); pickChatImage(); }}
-            >
-              <IconSymbol name="photo.fill" size={20} color={theme.primary} />
-              <Text style={[styles.attachMenuItemText, { color: theme.text }]}>Send image</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-               style={[styles.attachMenuItem, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-               onPress={() => { setAttachMenuVisible(false); setCreateModalVisible(true); }}
-            >
-              <IconSymbol name="plus.circle.fill" size={20} color={theme.primary} />
-              <Text style={[styles.attachMenuItemText, { color: theme.text }]}>Create prediction</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-               style={[styles.attachMenuItem, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-               onPress={() => { setAttachMenuVisible(false); setPublicBetPickerVisible(true); }}
-            >
-              <IconSymbol name="arrow.up.right.circle.fill" size={20} color={theme.primary} />
-              <Text style={[styles.attachMenuItemText, { color: theme.text }]}>Share public bet</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-               style={[styles.attachMenuItem, { borderBottomWidth: 0, marginTop: 8, justifyContent: 'center' }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-               onPress={() => setAttachMenuVisible(false)}
-            >
-              <Text style={[styles.attachMenuItemText, { color: '#FF3B30', fontWeight: '600', marginLeft: 0 }]}>Cancel</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      {/* ── Attach Menu (Web bottom sheet) ──────────────────────────── */}
+      <GroupAttachSheet
+        visible={isAttachMenuVisible}
+        onClose={() => setAttachMenuVisible(false)}
+        onInvite={() => {
+          setAttachMenuVisible(false);
+          void handleCopyInviteCode();
+        }}
+        onSendImage={() => {
+          setAttachMenuVisible(false);
+          pickChatImage();
+        }}
+        onCreatePrediction={() => {
+          setAttachMenuVisible(false);
+          setCreateModalVisible(true);
+        }}
+        onSharePublicBet={() => {
+          setAttachMenuVisible(false);
+          setPublicBetPickerVisible(true);
+        }}
+      />
 
       {/* ── Create Prediction Modal ────────────────────────────────── */}
       <Modal visible={isCreateModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
@@ -912,7 +902,7 @@ export function GroupScreen() {
                     ) : (
                       <>
                         <TouchableOpacity style={[styles.dateButton, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]} onPress={() => setShowDatePicker(true)}>
-                          <Text style={[styles.dateText, { color: theme.text, fontWeight: "600" }]}>{closesAt.toLocaleDateString()} at {closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
+                          <Text style={[styles.dateText, { color: theme.text, fontWeight: '400' }]}>{closesAt.toLocaleDateString()} at {closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
                           <IconSymbol name="calendar" size={20} color={theme.primary} />
                         </TouchableOpacity>
                         {showDatePicker && (
@@ -925,9 +915,9 @@ export function GroupScreen() {
                   <View style={styles.modalSection}>
                     <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Initial Prediction Amount (Optional)</AppText>
                     <View style={[styles.initialBetInputRow, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: theme.border }]}>
-                      <Text style={[styles.currencyPrefix, { color: theme.text, fontSize: 18, fontWeight: "600" }]}>$</Text>
+                      <Text style={[styles.currencyPrefix, { color: theme.text, fontSize: 18, fontWeight: '400' }]}>$</Text>
                       <TextInput
-                        style={[styles.initialBetInput, { color: theme.text, flex: 1, marginLeft: 8, fontSize: 18, fontWeight: "600" }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
+                        style={[styles.initialBetInput, { color: theme.text, flex: 1, marginLeft: 8, fontSize: 18, fontWeight: '400' }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
                         placeholder="0.00" placeholderTextColor={theme.textSecondary}
                         value={initialBetAmount} onChangeText={setInitialBetAmount} keyboardType="numeric"
                       />
@@ -941,7 +931,7 @@ export function GroupScreen() {
                     style={[styles.createButton, { backgroundColor: theme.primary, height: 56, borderRadius: 16, justifyContent: "center", alignItems: "center", marginTop: 10 }, createLoading && { opacity: 0.5 }]}
                     onPress={handleCreateMarket} disabled={createLoading}
                   >
-                    {createLoading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.createButtonText, { color: theme.onPrimary, fontSize: 17, fontWeight: "600" }]}>Launch Now</Text>}
+                    {createLoading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.createButtonText, { color: theme.onPrimary, fontSize: 17, fontWeight: '400' }]}>Launch Now</Text>}
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -986,7 +976,7 @@ export function GroupScreen() {
               style={[styles.modalContent, { flex: 1, maxHeight: "90%", backgroundColor: theme.surface, borderColor: theme.border }]}
             >
               <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-                <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: "600", color: theme.text }}>{group?.name}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '400', color: theme.text }}>{group?.name}</Text>
                 <TouchableOpacity onPress={() => setGroupInfoVisible(true)}>
                    <IconSymbol name="info.circle" size={24} color={theme.primary} />
                 </TouchableOpacity>
@@ -1012,7 +1002,7 @@ export function GroupScreen() {
                         )}
                         {isAdmin && !isUploadingGroupAvatar && (
                           <View style={[styles.uploadProgressOverlay, { backgroundColor: "transparent" }]}>
-                            <Text style={{ color: "#fff", fontSize: 10, fontWeight: "600", textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 2 }}>EDIT</Text>
+                            <Text style={{ color: "#fff", fontSize: 10, fontWeight: '400', textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 2 }}>EDIT</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1187,7 +1177,7 @@ export function GroupScreen() {
                   <Text style={[styles.betQuestion, { color: theme.text }]}>{selectedMarket.question}</Text>
                   <View style={styles.betMeta}>
                     <Text style={[styles.betBalance, { color: theme.textSecondary }]}>Balance: {formatCurrency(balance)}</Text>
-                    <Text style={[styles.betSide, { color: selectedSide === "yes" ? theme.primary : "#EF4444", fontWeight: "600" }]}>
+                    <Text style={[styles.betSide, { color: selectedSide === "yes" ? theme.primary : "#EF4444", fontWeight: '400' }]}>
                       Predicting: {selectedSide?.toUpperCase()}
                     </Text>
                   </View>
@@ -1244,14 +1234,14 @@ export function GroupScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F2F2F7" },
   centeredFallback: { justifyContent: "center", alignItems: "center", padding: 24 },
-  fallbackTitle: { fontSize: 20, fontWeight: "600", marginBottom: 8, textAlign: "center" },
+  fallbackTitle: { fontSize: 20, fontWeight: '400', marginBottom: 8, textAlign: "center" },
   fallbackBody: { fontSize: 15, textAlign: "center", marginBottom: 20, lineHeight: 22 },
   fallbackButton: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
-  fallbackButtonText: { fontSize: 16, fontWeight: "600" },
+  fallbackButtonText: { fontSize: 16, fontWeight: '400' },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   backButton: { padding: 8, marginLeft: -8 },
   backButtonText: { fontSize: 17, color: Brand.primary, marginLeft: 4 },
-  headerTitle: { fontSize: 17, fontWeight: "600" },
+  headerTitle: { fontSize: 17, fontWeight: '400' },
   headerSubtitle: { fontSize: 12, color: "#8E8E93" },
   headerInfo: { alignItems: "center", flexDirection: "row" },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -1271,7 +1261,7 @@ const styles = StyleSheet.create({
   headerCreateActionText: {
     color: "#fff",
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   headerInfoAction: {
     width: 38,
@@ -1281,10 +1271,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerActionText: { fontSize: 17, color: Brand.primary, fontWeight: "600" },
+  headerActionText: { fontSize: 17, color: Brand.primary, fontWeight: '400' },
   groupHeaderAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   groupHeaderAvatarPlaceholder: { width: 36, height: 36, borderRadius: 18, marginRight: 10, alignItems: "center", justifyContent: "center" },
-  groupHeaderAvatarInitials: { fontSize: 14, fontWeight: "600" },
+  groupHeaderAvatarInitials: { fontSize: 14, fontWeight: '400' },
   statusBanner: {
     marginHorizontal: 14,
     marginBottom: 8,
@@ -1299,24 +1289,24 @@ const styles = StyleSheet.create({
   statusBannerText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   // Modals
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalKeyboardAvoiding: { justifyContent: "flex-end" },
   modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: StyleSheet.hairlineWidth },
-  modalTitle: { fontSize: 18, fontWeight: "600" },
+  modalTitle: { fontSize: 18, fontWeight: '400' },
   modalCloseButton: { padding: 4 },
   closeModalText: { fontSize: 17, color: Brand.primary },
   modalSection: { gap: 8 },
-  modalSectionTitle: { fontSize: 13, fontWeight: "600", color: "#8E8E93", textTransform: "uppercase", letterSpacing: 0.3 },
+  modalSectionTitle: { fontSize: 13, fontWeight: '400', color: "#8E8E93", textTransform: "uppercase", letterSpacing: 0.3 },
   modalInput: { fontSize: 16, padding: 16, borderRadius: 12 },
   optionInputRow: {},
   optionCheck: {},
   optionInput: { fontSize: 16 },
   addOptionBtn: {},
-  addOptionBtnText: { fontSize: 15, fontWeight: "600" },
+  addOptionBtnText: { fontSize: 15, fontWeight: '400' },
   firstBetGuideCard: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
@@ -1337,12 +1327,12 @@ const styles = StyleSheet.create({
   },
   firstBetGuideLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.8,
   },
   firstBetGuideTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: -0.3,
   },
   firstBetGuideBody: {
@@ -1352,37 +1342,37 @@ const styles = StyleSheet.create({
   dateButton: {},
   dateText: { fontSize: 16 },
   initialBetInputRow: {},
-  currencyPrefix: { fontSize: 16, fontWeight: "600" },
+  currencyPrefix: { fontSize: 16, fontWeight: '400' },
   initialBetInput: { fontSize: 16 },
   betWarningText: { fontSize: 12 },
   createButton: {},
-  createButtonText: { fontSize: 17, fontWeight: "600" },
+  createButtonText: { fontSize: 17, fontWeight: '400' },
   imagePickerButton: { justifyContent: "center", alignItems: "center", overflow: "hidden" },
   selectedImage: { width: "100%", height: "100%", borderRadius: 20 },
   imagePickerPlaceholder: { justifyContent: "center", alignItems: "center" },
-  imagePickerText: { fontSize: 15, fontWeight: "600" },
+  imagePickerText: { fontSize: 15, fontWeight: '400' },
 
   // Group Info Modal
   modalGroupAvatarContainer: { alignItems: "center", marginVertical: 20 },
   modalGroupAvatar: { width: 100, height: 100, borderRadius: 50 },
   modalGroupAvatarPlaceholder: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center" },
-  modalGroupAvatarInitials: { fontSize: 32, fontWeight: "600" },
+  modalGroupAvatarInitials: { fontSize: 32, fontWeight: '400' },
   uploadProgressOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 50, alignItems: "center", justifyContent: "center" },
   shareCodeSection: { padding: 20, borderRadius: 16, margin: 20, marginTop: 0 },
   shareCodeLabel: { fontSize: 13, color: "#8E8E93", marginBottom: 8 },
   shareCodeBox: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, alignItems: "center" },
-  shareCodeText: { fontSize: 20, fontWeight: "600", letterSpacing: 2 },
+  shareCodeText: { fontSize: 20, fontWeight: '400', letterSpacing: 2 },
   descriptionText: { fontSize: 15, color: "#8E8E93", lineHeight: 22 },
   descriptionInfoSection: { paddingHorizontal: 20, gap: 12 },
   descriptionEditBox: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
   descriptionInput: { fontSize: 15, minHeight: 60 },
   saveDescriptionBtn: { marginTop: 8, alignSelf: "flex-end" },
-  saveDescriptionBtnText: { fontSize: 15, color: Brand.primary, fontWeight: "600" },
+  saveDescriptionBtnText: { fontSize: 15, color: Brand.primary, fontWeight: '400' },
   predictionsSection: { padding: 20, gap: 8 },
   accordionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  accordionTitle: { fontSize: 16, fontWeight: "600" },
+  accordionTitle: { fontSize: 16, fontWeight: '400' },
   accordionRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  accordionCount: { fontSize: 14, fontWeight: "600", color: Brand.primary },
+  accordionCount: { fontSize: 14, fontWeight: '400', color: Brand.primary },
   accordionChevron: { fontSize: 14, color: Brand.primary },
   accordionBody: { paddingVertical: 8, gap: 8 },
   accordionEmpty: { fontSize: 14, color: "#8E8E93", textAlign: "center", paddingVertical: 12 },
@@ -1390,7 +1380,7 @@ const styles = StyleSheet.create({
   marketRowLeft: { flex: 1, marginRight: 12 },
   marketRowTitle: { fontSize: 15, fontWeight: "400" },
   marketRowMeta: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
-  marketStatusPill: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: "hidden" },
+  marketStatusPill: { fontSize: 10, fontWeight: '400', textTransform: "uppercase", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: "hidden" },
   marketStatusOpen: { color: Brand.primary, backgroundColor: Brand.primarySoft },
   marketStatusClosed: { color: "#8E8E93", backgroundColor: "#F2F2F7" },
 
@@ -1400,61 +1390,28 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 16, fontWeight: "400" },
   memberRole: { fontSize: 13, color: "#8E8E93" },
   promoteBtn: { padding: 8 },
-  promoteBtnText: { fontSize: 14, color: Brand.primary, fontWeight: "600" },
+  promoteBtnText: { fontSize: 14, color: Brand.primary, fontWeight: '400' },
   removeMemberBtn: { padding: 8 },
-  removeMemberBtnText: { fontSize: 14, color: "#FF3B30", fontWeight: "600" },
+  removeMemberBtnText: { fontSize: 14, color: "#FF3B30", fontWeight: '400' },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: "#C6C6C8", marginVertical: 8 },
   adminDangerZone: { marginTop: 32, marginBottom: 40, paddingHorizontal: 20 },
   deleteGroupBtnFlat: { alignItems: "center", padding: 16 },
-  deleteGroupBtnTextFlat: { color: "#FF3B30", fontSize: 16, fontWeight: "600" },
+  deleteGroupBtnTextFlat: { color: "#FF3B30", fontSize: 16, fontWeight: '400' },
 
   // Bet Modal
   betContext: { padding: 20, backgroundColor: "#F2F2F7", marginBottom: 10 },
-  betQuestion: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  betQuestion: { fontSize: 18, fontWeight: '400', marginBottom: 8 },
   betMeta: { flexDirection: "row", justifyContent: "space-between" },
   betBalance: { fontSize: 14, color: "#8E8E93" },
   betSide: { fontSize: 14 },
   betInputWrapper: { flexDirection: "row", alignItems: "center", marginHorizontal: 20, backgroundColor: "#F2F2F7", borderRadius: 12, padding: 16, marginVertical: 20 },
-  betInput: { flex: 1, fontSize: 18, fontWeight: "600", marginLeft: 8 },
+  betInput: { flex: 1, fontSize: 18, fontWeight: '400', marginLeft: 8 },
   betButton: { margin: 20, backgroundColor: Brand.primary, padding: 16, borderRadius: 16, alignItems: "center" },
-  betButtonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
+  betButtonText: { color: "#fff", fontSize: 17, fontWeight: '400' },
   quickAmounts: { flexDirection: "row", gap: 8, marginHorizontal: 20, marginBottom: 16 },
   quickChip: { flex: 1, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(142, 142, 147, 0.2)" },
-  quickChipText: { fontSize: 13, fontWeight: "600" },
+  quickChipText: { fontSize: 13, fontWeight: '400' },
   payoutPreview: { marginHorizontal: 20, marginBottom: 16, padding: 12, borderRadius: 12, backgroundColor: "rgba(0, 122, 255, 0.05)", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   payoutLabel: { fontSize: 14, fontWeight: "400" },
-  payoutValue: { fontSize: 16, fontWeight: "600" },
-  attachMenuContent: {
-    width: 280,
-    borderRadius: 24,
-    padding: 16,
-    alignItems: 'stretch',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-    alignSelf: 'center', // Center it in the overlay
-  },
-  attachMenuTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    opacity: 0.6,
-  },
-  attachMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  attachMenuItemText: {
-    fontSize: 17,
-    fontWeight: '400',
-    marginLeft: 12,
-  },
+  payoutValue: { fontSize: 16, fontWeight: '400' },
 });

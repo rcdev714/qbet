@@ -1,3 +1,4 @@
+import { ModalHeader } from "@/components/ui/ModalHeader";
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
@@ -7,7 +8,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -48,12 +48,7 @@ export function AuraScoreModal({ isVisible, onClose, winRate }: AuraScoreModalPr
       <BlurView intensity={20} style={StyleSheet.absoluteFill} tint={isDark ? 'dark' : 'light'}>
         <SafeAreaView style={styles.safeArea}>
           <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={styles.header}>
-              <Text style={[styles.headerTitle, { color: theme.text }]}>Aura Score</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={theme.text} />
-              </TouchableOpacity>
-            </View>
+            <ModalHeader title="Aura Score" onClose={onClose} closeLabel="Close" />
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               <View style={styles.auraContainer}>
@@ -140,7 +135,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: -0.5,
   },
   closeButton: {
@@ -170,13 +165,13 @@ const styles = StyleSheet.create({
   },
   levelName: {
     fontSize: 32,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: -1,
     marginBottom: 4,
   },
   winRateText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 12,
   },
   description: {
@@ -195,12 +190,12 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     textTransform: 'uppercase',
   },
   nextLevelLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   progressBarBg: {
     height: 6,
@@ -216,7 +211,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 16,
   },
   levelRow: {
@@ -232,7 +227,7 @@ const styles = StyleSheet.create({
   },
   levelRowName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   levelRange: {
     fontSize: 12,

@@ -79,7 +79,7 @@ function LinkRow({
 }) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.linkRow}>
-      <Text style={{ color: theme.primary, fontWeight: "600" }}>{label}</Text>
+      <Text style={{ color: theme.primary, fontWeight: '400' }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -87,7 +87,7 @@ function LinkRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 40, maxWidth: 720, alignSelf: "center", width: "100%" },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: "400", marginBottom: 8, letterSpacing: -0.3 },
   lead: { fontSize: 16, lineHeight: 24, marginBottom: 20 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
-  cardTitle: { fontSize: 17, fontWeight: "700" },
+  cardTitle: { fontSize: 18, fontWeight: "400", letterSpacing: -0.2 },
   cardBody: { fontSize: 15, lineHeight: 22 },
   links: { marginTop: 12, gap: 10 },
   linkRow: { paddingVertical: 6 },

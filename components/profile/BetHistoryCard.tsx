@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { formatCurrency } from "../../lib/parimutuel";
 import { BetWithDetails } from "../../types/market";
@@ -28,17 +28,25 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
      }
   }
 
+  const isWeb = Platform.OS === "web";
+
   const content = (
     <>
-      <View style={styles.header}>
-        <Text style={[styles.marketQuestion, { color: theme.text }]} numberOfLines={2}>
+      <View style={[styles.header, isWeb && styles.headerWeb]}>
+        <Text style={[styles.marketQuestion, { color: theme.text }]} numberOfLines={isWeb ? 1 : 2}>
           {bet.markets?.question || "Unknown Market"}
         </Text>
-        <Text style={[styles.date, { color: theme.textSecondary }]}>
-          {new Date(bet.placed_at).toLocaleDateString()}
-        </Text>
+        <View style={isWeb ? styles.webRight : undefined}>
+          <Text style={[styles.amount, { color: theme.text }]}>
+            {formatCurrency(bet.amount)}
+          </Text>
+          <Text style={[styles.status, { color: statusColor }]}>
+            {statusText}
+          </Text>
+        </View>
       </View>
 
+      {!isWeb ? (
       <View style={styles.detailsRow}>
         <View>
           <Text style={[styles.label, { color: theme.textSecondary }]}>
@@ -57,6 +65,11 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
           </Text>
         </View>
       </View>
+      ) : (
+        <Text style={[styles.webMeta, { color: theme.textSecondary }]} numberOfLines={1}>
+          {bet.options?.label || "Unknown Option"} · {new Date(bet.placed_at).toLocaleDateString()}
+        </Text>
+      )}
 
       {isLiveBet ? (
         <Text style={[styles.contractHint, { color: theme.primary }]}>
@@ -68,7 +81,7 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
 
   if (!isLiveBet) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.container, isWeb && styles.containerWeb, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {content}
       </View>
     );
@@ -76,7 +89,7 @@ export function BetHistoryCard({ bet }: BetHistoryCardProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      style={[styles.container, isWeb && styles.containerWeb, { backgroundColor: theme.surface, borderColor: theme.border }]}
       onPress={() => router.push(`/contract/${bet.id}` as any)}
       accessibilityRole="button"
       accessibilityLabel="Open wager agreement"
@@ -91,14 +104,32 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  containerWeb: {
+    paddingVertical: 12,
+    paddingHorizontal: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderWidth: 0,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
   },
+  headerWeb: {
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 12,
+  },
+  webRight: {
+    alignItems: "flex-end",
+    minWidth: 72,
+  },
+  webMeta: {
+    fontSize: 12,
+  },
   marketQuestion: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     flex: 1,
     paddingRight: 16,
   },
@@ -114,24 +145,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textTransform: "uppercase",
     marginBottom: 2,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   option: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   amount: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 2,
   },
   status: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   contractHint: {
     marginTop: 10,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

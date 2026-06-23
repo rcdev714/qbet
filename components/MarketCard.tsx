@@ -204,7 +204,7 @@ export function MarketCard({
               >
                 <View style={[styles.optionProgress, { width: `${percent}%`, backgroundColor: isWinner ? theme.primary : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') }]} />
                 <View style={styles.optionContent}>
-                  <Text style={[styles.optionLabel, { color: theme.text }, isWinner && { fontWeight: '600' }]}>
+                  <Text style={[styles.optionLabel, { color: theme.text }, isWinner && { fontWeight: '400' }]}>
                     {option.label}
                   </Text>
                   <View style={styles.optionMetrics}>
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   metaRow: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   metaDot: {
     width: 3,
@@ -306,11 +306,11 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   question: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
     lineHeight: 26,
     marginBottom: 14,
     letterSpacing: -0.5,
@@ -363,12 +363,12 @@ const styles = StyleSheet.create({
   },
   predictLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.8,
   },
   predictPrice: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   optionWrapper: {
     width: '100%',
@@ -406,11 +406,11 @@ const styles = StyleSheet.create({
   },
   optionCents: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   optionPercent: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     minWidth: 40,
     textAlign: 'right',
   },
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   adminActionText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   footer: {
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   volumeValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   chartToggle: {
     flexDirection: 'row',
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   chartLink: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   likedText: {
     color: "#FF2D55",

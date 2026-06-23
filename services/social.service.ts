@@ -1,5 +1,6 @@
 import { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { mapDiscoverableUsers, mapSuggestedUsers, parseToggleFollowResponse, type DiscoverableUser } from "./social.parsers";
 
 export interface UserProfile extends User {
     username?: string;
@@ -12,6 +13,45 @@ export interface UserProfile extends User {
         best_streak: number;
     };
     is_following?: boolean;
+}
+
+export type { DiscoverableUser } from "./social.parsers";
+
+export interface FollowingActivity {
+    activity_id: string;
+    user_id: string;
+    username: string;
+    avatar_url: string;
+    activity_type: string;
+    market_id: string | null;
+    market_question: string | null;
+    market_status?: string | null;
+    market_yes_pct?: number | null;
+    side: string | null;
+    bet_amount?: number | null;
+    profit_loss?: number | null;
+    group_id?: string | null;
+    group_name?: string | null;
+    comment_preview?: string | null;
+    outcome?: string | null;
+    is_member?: boolean;
+    actor_total_bets?: number | null;
+    actor_win_rate?: number | null;
+    actor_current_streak?: number | null;
+    created_at: string;
+}
+
+export interface MarketSocialProofBettor {
+    user_id: string;
+    username: string;
+    avatar_url: string | null;
+    side: string;
+    amount: number;
+}
+
+export interface MarketSocialProof {
+    followed_bettors: MarketSocialProofBettor[];
+    total_followed: number;
 }
 
 export const socialService = {
@@ -27,8 +67,7 @@ export const socialService = {
 
             if (error) throw error;
 
-            // The RPC returns { action: 'followed' | 'unfollowed' }
-            const isFollowing = (data as any)?.action === "followed";
+            const isFollowing = parseToggleFollowResponse(data);
             return { isFollowing, error: null };
         } catch (error) {
             console.error("Error toggling follow:", error);
@@ -70,9 +109,9 @@ export const socialService = {
     ): Promise<{ profile: UserProfile | null; error: Error | null }> {
         try {
             // 1. Get user details
-            const { data: userData, error: userError } = await supabase
+            const { data: userData, error: userError } = await (supabase as any)
                 .from("users")
-                .select("id, username, avatar_url")
+                .select("id, username, avatar_url, bio")
                 .eq("id", targetUserId)
                 .single();
 
@@ -206,6 +245,118 @@ export const socialService = {
         } catch (error) {
             console.error("Error getting followers:", error);
             return [];
+        }
+    },
+
+    async getFollowing(
+        userId: string,
+    ): Promise<
+        {
+            id: string;
+            username: string;
+            avatar_url: string;
+            followed_at: string;
+        }[]
+    > {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_following", {
+                p_user_id: userId,
+            });
+
+            if (error) throw error;
+
+            return ((data ?? []) as any[]).map((row: any) => ({
+                id: row.id,
+                username: row.username,
+                avatar_url: row.avatar_url,
+                followed_at: row.followed_at,
+            }));
+        } catch (error) {
+            console.error("Error getting following:", error);
+            return [];
+        }
+    },
+
+    async getFollowingActivity(limit = 30, offset = 0): Promise<FollowingActivity[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_following_activity_v2", {
+                p_limit: limit,
+                p_offset: offset,
+            });
+            if (error) {
+                const { data: fallback, error: fallbackError } = await (supabase as any).rpc(
+                    "get_following_activity",
+                    { p_limit: limit },
+                );
+                if (fallbackError) throw fallbackError;
+                return (fallback ?? []) as FollowingActivity[];
+            }
+            return (data ?? []) as FollowingActivity[];
+        } catch (error) {
+            console.error("Error getting following activity:", error);
+            return [];
+        }
+    },
+
+    async listDiscoverableUsers(limit = 30, offset = 0): Promise<DiscoverableUser[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc("list_discoverable_users", {
+                p_limit: limit,
+                p_offset: offset,
+            });
+            if (error) throw error;
+            return mapDiscoverableUsers((data ?? []) as Record<string, unknown>[]);
+        } catch (error) {
+            console.error("Error listing discoverable users:", error);
+            return [];
+        }
+    },
+
+    async getSuggestedUsers(limit = 10): Promise<DiscoverableUser[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_suggested_users", {
+                p_limit: limit,
+            });
+            if (error) throw error;
+            return mapSuggestedUsers((data ?? []) as Record<string, unknown>[]);
+        } catch (error) {
+            console.error("Error getting suggested users:", error);
+            return [];
+        }
+    },
+
+    async getMarketSocialProof(marketId: string): Promise<MarketSocialProof> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_market_social_proof", {
+                p_market_id: marketId,
+            });
+            if (error) throw error;
+            const parsed = (data ?? {}) as Record<string, unknown>;
+            return {
+                followed_bettors: ((parsed.followed_bettors as MarketSocialProofBettor[]) ?? []).map((row) => ({
+                    user_id: String(row.user_id),
+                    username: String(row.username),
+                    avatar_url: (row.avatar_url as string | null) ?? null,
+                    side: String(row.side),
+                    amount: Number(row.amount ?? 0),
+                })),
+                total_followed: Number(parsed.total_followed ?? 0),
+            };
+        } catch (error) {
+            console.error("Error getting market social proof:", error);
+            return { followed_bettors: [], total_followed: 0 };
+        }
+    },
+
+    async findOrCreateDmGroup(otherUserId: string): Promise<{ groupId: string | null; error: Error | null }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("find_or_create_dm_group", {
+                p_other_user_id: otherUserId,
+            });
+            if (error) throw error;
+            return { groupId: data as string, error: null };
+        } catch (error) {
+            return { groupId: null, error: error as Error };
         }
     },
 };

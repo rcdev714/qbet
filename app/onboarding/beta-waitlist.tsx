@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
-  title: { fontSize: 22, fontWeight: "600", color: Brand.deep, textAlign: "center" },
+  title: { fontSize: 22, fontWeight: '400', color: Brand.deep, textAlign: "center" },
   body: { fontSize: 15, lineHeight: 22, color: Brand.mutedText, textAlign: "center" },
   statusBox: {
     gap: 6,
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     color: Brand.deep,
     textAlign: "center",
   },
   approvedTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#059669",
     textAlign: "center",
   },
@@ -190,5 +190,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  link: { marginTop: 8, textAlign: "center", color: Brand.primary, fontWeight: "600" },
+  link: { marginTop: 8, textAlign: "center", color: Brand.primary, fontWeight: '400' },
 });

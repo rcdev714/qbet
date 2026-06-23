@@ -102,15 +102,15 @@ export default function AdminReportsScreen() {
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <AppText variant="bodySm" style={{ fontWeight: "700", textTransform: "capitalize" }}>
+            <AppText variant="bodySm" style={{ textTransform: "capitalize" }}>
               {targetLabel(item.targetType)}
             </AppText>
-            <AppText variant="bodySm" style={{ marginTop: 2, fontWeight: "600", color: severityColor }}>
+            <AppText variant="bodySm" style={{ marginTop: 2, fontWeight: '400', color: severityColor }}>
               {item.reason}
             </AppText>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: `${severityColor}22` }]}>
-            <AppText variant="caption" style={{ color: severityColor, fontWeight: "800", textTransform: "uppercase" }}>
+            <AppText variant="label" style={{ color: severityColor, textTransform: "uppercase" }}>
               {t(`reportStatus.${item.status}`)}
             </AppText>
           </View>
@@ -256,7 +256,7 @@ function MetaItem({
 }) {
   return (
     <View style={styles.metaItem}>
-      <AppText variant="caption" color="secondary" style={{ fontWeight: "700", textTransform: "uppercase" }}>
+      <AppText variant="label" color="secondary" style={{ textTransform: "uppercase" }}>
         {label}
       </AppText>
       <AppText variant="bodySm" style={{ marginTop: 2, fontWeight: "500" }} numberOfLines={1}>
@@ -298,7 +298,7 @@ function ActionButton({
         Platform.OS === "web" && ({ cursor: disabled ? "default" : "pointer" } as any),
       ]}
     >
-      <AppText variant="caption" style={{ color, fontWeight: "700" }}>{label}</AppText>
+      <AppText variant="label" style={{ color }}>{label}</AppText>
     </TouchableOpacity>
   );
 }

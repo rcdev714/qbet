@@ -1,4 +1,5 @@
 import { AppButton, AppInput, AppText, ErrorBanner } from "@/components/ui";
+import { DESKTOP_BREAKPOINT } from "@/constants/layout";
 import { Brand } from "@/constants/theme";
 import { addAppBreadcrumb, captureUiError, showAppAlertRaw } from "@/lib/ui/feedback";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,11 +9,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { MarketChatTab } from "../components/MarketChatTab";
 import { MarketProbabilityChart } from "../components/MarketProbabilityChart";
+import { MarketTradePanel } from "../components/markets/MarketTradePanel";
 import { SEO } from "../components/SEO";
 import { SocialShareMarketCard } from "../components/SocialShareMarketCard";
 import { useAppLocale } from "../contexts/LocaleContext";
@@ -39,6 +41,8 @@ const contentWidth = Platform.OS === 'web' ? Math.min(windowWidth, MAX_WEB_WIDTH
 export function MarketScreen() {
   const router = useRouter();
   const { navigate } = usePremiumNavigation();
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === "web" && windowWidth >= DESKTOP_BREAKPOINT;
   const params = useLocalSearchParams<{ id: string; optionId?: string; previewAmount?: string; side?: string; tab?: string }>();
   const marketId = getParamString(params.id) ?? null;
   const { market, options, userBets, loading, refresh } = useMarket(marketId);
@@ -146,7 +150,7 @@ export function MarketScreen() {
           This market could not be found. Go back and choose another prediction.
         </Text>
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.back()}>
-          <Text style={{ color: theme.primary, fontWeight: "600" }}>Go back</Text>
+          <Text style={{ color: theme.primary, fontWeight: '400' }}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -273,7 +277,8 @@ export function MarketScreen() {
         locale={locale === "es" ? "es_ES" : "en_US"}
       />
       
-      {/* Background Image Header */}
+      {/* Background Image Header — hidden on desktop web (Polymarket-style text-first) */}
+      {!isDesktopWeb ? (
       <View style={styles.headerImageContainer}>
         {market.image_url ? (
           <Image
@@ -291,6 +296,7 @@ export function MarketScreen() {
           style={styles.headerGradient}
         />
       </View>
+      ) : null}
 
       <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -300,8 +306,8 @@ export function MarketScreen() {
       >
         {/* Global Header with Mode Toggle */}
         <GlobalHeader
-          transparent
-          ignoreTopInset
+          transparent={!isDesktopWeb}
+          ignoreTopInset={!isDesktopWeb}
           left={
             <TouchableOpacity 
               onPress={() => router.back()} 
@@ -349,7 +355,7 @@ export function MarketScreen() {
           { 
             backgroundColor: theme.surface, 
             borderBottomColor: theme.border,
-            marginTop: 140 
+            marginTop: isDesktopWeb ? 0 : 140 
           }
         ]}>
           <AppText variant="title1" style={styles.question}>{market.question}</AppText>
@@ -372,6 +378,9 @@ export function MarketScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        <View style={isDesktopWeb ? styles.desktopBody : undefined}>
+        <View style={isDesktopWeb ? styles.desktopMain : { flex: 1 }}>
 
         <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
           <TouchableOpacity 
@@ -482,7 +491,7 @@ export function MarketScreen() {
                           <Text style={[styles.binaryOptionLabel, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '400' }]}>
                             Yes
                           </Text>
-                          <Text style={[styles.binaryOptionPrice, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '600' }]}>
+                          <Text style={[styles.binaryOptionPrice, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '400' }]}>
                             {yesCents}¢
                           </Text>
                           <Text style={[styles.binaryOptionPercent, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: '400' }]}>
@@ -537,7 +546,7 @@ export function MarketScreen() {
                             <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.netPayout)}</Text>
                           </View>
                           <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-                            <Text style={[styles.payoutLabel, { fontWeight: '600' }]}>Net Profit</Text>
+                            <Text style={[styles.payoutLabel, { fontWeight: '400' }]}>Net Profit</Text>
                             <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
                           </View>
                           <Text style={styles.payoutNote}>
@@ -607,11 +616,11 @@ export function MarketScreen() {
                       <View style={styles.optionHeader}>
                         <View style={styles.optionLeft}>
                           <View style={[styles.optionDot, { backgroundColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)') }]} />
-                          <Text style={[styles.optionLabel, { color: theme.text, fontWeight: isSelected ? '600' : '400' }, isSelected && { color: isDark ? theme.onPrimary : theme.primary }]}>
+                          <Text style={[styles.optionLabel, { color: theme.text, fontWeight: '400' }, isSelected && { color: isDark ? theme.onPrimary : theme.primary }]}>
                             {option.label}
                           </Text>
                         </View>
-                        <Text style={[styles.optionPercentText, { color: isSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: isSelected ? '600' : '400' }]}>
+                        <Text style={[styles.optionPercentText, { color: isSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: '400' }]}>
                           {Math.round(percent)}%
                         </Text>
                       </View>
@@ -668,7 +677,7 @@ export function MarketScreen() {
                             <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.netPayout)}</Text>
                           </View>
                           <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-                            <Text style={[styles.payoutLabel, { fontWeight: '600' }]}>Net Profit</Text>
+                            <Text style={[styles.payoutLabel, { fontWeight: '400' }]}>Net Profit</Text>
                             <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
                           </View>
                           <Text style={styles.payoutNote}>
@@ -698,8 +707,25 @@ export function MarketScreen() {
           </ScrollView>
         )}
 
-        {selectedOption && selectedSide && (
-          <View style={[styles.bettingBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+        </View>
+
+        {isDesktopWeb && activeTab === 'predict' && (
+          <MarketTradePanel
+            balance={balance}
+            totalPool={totalPool}
+            isPlayMode={isPlayMode}
+            hasSelection={Boolean(selectedOption && selectedSide)}
+            theme={theme}
+          />
+        )}
+
+        </View>
+
+        {selectedOption && selectedSide && !(isDesktopWeb && activeTab === "predict") && (
+          <View style={[
+            styles.bettingBar,
+            { backgroundColor: theme.surface, borderTopColor: theme.border },
+          ]}>
             <View style={styles.guidedBetHeader}>
               <View>
                 <Text style={[styles.guidedStepLabel, { color: theme.textSecondary }]}>2. Choose amount</Text>
@@ -915,7 +941,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   statusOpen: { color: Brand.success },
@@ -932,7 +958,7 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 24,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
     marginBottom: 8,
     letterSpacing: -1,
@@ -957,7 +983,7 @@ const styles = StyleSheet.create({
   },
   poolValue: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
   },
   chartContainer: {
@@ -995,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   sportsBlockTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "400",
   },
   sportsBlockBody: {
     fontSize: 13,
@@ -1015,11 +1041,11 @@ const styles = StyleSheet.create({
   },
   modePillText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   guideTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 6,
   },
   guideText: {
@@ -1072,12 +1098,12 @@ const styles = StyleSheet.create({
   },
   binaryOptionLabel: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
     flex: 1,
   },
   binaryOptionPrice: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     marginRight: 12,
   },
   binaryOptionPercent: {
@@ -1118,7 +1144,7 @@ const styles = StyleSheet.create({
   },
   optionPercentText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   binaryButtons: {
     flexDirection: "row",
@@ -1134,7 +1160,7 @@ const styles = StyleSheet.create({
   },
   binaryButtonLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.3,
   },
   profitBadge: {
@@ -1145,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   profitText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   payoutContainer: {
     marginTop: 12,
@@ -1169,7 +1195,7 @@ const styles = StyleSheet.create({
   },
   profitValue: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.2,
   },
   payoutNote: {
@@ -1177,6 +1203,58 @@ const styles = StyleSheet.create({
     color: "#8E8E93",
     marginTop: 8,
     fontStyle: "italic",
+  },
+  desktopBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  desktopMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  desktopTradePanel: {
+    width: 320,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    ...(Platform.OS === "web"
+      ? ({ position: "sticky", top: 0, alignSelf: "flex-start", maxHeight: "100vh" } as any)
+      : {}),
+  },
+  desktopTradeTitle: {
+    fontSize: 18,
+    fontWeight: "400",
+    letterSpacing: -0.3,
+    marginBottom: 8,
+  },
+  desktopTradeBalance: {
+    fontSize: 14,
+    fontWeight: '400',
+    marginBottom: 4,
+  },
+  desktopTradePool: {
+    fontSize: 12,
+    marginBottom: 16,
+  },
+  desktopTradeHint: {
+    marginTop: 8,
+  },
+  desktopTradeHintText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  desktopBettingBar: {
+    ...(Platform.OS === "web"
+      ? ({
+          position: "absolute",
+          right: 0,
+          bottom: 0,
+          width: 320,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderLeftWidth: StyleSheet.hairlineWidth,
+        } as any)
+      : {}),
   },
   bettingBar: {
     backgroundColor: "#fff",
@@ -1195,14 +1273,14 @@ const styles = StyleSheet.create({
   },
   guidedStepLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   guidedStepTitle: {
     marginTop: 2,
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   reviewBadge: {
     borderRadius: 999,
@@ -1211,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   reviewBadgeText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   balanceRow: {
     flexDirection: "row",
@@ -1253,7 +1331,7 @@ const styles = StyleSheet.create({
   },
   balanceValue: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
     color: "#000",
   },
   betInputContainer: {
@@ -1281,7 +1359,7 @@ const styles = StyleSheet.create({
   },
   positionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   positionLabel: { fontSize: 16, fontWeight: '400', color: '#000' },
-  positionStatus: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  positionStatus: { fontSize: 11, fontWeight: '400', letterSpacing: 0.5 },
   positionMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   positionText: { fontSize: 13, color: '#8E8E93' },
   quickBetContainer: {

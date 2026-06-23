@@ -594,6 +594,8 @@ export const feedService = {
                 .eq("id", marketId)
                 .single();
 
+            await this.dispatchMarketNotifications(marketId);
+
             return { market: market as Market, error: null };
         } catch (error) {
             return { market: null, error: error as Error };
@@ -627,6 +629,16 @@ export const feedService = {
         } catch (error) {
             console.error("Error fetching market options:", error);
             return [];
+        }
+    },
+
+    async dispatchMarketNotifications(marketId: string): Promise<void> {
+        try {
+            await supabase.functions.invoke("dispatch-notification", {
+                body: { marketId },
+            });
+        } catch (error) {
+            console.warn("dispatch-notification failed for public market", error);
         }
     },
 };

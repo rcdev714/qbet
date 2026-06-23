@@ -7,5 +7,15 @@
   "settings": "Settings",
   "topUp": "Top Up",
   "admin": "Admin",
-  "navigation": "Navigation"
+  "navigation": "Navigation",
+  "discover": "Discover",
+  "notifications": "Notifications",
+  "groupsSection": "Groups",
+  "exploreSection": "Explore",
+  "shortcutsSection": "Shortcuts",
+  "viewAll": "View all",
+  "collapse": "Collapse",
+  "expandSidebar": "Expand sidebar",
+  "collapseSidebar": "Collapse sidebar",
+  "signIn": "Sign in"
 }

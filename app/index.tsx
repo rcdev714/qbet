@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   secondaryButton: {
     alignItems: 'center',
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
   mockStatusBarTime: {
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   mockStatusBarIcons: {
     flexDirection: 'row',
@@ -681,12 +681,12 @@ const styles = StyleSheet.create({
   mockGroupAvatarText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   mockGroupName: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   mockGroupMembers: {
     color: '#64748B',
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   mockWalletText: {
     color: '#34D399',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   marketTicket: {
     borderRadius: 20,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
   panelLabel: {
     color: '#64748B',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
   },
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   liveText: {
     color: '#34D399',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   marketQuestion: {
     color: '#FFFFFF',
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   mockChatHeader: {
     color: '#64748B',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
     paddingLeft: 4,
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
   mockChatUser: {
     color: '#818CF8',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 1,
   },
   mockChatUserBet: {
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     lineHeight: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: -0.3,
   },
   stepsHint: {
@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     lineHeight: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
   complianceTitle: {
     color: '#E2E8F0',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   complianceBody: {
     color: TEXT_MUTED,

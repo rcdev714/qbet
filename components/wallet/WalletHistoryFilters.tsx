@@ -1,15 +1,12 @@
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo } from "react";
+
+import { FilterChipBar } from "@/components/ui/FilterChipBar";
 
 export type WalletHistoryFilter = "all" | "transfers" | "deposits" | "withdrawals" | "bets";
 
 interface WalletHistoryFiltersProps {
   value: WalletHistoryFilter;
   onChange: (next: WalletHistoryFilter) => void;
-  theme: {
-    textSecondary: string;
-    primary: string;
-  };
 }
 
 const FILTERS: { key: WalletHistoryFilter; label: string }[] = [
@@ -20,41 +17,19 @@ const FILTERS: { key: WalletHistoryFilter; label: string }[] = [
   { key: "bets", label: "Bets" },
 ];
 
-export function WalletHistoryFilters({
-  value,
-  onChange,
-  theme,
-}: WalletHistoryFiltersProps) {
+export function WalletHistoryFilters({ value, onChange }: WalletHistoryFiltersProps) {
+  const options = useMemo(
+    () => FILTERS.map((filter) => ({ key: filter.key, label: filter.label })),
+    [],
+  );
+
   return (
-    <View style={styles.row}>
-      {FILTERS.map((filter) => {
-        const active = filter.key === value;
-        return (
-          <TouchableOpacity key={filter.key} onPress={() => onChange(filter.key)}>
-            <Text
-              style={[
-                styles.label,
-                { color: active ? theme.primary : theme.textSecondary },
-              ]}
-            >
-              {filter.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+    <FilterChipBar
+      options={options}
+      value={value}
+      onChange={onChange}
+      accessibilityLabel="Transaction filters"
+      style={{ borderBottomWidth: 0 }}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 14,
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-});

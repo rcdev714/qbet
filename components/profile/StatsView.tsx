@@ -90,14 +90,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '400',
     textTransform: 'uppercase',
     marginLeft: 6,
     letterSpacing: 0.5,
   },
   value: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: -0.5,
   },
 });

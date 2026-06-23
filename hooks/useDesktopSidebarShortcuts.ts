@@ -6,7 +6,7 @@ import { isPersistedGroupId } from "@/lib/group-id";
 import { betService } from "@/services/bet.service";
 import type { GroupSummary } from "@/types/group";
 
-const PINNED_GROUP_LIMIT = 4;
+const PINNED_GROUP_LIMIT = 2;
 
 export function useDesktopSidebarShortcuts() {
   const { user } = useAuthContext();
@@ -37,11 +37,8 @@ export function useDesktopSidebarShortcuts() {
       .slice(0, PINNED_GROUP_LIMIT) as GroupSummary[];
   }, [groups]);
 
-  const hasMoreGroups = groups.filter((group) => isPersistedGroupId(group.id)).length > PINNED_GROUP_LIMIT;
-
   return {
     pinnedGroups,
-    hasMoreGroups,
     activeBets,
     groupsLoading,
     isAuthenticated: Boolean(user),

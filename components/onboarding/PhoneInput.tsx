@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   labelLight: {
     color: "#526173",
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   prefix: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
     minWidth: 44,
   },
   textLight: {

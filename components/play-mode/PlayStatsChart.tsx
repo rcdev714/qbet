@@ -117,7 +117,7 @@ export function PlayStatsChart({ bets }: PlayStatsChartProps) {
           {
             textAlign: "center",
             fontSize: 12,
-            fontWeight: "600",
+            fontWeight: '400',
             color: timeRange === r ? theme.text : theme.textSecondary,
             backgroundColor:
               timeRange === r ? theme.border : "transparent",
@@ -252,7 +252,7 @@ export function PlayStatsChart({ bets }: PlayStatsChartProps) {
                     <Text
                       style={{
                         color: theme.text,
-                        fontWeight: "600",
+                        fontWeight: '400',
                         fontSize: 13,
                       }}
                     >
@@ -303,14 +303,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   value: {
     fontSize: 28,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: -0.5,
   },
   chartContainer: {

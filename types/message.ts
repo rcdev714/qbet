@@ -1,7 +1,14 @@
 import type { Market } from "./market";
 import type { User } from "./user";
 
-export type MessageType = "text" | "market" | "image" | "shared_market";
+export type MessageType =
+  | "text"
+  | "market"
+  | "image"
+  | "shared_market"
+  | "shared_group"
+  | "shared_profile"
+  | "shared_bet";
 
 // Message status for delivery indicators
 // 'sending' = Optimistic message, not yet saved to server (shows single gray check)
@@ -16,6 +23,9 @@ export interface Message {
   content: string | null;
   message_type: MessageType;
   market_id: string | null;
+  referenced_group_id?: string | null;
+  referenced_user_id?: string | null;
+  bet_id?: string | null;
   created_at: string;
   // Client-side status for UI (not stored in DB)
   status?: MessageStatus;
@@ -30,4 +40,7 @@ export type MessageInsert = {
   content?: string | null;
   message_type?: MessageType;
   market_id?: string | null;
+  referenced_group_id?: string | null;
+  referenced_user_id?: string | null;
+  bet_id?: string | null;
 };

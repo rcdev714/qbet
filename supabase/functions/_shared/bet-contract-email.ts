@@ -1,3 +1,5 @@
+import { buildEmailLayout, buildPlainTextLayout } from "./email/layout.ts";
+
 export function buildBetContractIdempotencyKey(
   contractId: string,
   eventType: "placed" | "resolved",
@@ -30,23 +32,48 @@ export function buildBetContractEmailHtml(params: {
   contractUrl: string;
   outcome?: string | null;
   payoutLabel?: string | null;
+  appUrl?: string;
 }): string {
   const greeting =
     params.eventType === "placed"
       ? "Your wager agreement is attached below."
       : `Your wager has been settled (${params.outcome ?? "resolved"}).`;
 
-  return `<!DOCTYPE html>
-<html>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;color:#0f172a;">
-  <p>Hi there,</p>
-  <p>${greeting}</p>
-  <p><strong>Contract:</strong> ${params.contractNumber}</p>
-  <p><strong>Market:</strong> ${params.marketQuestion}</p>
-  <p><strong>Stake:</strong> ${params.stakeLabel}</p>
-  ${params.payoutLabel ? `<p><strong>Payout:</strong> ${params.payoutLabel}</p>` : ""}
-  <p><a href="${params.contractUrl}" style="display:inline-block;background:#3B82F6;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600;">View Wager Agreement</a></p>
-  <p style="color:#64748b;font-size:13px;">AnyMarket — social prediction infrastructure. Live wallet funds involve loss risk.</p>
-</body>
-</html>`;
+  const appUrl = params.appUrl ?? params.contractUrl.split("/wallet")[0];
+
+  const bodyHtml = `<p>Hi there,</p>
+<p>${greeting}</p>
+<p><strong>Contract:</strong> ${params.contractNumber}</p>
+<p><strong>Market:</strong> ${params.marketQuestion}</p>
+<p><strong>Stake:</strong> ${params.stakeLabel}</p>
+${params.payoutLabel ? `<p><strong>Payout:</strong> ${params.payoutLabel}</p>` : ""}`;
+
+  return buildEmailLayout({
+    title: buildBetContractSubject({
+      eventType: params.eventType,
+      marketQuestion: params.marketQuestion,
+      outcome: params.outcome,
+    }),
+    bodyHtml,
+    ctaLabel: "View Wager Agreement",
+    ctaUrl: params.contractUrl,
+    appUrl,
+    footerNote: "AnyMarket — social prediction infrastructure. Live wallet funds involve loss risk.",
+  });
+}
+
+export function buildBetContractEmailText(params: {
+  contractNumber: string;
+  marketQuestion: string;
+  stakeLabel: string;
+  eventType: "placed" | "resolved";
+  contractUrl: string;
+  appUrl?: string;
+}): string {
+  const appUrl = params.appUrl ?? params.contractUrl.split("/wallet")[0];
+  return buildPlainTextLayout({
+    body: `Contract: ${params.contractNumber}\nMarket: ${params.marketQuestion}\nStake: ${params.stakeLabel}`,
+    ctaUrl: params.contractUrl,
+    appUrl,
+  });
 }

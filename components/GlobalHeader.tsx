@@ -1,11 +1,13 @@
 import React from 'react';
 import {
     StyleSheet,
+    useWindowDimensions,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HEADER_HEIGHT } from '@/constants/layout';
+import { HEADER_HEIGHT, resolveGutter } from '@/constants/layout';
+import { useIsDesktopWebNav } from '@/contexts/NavigationLayoutContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PlayModeToggle } from './PlayModeToggle';
 
@@ -39,28 +41,37 @@ export function GlobalHeader({
 }: GlobalHeaderProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const isDesktopWeb = useIsDesktopWebNav();
+  const { width } = useWindowDimensions();
+  const gutter = resolveGutter(width);
 
   const paddingTop = ignoreTopInset ? 0 : insets.top;
+  const showCenterToggle = showToggle && !isDesktopWeb;
+
+  // Sidebar provides nav, settings, and mode toggle on desktop tab screens.
+  if (isDesktopWeb && !left) {
+    return null;
+  }
 
   const containerStyle = transparent
     ? [styles.container, styles.transparent, { paddingTop }]
-    : [styles.container, { paddingTop, backgroundColor: theme.surface, borderBottomColor: theme.border }];
+    : [styles.container, { paddingTop, backgroundColor: theme.surface, borderBottomColor: theme.borderSubtle }];
 
   return (
     <View style={containerStyle}>
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingHorizontal: gutter }]}>
         {/* Left slot */}
-        <View style={styles.side}>
+        <View style={[styles.side, styles.leftSide, !left && styles.sideEmpty]}>
           {left}
         </View>
 
         {/* Center slot */}
         <View style={styles.centerSlot}>
-          {center ? center : showToggle ? <PlayModeToggle compact transparent /> : null}
+          {center ? center : showCenterToggle ? <PlayModeToggle compact transparent={transparent} /> : null}
         </View>
 
         {/* Right slot */}
-        <View style={[styles.side, styles.rightSide]}>
+        <View style={[styles.side, styles.rightSide, !right && styles.sideEmpty]}>
           {right}
         </View>
       </View>
@@ -85,20 +96,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: HEADER_HEIGHT,
   },
   side: {
+    flex: 1,
     minWidth: 44,
+    flexShrink: 0,
+  },
+  leftSide: {
     alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   rightSide: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  sideEmpty: {
+    minWidth: 0,
   },
   centerSlot: {
-    flex: 1,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
 });

@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   subtitle: {
     fontSize: 14,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   submitText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: '400',
     fontSize: 16,
   },
 });

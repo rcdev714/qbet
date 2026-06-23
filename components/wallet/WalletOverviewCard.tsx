@@ -23,12 +23,7 @@ export function WalletOverviewCard({
   theme,
 }: WalletOverviewCardProps) {
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-    >
+    <View style={styles.card}>
       <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>
         {balanceLabel}
       </Text>
@@ -53,23 +48,20 @@ export function WalletOverviewCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    marginBottom: 14,
+    paddingVertical: 8,
+    marginBottom: 20,
   },
   balanceLabel: {
     textTransform: "uppercase",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     letterSpacing: 0.5,
   },
   balanceValue: {
-    fontSize: 40,
-    fontWeight: "300",
-    marginTop: 2,
-    letterSpacing: -1,
+    fontSize: 44,
+    fontWeight: '400',
+    marginTop: 4,
+    letterSpacing: -1.5,
   },
   subtitle: {
     marginTop: 4,
@@ -84,6 +76,6 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   username: {
     color: '#fff',
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 6,
   },
   badge: {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#000',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 1,
   },
   statsSection: {
@@ -193,13 +193,13 @@ const styles = StyleSheet.create({
   statTitle: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 4,
   },
   statValue: {
     color: '#fff',
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   pnlContainer: {
     alignItems: 'center',
@@ -208,12 +208,12 @@ const styles = StyleSheet.create({
   pnlLabel: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 4,
   },
   pnlValue: {
     fontSize: 32,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   ctaButton: {
     margin: 20,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   ctaText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     letterSpacing: 1,
   },
   closeButton: {

@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   title: {
     color: Brand.deep,
     fontSize: 24,
-    fontWeight: "600",
+    fontWeight: '400',
     textAlign: "center",
   },
   subtitle: {
@@ -206,6 +206,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
 });

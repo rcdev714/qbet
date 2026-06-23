@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: Brand.onPrimary,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   whatsappLink: {
     paddingHorizontal: 4,

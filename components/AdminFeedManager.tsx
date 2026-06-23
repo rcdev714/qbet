@@ -547,7 +547,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           >
             <Ionicons name="arrow-back" size={20} color={theme.primary} />
             <Text
-              style={{ color: theme.primary, marginLeft: 8, fontWeight: "600" }}
+              style={{ color: theme.primary, marginLeft: 8, fontWeight: '400' }}
             >
               Back to Markets
             </Text>
@@ -883,7 +883,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
             borderWidth: 1,
           }]}
         >
-          <Text style={{ color: theme.primary, fontWeight: "600" }}>
+          <Text style={{ color: theme.primary, fontWeight: '400' }}>
             Editing Market
           </Text>
           <TouchableOpacity
@@ -933,7 +933,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
             <Text
               style={{
                 color: category === cat ? theme.primary : theme.text,
-                fontWeight: "600",
+                fontWeight: '400',
               }}
             >
               {cat}
@@ -965,7 +965,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               <Text
                 style={{
                   color: isBinaryMarket ? "#fff" : theme.text,
-                  fontWeight: "600",
+                  fontWeight: '400',
                 }}
               >
                 Yes / No
@@ -1002,7 +1002,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               <Text
                 style={{
                   color: !isBinaryMarket ? "#fff" : theme.text,
-                  fontWeight: "600",
+                  fontWeight: '400',
                 }}
               >
                 Multi-option
@@ -1299,7 +1299,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               <Text
                 style={{
                   color: active ? theme.primary : theme.textSecondary,
-                  fontWeight: active ? "600" : "400",
+                  fontWeight: "400",
                 }}
               >
                 {filter.label}
@@ -1468,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   closeBtn: {
     padding: 4,
@@ -1484,7 +1484,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   center: {
     flex: 1,
@@ -1520,7 +1520,7 @@ const styles = StyleSheet.create({
   },
   itemQuestion: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 4,
   },
   itemMeta: {
@@ -1535,7 +1535,7 @@ const styles = StyleSheet.create({
   },
   promoteText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: '400',
     fontSize: 13,
   },
   // Create form styles
@@ -1555,7 +1555,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -1634,7 +1634,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   imageManagementCard: {
     padding: 16,
@@ -1688,7 +1688,7 @@ const styles = StyleSheet.create({
   frameQuestion: {
     color: "#fff",
     fontSize: 8,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   uploadButton: {
     flexDirection: "row",
@@ -1701,7 +1701,7 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   helperText: {
     fontSize: 11,
@@ -1721,7 +1721,7 @@ const styles = StyleSheet.create({
   },
   resolveQuestion: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '400',
     marginBottom: 12,
   },
   resolveStats: {
@@ -1769,7 +1769,7 @@ const styles = StyleSheet.create({
   },
   resolveOptionLabel: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
     flex: 1,
   },
   resolveOptionRight: {
@@ -1777,11 +1777,11 @@ const styles = StyleSheet.create({
   },
   resolveOptionPool: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   resolveOptionPercent: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '400',
     marginTop: 2,
   },
   resolveButton: {
@@ -1793,7 +1793,7 @@ const styles = StyleSheet.create({
   resolveButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '400',
   },
   warningText: {
     fontSize: 12,

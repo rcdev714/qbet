@@ -79,6 +79,43 @@ export interface AdminContentReportListResult {
     totalCount: number;
 }
 
+export interface AdminSocialKPIs {
+    totalFollows: number;
+    follows7d: number;
+    usersWithFollowers: number;
+    avgFollowersPerUser: number;
+    activeSocialBettors7d: number;
+    activeGroups: number;
+    groupJoins7d: number;
+}
+
+export interface AdminSocialConnector {
+    userId: string;
+    username: string | null;
+    followersCount: number;
+    followingCount: number;
+    totalBets: number;
+    betVolume: number;
+    winRate: number;
+    groupCount: number;
+}
+
+export interface AdminCoBetCluster {
+    clusterKey: string;
+    clusterType: string;
+    label: string;
+    userCount: number;
+    betCount: number;
+    totalVolume: number;
+    dominantSide: string | null;
+    lastActivity: string;
+}
+
+export interface AdminFollowSeries {
+    dates: string[];
+    counts: number[];
+}
+
 export interface GrowthMetric {
     date: string;
     count: number;
@@ -560,6 +597,95 @@ export const adminService = {
         } catch (error: any) {
             console.error("Error generating image:", error);
             throw new Error(error.message || "Failed to generate AI image");
+        }
+    },
+
+    async getSocialKPIs(): Promise<AdminSocialKPIs> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_admin_social_kpis");
+            if (error) throw error;
+            const row = (data ?? {}) as Record<string, unknown>;
+            return {
+                totalFollows: Number(row.total_follows ?? 0),
+                follows7d: Number(row.follows_7d ?? 0),
+                usersWithFollowers: Number(row.users_with_followers ?? 0),
+                avgFollowersPerUser: Number(row.avg_followers_per_user ?? 0),
+                activeSocialBettors7d: Number(row.active_social_bettors_7d ?? 0),
+                activeGroups: Number(row.active_groups ?? 0),
+                groupJoins7d: Number(row.group_joins_7d ?? 0),
+            };
+        } catch (error) {
+            logger.error("Error fetching social KPIs", {}, error);
+            return {
+                totalFollows: 0,
+                follows7d: 0,
+                usersWithFollowers: 0,
+                avgFollowersPerUser: 0,
+                activeSocialBettors7d: 0,
+                activeGroups: 0,
+                groupJoins7d: 0,
+            };
+        }
+    },
+
+    async getFollowSeries(days = 14): Promise<AdminFollowSeries> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_admin_follow_series", {
+                p_days: days,
+            });
+            if (error) throw error;
+            const row = (data ?? {}) as Record<string, unknown>;
+            return {
+                dates: ((row.dates as string[]) ?? []).map(String),
+                counts: ((row.counts as number[]) ?? []).map(Number),
+            };
+        } catch (error) {
+            logger.error("Error fetching follow series", {}, error);
+            return { dates: [], counts: [] };
+        }
+    },
+
+    async listSocialConnectors(limit = 20): Promise<AdminSocialConnector[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc("list_admin_social_connectors", {
+                p_limit: limit,
+            });
+            if (error) throw error;
+            return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+                userId: String(row.user_id),
+                username: (row.username as string | null) ?? null,
+                followersCount: Number(row.followers_count ?? 0),
+                followingCount: Number(row.following_count ?? 0),
+                totalBets: Number(row.total_bets ?? 0),
+                betVolume: Number(row.bet_volume ?? 0),
+                winRate: Number(row.win_rate ?? 0),
+                groupCount: Number(row.group_count ?? 0),
+            }));
+        } catch (error) {
+            logger.error("Error listing social connectors", {}, error);
+            return [];
+        }
+    },
+
+    async listCoBetClusters(limit = 20): Promise<AdminCoBetCluster[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc("list_admin_co_bet_clusters", {
+                p_limit: limit,
+            });
+            if (error) throw error;
+            return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+                clusterKey: String(row.cluster_key),
+                clusterType: String(row.cluster_type),
+                label: String(row.label ?? ""),
+                userCount: Number(row.user_count ?? 0),
+                betCount: Number(row.bet_count ?? 0),
+                totalVolume: Number(row.total_volume ?? 0),
+                dominantSide: (row.dominant_side as string | null) ?? null,
+                lastActivity: String(row.last_activity ?? ""),
+            }));
+        } catch (error) {
+            logger.error("Error listing co-bet clusters", {}, error);
+            return [];
         }
     },
 };

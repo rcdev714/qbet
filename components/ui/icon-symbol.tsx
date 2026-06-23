@@ -15,7 +15,7 @@ const MAPPING = {
   'plus': 'add',
   'plus.circle': 'add-circle-outline',
   'plus.circle.fill': 'add-circle',
-  'wallet': 'account-balance-wallet',
+  'wallet': 'payments',
   'wallet.outline': 'account-balance-wallet',
   'wallet.fill': 'account-balance-wallet',
   'creditcard': 'credit-card',
@@ -25,6 +25,8 @@ const MAPPING = {
   'person.2.fill': 'people',
   'person.3': 'groups',
   'person.3.fill': 'groups',
+  'magnifyingglass': 'search',
+  'link': 'link',
   'gearshape': 'settings',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
@@ -61,6 +63,8 @@ const MAPPING = {
   'arrow.right': 'arrow-forward',
   'arrow.left.arrow.right': 'swap-horiz',
   'doc.text': 'description',
+  'bell': 'notifications',
+  'rectangle.portrait.and.arrow.right': 'logout',
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

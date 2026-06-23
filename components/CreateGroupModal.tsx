@@ -84,13 +84,13 @@ export function CreateGroupModal({ visible, onClose, onCreate, onJoin, loading }
                       style={[styles.tab, mode === 'create' && { backgroundColor: theme.background, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }]}
                       onPress={() => setMode('create')}
                     >
-                      <Text style={[styles.tabText, { color: theme.text, fontWeight: mode === 'create' ? '600' : '400' }]}>Create</Text>
+                      <Text style={[styles.tabText, { color: theme.text, fontWeight: '400' }]}>Create</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.tab, mode === 'join' && { backgroundColor: theme.background, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }]}
                       onPress={() => setMode('join')}
                     >
-                      <Text style={[styles.tabText, { color: theme.text, fontWeight: mode === 'join' ? '600' : '400' }]}>Join</Text>
+                      <Text style={[styles.tabText, { color: theme.text, fontWeight: '400' }]}>Join</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   closeButton: {
     padding: 4,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -258,6 +258,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });

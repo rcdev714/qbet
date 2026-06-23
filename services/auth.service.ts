@@ -291,9 +291,28 @@ export const authService = {
     }
   },
 
+  async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        normalizeAuthEmail(email),
+        { redirectTo: `${getAuthRedirectUrl()}/auth/reset-password` },
+      );
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  },
+
+  async updatePassword(newPassword: string): Promise<{ error: Error | null }> {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  },
+
   /**
-   * Get the current session
-   */
   async getSession() {
     const {
       data: { session },
