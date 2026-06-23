@@ -131,7 +131,7 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
     } finally {
       setLoading(false);
     }
-  }, [members, markets]);
+  }, [groupId, members, markets]);
 
   useEffect(() => {
     loadLeaderboard();

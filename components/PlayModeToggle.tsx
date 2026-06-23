@@ -50,13 +50,27 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
       ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as any)
       : null;
 
+  const playAccent = isDark ? '#93C5FD' : theme.primary;
+  const liveAccent = isDark ? '#86EFAC' : theme.success;
+  const inactiveLabelColor = isDark ? '#CBD5E1' : theme.textSecondary;
+  const glassSurface = isDark ? 'rgba(36, 45, 58, 0.92)' : 'rgba(255,255,255,0.92)';
+  const glassBorder = isDark ? 'rgba(255,255,255,0.14)' : theme.border;
+
+  const playChipStyle = isDark
+    ? { backgroundColor: 'rgba(0, 106, 220, 0.28)', borderColor: 'rgba(147, 197, 253, 0.45)' }
+    : { backgroundColor: theme.primarySoft, borderColor: theme.primary };
+
+  const liveChipStyle = isDark
+    ? { backgroundColor: 'rgba(34, 197, 94, 0.22)', borderColor: 'rgba(134, 239, 172, 0.45)' }
+    : { backgroundColor: `${theme.success}18`, borderColor: `${theme.success}55` };
+
   /** Compact live: split control — balance / add funds (left), Wallet screen (right). */
   const compactLiveSplit = (
     <View
       style={[
         styles.liveSplitShell,
         isSidebar && styles.liveSplitShellSidebar,
-        { borderColor: theme.border },
+        { borderColor: compact && transparent ? glassBorder : theme.border },
         compact && transparent && styles.liveSplitShadow,
       ]}
     >
@@ -71,7 +85,10 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
         style={[
           styles.liveSplitLeft,
           isSidebar && styles.liveSplitLeftSidebar,
-          { backgroundColor: theme.input },
+          {
+            backgroundColor:
+              compact && transparent ? glassSurface : theme.input,
+          },
           Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
           focusedControl === "balance" && focusRing,
         ]}
@@ -82,8 +99,15 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
             { backgroundColor: theme.primary },
           ]}
         />
-        <Text style={[styles.liveSplitLabel, isSidebar && styles.liveSplitLabelSidebar, { color: theme.textSecondary }]}>Live</Text>
-        <Text style={[styles.liveSplitBalance, isSidebar && styles.liveSplitBalanceSidebar, { color: theme.text }]} numberOfLines={1}>
+        <Text style={[styles.liveSplitLabel, isSidebar && styles.liveSplitLabelSidebar, { color: liveAccent }]}>Live</Text>
+        <Text
+          style={[
+            styles.liveSplitBalance,
+            isSidebar && styles.liveSplitBalanceSidebar,
+            { color: compact && transparent && isDark ? '#F3F4F6' : theme.text },
+          ]}
+          numberOfLines={1}
+        >
           {formatCurrency(activeBalance)}
         </Text>
       </TouchableOpacity>
@@ -133,7 +157,7 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
               <Text
                 style={[
                   styles.sidebarCompactSegmentLabel,
-                  { color: active ? activeColor : theme.textSecondary },
+                  { color: active ? activeColor : inactiveLabelColor },
                   active && styles.sidebarCompactSegmentLabelActive,
                 ]}>
                 {label}
@@ -194,15 +218,13 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
           styles.toggleRow,
           isSidebar && styles.toggleRowSidebar,
           transparent ? styles.transparentRow : null,
-          compact && !transparent && isPlayMode && [
-            styles.headerModeChip,
-            { backgroundColor: theme.primarySoft, borderColor: theme.primary },
+          compact && !transparent && isPlayMode && [styles.headerModeChip, playChipStyle],
+          compact && !transparent && !isPlayMode && [styles.headerModeChip, liveChipStyle],
+          compact && transparent && isPlayMode && [
+            styles.headerPlayBackdrop,
+            isDark && styles.headerPlayBackdropDark,
+            isDark && { backgroundColor: glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glassBorder },
           ],
-          compact && !transparent && !isPlayMode && [
-            styles.headerModeChip,
-            { backgroundColor: `${theme.success}18`, borderColor: `${theme.success}55` },
-          ],
-          compact && transparent && isPlayMode && styles.headerPlayBackdrop,
           Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
           focusedControl === "mode" && focusRing,
         ]}
@@ -216,9 +238,19 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
         <Text
           style={[
             styles.modeLabel,
-            { color: transparent ? '#fff' : isPlayMode ? theme.primary : theme.success },
+            {
+              color: transparent
+                ? isPlayMode
+                  ? isDark
+                    ? playAccent
+                    : theme.primary
+                  : '#fff'
+                : isPlayMode
+                  ? playAccent
+                  : liveAccent,
+            },
             transparent &&
-              isPlayMode && {
+              !isPlayMode && {
                 textShadowColor: 'rgba(0,0,0,0.5)',
                 textShadowOffset: { width: 0, height: 1 },
                 textShadowRadius: 2,
@@ -232,7 +264,13 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
             style={[
               styles.balanceText,
               compact && isPlayMode && styles.liveBalanceText,
-              { color: transparent ? '#fff' : theme.textSecondary },
+              {
+                color: transparent
+                  ? isDark
+                    ? '#E5E7EB'
+                    : '#fff'
+                  : inactiveLabelColor,
+              },
             ]}
           >
             {formatCurrency(activeBalance)}
@@ -427,6 +465,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  headerPlayBackdropDark: {
+    shadowOpacity: 0.35,
   },
   headerModeChip: {
     paddingHorizontal: 12,

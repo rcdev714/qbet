@@ -6,11 +6,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 run_export() {
-  expo export --platform web "$@"
+  # --clear avoids reusing a prior local export manifest that inlined 127.0.0.1:54321.
+  expo export --platform web --clear "$@"
 }
 
 if npx eas whoami >/dev/null 2>&1; then
-  EXPO_NO_DOTENV=1 npx eas env:exec production "npx expo export --platform web"
+  EXPO_NO_DOTENV=1 npx eas env:exec production "EXPO_NO_DOTENV=1 npx expo export --platform web --clear"
 else
   echo "EAS not logged in — exporting with EXPO_NO_DOTENV and hosted Supabase defaults."
   EXPO_NO_DOTENV=1 \

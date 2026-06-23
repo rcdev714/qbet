@@ -319,7 +319,7 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
   const { pinnedGroups, isAuthenticated } = useDesktopSidebarShortcuts();
   const { unreadCount } = useNotifications();
 
-  const activeGroupId = segments[0] === 'group' ? segments[1] : undefined;
+  const activeGroupId = segments[0] === 'group' ? (segments as string[])[1] : undefined;
   const isDiscoverActive = segments[0] === 'discover';
   const isNotificationsActive = segments[0] === 'notifications';
 

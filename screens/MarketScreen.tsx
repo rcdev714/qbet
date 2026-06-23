@@ -369,7 +369,7 @@ export function MarketScreen() {
           >
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.poolLabel}>Pool: </Text>
+                <Text style={[styles.poolLabel, { color: theme.textSecondary }]}>Pool: </Text>
                 <Text style={[styles.poolValue, { color: theme.text }]}>{formatCurrency(totalPool)}</Text>
               </View>
               <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
@@ -741,7 +741,7 @@ export function MarketScreen() {
             </View>
             <View style={styles.balanceRow}>
               <View style={styles.balanceContainer}>
-                <Text style={styles.balanceLabel}>Funds Available</Text>
+                <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>Funds Available</Text>
                 <Text style={[styles.balanceValue, { color: theme.text }]}>{formatCurrency(balance)}</Text>
               </View>
 
@@ -959,7 +959,6 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 24,
     fontWeight: '400',
-    color: "#000",
     marginBottom: 8,
     letterSpacing: -1,
     lineHeight: 30,
@@ -984,7 +983,6 @@ const styles = StyleSheet.create({
   poolValue: {
     fontSize: 17,
     fontWeight: '400',
-    color: "#000",
   },
   chartContainer: {
     marginBottom: 24,
@@ -1191,7 +1189,6 @@ const styles = StyleSheet.create({
   payoutValue: {
     fontSize: 12,
     fontWeight: "400",
-    color: "#000",
   },
   profitValue: {
     fontSize: 13,
@@ -1332,7 +1329,6 @@ const styles = StyleSheet.create({
   balanceValue: {
     fontSize: 13,
     fontWeight: '400',
-    color: "#000",
   },
   betInputContainer: {
     flexDirection: "row",
@@ -1358,7 +1354,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   positionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  positionLabel: { fontSize: 16, fontWeight: '400', color: '#000' },
+  positionLabel: { fontSize: 16, fontWeight: '400' },
   positionStatus: { fontSize: 11, fontWeight: '400', letterSpacing: 0.5 },
   positionMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   positionText: { fontSize: 13, color: '#8E8E93' },

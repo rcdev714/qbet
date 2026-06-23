@@ -387,7 +387,7 @@ export function DirectMessagesScreen() {
             )}
             {isMyMessage && (
               <Text style={[styles.previewText, { color: theme.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-                <Text style={[styles.senderName, { color: isDark ? "#A1A1A6" : "#111B21" }]}>You: </Text>
+                <Text style={[styles.senderName, { color: theme.textSecondary }]}>You: </Text>
                 {previewText}
               </Text>
             )}
@@ -731,7 +731,6 @@ const styles = StyleSheet.create({
   },
   senderName: {
     fontSize: 14,
-    color: "#111B21",
     fontWeight: "400",
   },
   previewText: {

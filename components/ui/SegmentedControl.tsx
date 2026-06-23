@@ -23,7 +23,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   compact = false,
 }: SegmentedControlProps<T>) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [focusedValue, setFocusedValue] = React.useState<T | null>(null);
   const focusRing =
     Platform.OS === "web"
@@ -74,7 +74,7 @@ export function SegmentedControl<T extends string>({
               style={[
                 styles.label,
                 compact && styles.labelCompact,
-                { color: isActive ? theme.text : theme.textSecondary },
+                { color: isActive ? theme.text : isDark ? "#CBD5E1" : theme.textSecondary },
               ]}
             >
               {segment.label}

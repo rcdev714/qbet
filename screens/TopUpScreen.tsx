@@ -466,7 +466,7 @@ export function TopUpScreen() {
         >
           {/* Balance Section */}
           <View style={[styles.balanceSection, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <Text style={styles.balanceLabel}>{isPlayMode ? 'Play Balance' : 'Live Balance'}</Text>
+            <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>{isPlayMode ? 'Play Balance' : 'Live Balance'}</Text>
             <Text style={[styles.balanceAmount, { color: theme.text }]}>
               {formatCurrency(balance)}
             </Text>
@@ -725,7 +725,6 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 44,
     fontWeight: '300', // Thin, elegant
-    color: '#000',
     marginTop: 4,
     letterSpacing: -1,
   },
@@ -862,7 +861,6 @@ const styles = StyleSheet.create({
   txType: {
     fontSize: 16,
     fontWeight: '400',
-    color: '#000',
     marginBottom: 2
   },
   txAmount: {
