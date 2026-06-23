@@ -4,6 +4,8 @@
 -- get_following_activity_v2 — extended with privacy, stats, membership
 -- ============================================================================
 
+DROP FUNCTION IF EXISTS public.get_following_activity_v2(int, int, text[]);
+
 CREATE OR REPLACE FUNCTION public.get_following_activity_v2(
   p_limit int DEFAULT 30,
   p_offset int DEFAULT 0,
@@ -316,6 +318,8 @@ BEGIN
   OFFSET p_offset;
 END;
 $function$;
+
+GRANT EXECUTE ON FUNCTION public.get_following_activity_v2(int, int, text[]) TO authenticated;
 
 -- ============================================================================
 -- get_market_social_proof — followed users who bet on a market

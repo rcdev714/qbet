@@ -1,6 +1,8 @@
 -- Migration: Notification preferences, delivery tracking, social enhancements
 -- Unified notification orchestration for email, in-app, and web push
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ============================================================================
 -- Schema extensions
 -- ============================================================================
@@ -124,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.group_email_invites (
     group_id uuid NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
     email text NOT NULL,
     invited_by uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    invite_token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'hex'),
+    invite_token text NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(24), 'hex'),
     accepted_at timestamptz,
     email_sent_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
