@@ -1,8 +1,10 @@
+import { Brand } from "@/constants/theme";
+
 export const getRandomColor = (name: string) => {
     const colors = [
         "#E5484D", // Red
-        "#0090FF", // Blue
-        "#46A758", // Green
+        Brand.primary,
+        Brand.success,
         "#F58300", // Orange
         "#9D44C0", // Purple
         "#00B5AD", // Teal

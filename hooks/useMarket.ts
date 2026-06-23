@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWalletContext } from "../contexts/WalletContext";
+import { teardownChannel } from "../lib/supabase-realtime";
 import { betService } from "../services/bet.service";
 import { marketService } from "../services/market.service";
 import type { Market, MarketOption } from "../types/market";
@@ -62,8 +63,8 @@ export function useMarket(marketId: string | null) {
     );
 
     return () => {
-      marketChannel.unsubscribe();
-      optionsChannel.unsubscribe();
+      void teardownChannel(marketChannel);
+      void teardownChannel(optionsChannel);
     };
   }, [marketId]);
 
@@ -129,7 +130,7 @@ export function useGroupMarkets(groupId: string | null) {
     });
 
     return () => {
-      channel.unsubscribe();
+      void teardownChannel(channel);
     };
   }, [groupId, loadMarkets]);
 

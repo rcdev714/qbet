@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { createPostgresChannel } from "../lib/supabase-realtime";
 import type { MarketChatMessage } from "../types/marketChat";
 
 export const marketChatService = {
@@ -85,8 +86,7 @@ export const marketChatService = {
         marketId: string,
         callback: (message: MarketChatMessage) => void,
     ) {
-        const channel = supabase
-            .channel(`market_chat:${marketId}`)
+        const channel = createPostgresChannel(`market_chat:${marketId}`)
             .on(
                 "postgres_changes",
                 {

@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -18,6 +19,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { useMarket } from "../hooks/useMarket";
 import { formatCurrency } from "../lib/parimutuel";
+import { getParamString } from "../lib/route-params";
 import { supabase } from "../lib/supabase";
 // Removed RootStackParamList import
 
@@ -47,11 +49,11 @@ const VIBRANT_COLORS = [
   "#00D1FF", // Neon Blue
   "#FFB800", // Bright Yellow
   "#FF2D55", // Pink/Red
-  "#34C759", // Emerald Green
+  Brand.success,
   "#AF52DE", // Purple
   "#FF9500", // Orange
   "#5856D6", // Royal Blue
-  "#007AFF", // iOS Blue
+  Brand.primary,
 ];
 
 const { width: windowWidth } = Dimensions.get('window');
@@ -61,7 +63,8 @@ const SPACING_WIDTH = Platform.OS === 'web' ? Math.min(windowWidth, MAX_WEB_WIDT
 
 export function BetDetailScreen() {
   const router = useRouter();
-  const { id: marketId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const marketId = getParamString(params.id) ?? null;
   const { market, options, loading: marketLoading } = useMarket(marketId);
   const { theme, isDark } = useTheme();
   const { isPlayMode } = useWalletContext();
@@ -115,6 +118,10 @@ export function BetDetailScreen() {
   }, [bets, options, isDark]);
 
   useEffect(() => {
+    if (!marketId) {
+      setLoading(false);
+      return;
+    }
     const fetchBets = async () => {
       try {
         const { data, error } = await supabase
@@ -165,6 +172,8 @@ export function BetDetailScreen() {
       </SafeAreaView>
     );
   }
+
+  const resolvedMarketId = market.id;
 
   // Aggregate bets by user and option
   const userBetMap = new Map<string, UserBetSummary>();
@@ -219,7 +228,7 @@ export function BetDetailScreen() {
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, { color: isPlayMode ? '#007AFF' : '#34C759' }]}>←</Text>
+            <Text style={[styles.backButtonText, { color: isPlayMode ? theme.primary : theme.success }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Bet Distribution</Text>
         </View>
@@ -229,7 +238,7 @@ export function BetDetailScreen() {
           <Text style={[styles.question, { color: theme.text }]}>{market.question}</Text>
           <View style={styles.metaRow}>
             <View style={[styles.statusBadge, market.status === "open" && { backgroundColor: isPlayMode ? '#E7F3FF' : '#E7FFE7' }]}>
-              <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? '#007AFF' : '#34C759' }]}>
+              <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? theme.primary : theme.success }]}>
                 {(market.status || 'open').toUpperCase()}
               </Text>
             </View>
@@ -240,7 +249,7 @@ export function BetDetailScreen() {
         {/* Distribution Chart */}
         {isPlayMode ? (
           <PlayBetDetailView
-            marketId={marketId}
+            marketId={resolvedMarketId}
             options={options.map(o => ({ id: o.id, label: o.label }))}
           />
         ) : bets.length === 0 ? (
@@ -256,7 +265,7 @@ export function BetDetailScreen() {
               <View style={styles.chartHeader}>
                 <Text style={styles.sectionLabel}>PROBABILITY HISTORY</Text>
                 <View style={[styles.statusBadge, market.status === "open" && { backgroundColor: isPlayMode ? '#E7F3FF' : '#E7FFE7' }]}>
-                  <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? '#007AFF' : '#34C759' }]}>
+                  <Text style={[styles.statusText, market.status === "open" && { color: isPlayMode ? theme.primary : theme.success }]}>
                     {(market.status || 'open').toUpperCase()}
                   </Text>
                 </View>
@@ -288,7 +297,7 @@ export function BetDetailScreen() {
                     pointerStripColor: theme.border,
                     pointerStripWidth: 2,
                     strokeDashArray: [2, 5],
-                    pointerColor: isPlayMode ? '#007AFF' : '#34C759',
+                    pointerColor: isPlayMode ? theme.primary : theme.success,
                     radius: 4,
                     pointerLabelWidth: 120, // Required for auto-adjust to work
                     autoAdjustPointerLabelPosition: true,
@@ -426,7 +435,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: "#007AFF",
+    color: Brand.primary,
     fontWeight: "400",
   },
   headerTitle: {
@@ -467,7 +476,7 @@ const styles = StyleSheet.create({
     color: "#8E8E93",
   },
   statusTextOpen: {
-    color: "#007AFF",
+    color: Brand.primary,
   },
   poolText: {
     fontSize: 14,

@@ -35,7 +35,7 @@ export interface ThemeColors {
     };
 }
 
-import { Colors } from "@/constants/theme";
+import { Brand, Colors } from "@/constants/theme";
 
 const THEME_MODE_KEY = "anymarket.themeMode";
 
@@ -43,17 +43,17 @@ const lightPalette: ThemeColors = {
     background: Colors.light.background,
     surface: "#FFFFFF",
     primary: Colors.light.tint,
-    primarySoft: "#EAF3FF",
+    primarySoft: Brand.primarySoft,
     onPrimary: "#FFFFFF",
     text: Colors.light.text,
-    textSecondary: "#8E8E93", // keeping some custom values that might not be in constants
-    border: "#F0F2F5",
+    textSecondary: "#4B5563",
+    border: "#D1D9E6",
     card: "#FFFFFF",
-    error: "#FF3B30",
-    success: "#1A7A3E",
-    warning: "#A15C00",
-    input: "#F2F2F7",
-    overlay: "rgba(0, 0, 0, 0.45)",
+    error: "#DC2626",
+    success: Brand.success,
+    warning: "#B45309",
+    input: "#EEF2F7",
+    overlay: "rgba(15, 23, 42, 0.5)",
     radius: {
         sm: 10,
         md: 14,
@@ -72,19 +72,19 @@ const lightPalette: ThemeColors = {
 
 const darkPalette: ThemeColors = {
     background: Colors.dark.background,
-    surface: "#1A2C38",
+    surface: "#1C2430",
     primary: Colors.dark.tint,
-    primarySoft: "rgba(46, 143, 84, 0.18)",
-    onPrimary: "#D1D5DB",
+    primarySoft: "rgba(0, 106, 220, 0.16)",
+    onPrimary: "#FFFFFF",
     text: Colors.dark.text,
-    textSecondary: "#B1BAD3",
-    border: "#2F4553",
-    card: "#213743",
+    textSecondary: "#9CA3AF",
+    border: "#303D4D",
+    card: "#232D3B",
     error: "#FF453A",
-    success: Colors.dark.tint,
-    warning: "#FFB545",
-    input: "#0F212E",
-    overlay: "rgba(7, 16, 24, 0.72)",
+    success: Brand.success,
+    warning: "#FBBF24",
+    input: "#1A222D",
+    overlay: "rgba(8, 12, 18, 0.72)",
     radius: {
         sm: 10,
         md: 14,

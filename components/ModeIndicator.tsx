@@ -1,3 +1,4 @@
+import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -7,6 +8,7 @@ interface ModeIndicatorProps {
 }
 
 export function ModeIndicator({ isPlayMode, size = "small" }: ModeIndicatorProps) {
+  const { theme } = useTheme();
   const isSmall = size === "small";
 
   return (
@@ -14,13 +16,13 @@ export function ModeIndicator({ isPlayMode, size = "small" }: ModeIndicatorProps
       style={[
         styles.container,
         isSmall ? styles.containerSmall : styles.containerMedium,
-        { backgroundColor: isPlayMode ? "#9B59B6" : "#007AFF" },
+        { backgroundColor: isPlayMode ? theme.primary : theme.success },
       ]}
     >
       <Text style={[styles.emoji, isSmall && styles.emojiSmall]}>
         {isPlayMode ? "🎮" : "💰"}
       </Text>
-      <Text style={[styles.text, isSmall && styles.textSmall]}>
+      <Text style={[styles.text, { color: theme.onPrimary }, isSmall && styles.textSmall]}>
         {isPlayMode ? "PLAY" : "LIVE"}
       </Text>
     </View>
@@ -49,7 +51,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   text: {
-    color: "#fff",
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.5,

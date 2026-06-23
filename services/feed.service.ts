@@ -1,3 +1,6 @@
+import { isSportsMarketCategory } from "@/lib/compliance/market-category";
+import { scanMarketTextForSports } from "@/lib/compliance/sports-content";
+import { createPostgresChannel } from "@/lib/supabase-realtime";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import type {
@@ -8,10 +11,51 @@ import type {
 } from "../types/market";
 
 /**
- * Feed categories
+ * Feed categories (display labels; mapped to compliance taxonomy on create)
  */
 export const FEED_CATEGORIES = ["Politics", "Tech", "Entertainment"] as const;
 export type FeedCategory = (typeof FEED_CATEGORIES)[number];
+
+const FEED_TO_COMPLIANCE_CATEGORY: Record<FeedCategory, string> = {
+  Politics: "politics",
+  Tech: "general_event",
+  Entertainment: "general_event",
+};
+
+async function getViewerJurisdiction(): Promise<"EC" | "US"> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return "EC";
+
+  const { data } = await (supabase as any).rpc("get_user_compliance_jurisdiction", {
+    p_user_id: user.id,
+  });
+  return data === "US" ? "US" : "EC";
+}
+
+function passesComplianceFeedFilter(
+  market: Record<string, unknown>,
+  jurisdiction: "EC" | "US",
+): boolean {
+  if (market.public_feed_allowed !== true) return false;
+  if (market.compliance_review_state && market.compliance_review_state !== "approved") {
+    return false;
+  }
+  if (market.sensitivity_tier === "prohibited") return false;
+
+  if (jurisdiction === "EC") {
+    const categoryRaw = String(market.market_category || market.category || "");
+    if (isSportsMarketCategory(categoryRaw)) return false;
+
+    const textScan = scanMarketTextForSports({
+      question: String(market.question || ""),
+      description: String(market.description || ""),
+      resolutionSource: String(market.resolution_source || ""),
+      category: categoryRaw,
+    });
+    if (textScan.blocked) return false;
+  }
+  return true;
+}
 
 /**
  * User category scores for recommendations
@@ -42,21 +86,26 @@ export const feedService = {
      */
     async getPublicMarkets(limit = 20): Promise<Market[]> {
         try {
+            const jurisdiction = await getViewerJurisdiction();
             const { data: markets, error } = await supabase
                 .from("markets")
                 .select("*, creator:users(username, avatar_url)")
                 .eq("is_public", true)
-                .eq("status", "open") // Only show active markets, exclude resolved/closed/cancelled
+                .eq("status", "open")
+                .eq("public_feed_allowed", true)
+                .eq("compliance_review_state", "approved")
                 .order("featured_at", { ascending: false, nullsFirst: false })
                 .order("created_at", { ascending: false })
-                .limit(limit);
+                .limit(limit * 2);
 
             if (error) {
                 console.error("Error fetching public markets:", error);
                 return [];
             }
 
-            return (markets || []) as Market[];
+            return ((markets || []) as Market[])
+                .filter((m) => passesComplianceFeedFilter(m as unknown as Record<string, unknown>, jurisdiction))
+                .slice(0, limit);
         } catch (error) {
             console.error("Error fetching public markets:", error);
             return [];
@@ -77,13 +126,16 @@ export const feedService = {
             }
 
             // Fetch all public markets (only open ones)
+            const jurisdiction = await getViewerJurisdiction();
             const { data: markets, error } = await supabase
                 .from("markets")
                 .select("*, creator:users(username, avatar_url)")
                 .eq("is_public", true)
-                .eq("status", "open") // Only show active markets, exclude resolved/closed/cancelled
+                .eq("status", "open")
+                .eq("public_feed_allowed", true)
+                .eq("compliance_review_state", "approved")
                 .order("created_at", { ascending: false })
-                .limit(limit * 2); // Fetch extra for scoring
+                .limit(limit * 2);
 
             if (error || !markets) {
                 return this.getPublicMarkets(limit);
@@ -106,7 +158,12 @@ export const feedService = {
                 return a.recency - b.recency;
             });
 
-            return scoredMarkets.slice(0, limit).map((s) => s.market as Market);
+            return scoredMarkets
+                .filter(({ market }) =>
+                    passesComplianceFeedFilter(market as unknown as Record<string, unknown>, jurisdiction)
+                )
+                .slice(0, limit)
+                .map((s) => s.market as Market);
         } catch (error) {
             console.error("Error fetching recommended markets:", error);
             return this.getPublicMarkets(limit);
@@ -271,9 +328,25 @@ export const feedService = {
                 .insert(optionsInsert);
 
             if (optionsError) {
-                // Clean up market if options creation fails
                 await supabase.from("markets").delete().eq("id", market.id);
                 return { market: null, error: optionsError };
+            }
+
+            const complianceCategory = FEED_TO_COMPLIANCE_CATEGORY[data.category] ?? "general_event";
+            const { error: reviewError } = await (supabase as any).rpc(
+                "upsert_market_compliance_review",
+                {
+                    p_market_id: market.id,
+                    p_category: complianceCategory,
+                    p_resolution_source: data.description?.trim() || "Creator-declared public source at market creation",
+                    p_creator_attestation: true,
+                    p_resolver_type: "creator_source",
+                    p_metadata: { feed_category: data.category },
+                },
+            );
+
+            if (reviewError) {
+                console.warn("[feedService] compliance review upsert failed:", reviewError.message);
             }
 
             return { market: market as Market, error: null };
@@ -336,8 +409,7 @@ export const feedService = {
      * Subscribe to public feed updates
      */
     subscribeToPublicFeed(callback: () => void): RealtimeChannel {
-        const channel = supabase
-            .channel("public-feed")
+        const channel = createPostgresChannel("public-feed")
             .on(
                 "postgres_changes",
                 {

@@ -471,17 +471,17 @@ export function SwipeMarketCard({ market, isVisible = true, onRemoveMarket, onSw
                         </View>
                         <View style={styles.roiHintWin}>
                             <Text style={styles.winLabel}>WIN</Text>
-                            <Text style={styles.winAmount}>${Math.round(calculateYesNoPayout(currentStake, noOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
+                            <Text style={[styles.winAmount, { color: theme.success, textShadowColor: `${theme.success}66` }]}>${Math.round(calculateYesNoPayout(currentStake, noOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
                         </View>
                     </View>
                     <View style={styles.roiHintChip}>
                         <View style={styles.roiHintSide}>
                             <Text style={styles.instructionText}>YES</Text>
-                            <IconSymbol name="arrow.right" size={14} color="#34C759" />
+                            <IconSymbol name="arrow.right" size={14} color={theme.success} />
                         </View>
                         <View style={styles.roiHintWin}>
                             <Text style={styles.winLabel}>WIN</Text>
-                            <Text style={styles.winAmount}>${Math.round(calculateYesNoPayout(currentStake, yesOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
+                            <Text style={[styles.winAmount, { color: theme.success, textShadowColor: `${theme.success}66` }]}>${Math.round(calculateYesNoPayout(currentStake, yesOpt?.yesPrice || 0.5, 0.0795).netPayout)}</Text>
                         </View>
                     </View>
                 </View>
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   instructionText: { color: '#fff', fontSize: 11, fontWeight: '400', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.8, },
   roiHintWin: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   winLabel: { color: '#fff', fontSize: 9, fontWeight: '300', textTransform: 'uppercase', opacity: 0.5, letterSpacing: 0.5, },
-  winAmount: { color: '#34C759', fontSize: 18, fontWeight: '600', letterSpacing: 0.5, textShadowColor: 'rgba(52, 199, 89, 0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8, },
+  winAmount: { fontSize: 18, fontWeight: '600', letterSpacing: 0.5, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8, },
   beginnerPanel: { backgroundColor: 'rgba(0,0,0,0.52)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 18, padding: 14, marginBottom: 14, gap: 8 },
   beginnerTitle: { color: '#fff', fontSize: 13, fontWeight: '400' },
   beginnerText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, lineHeight: 17 },

@@ -20,6 +20,7 @@ export interface ComplianceProfile {
   kyc_status: string;
   jurisdiction: string;
   age_verified: boolean;
+  age_attested_at?: string | null;
   live_wallet_enabled: boolean;
   crypto_rails_enabled: boolean;
   risk_tier: "standard" | "elevated" | "restricted" | "prohibited";
@@ -41,6 +42,7 @@ export interface SupportedCountryRow {
   name: string;
   dial_code: string;
   default_jurisdiction: ComplianceJurisdiction;
+  primary_ui_locale?: "en" | "es";
   is_launch_enabled: boolean;
   sort_order: number;
 }
@@ -143,6 +145,33 @@ export const complianceService = {
       p_phone_e164: phoneE164,
     });
     if (error) throw error;
+  },
+
+  async recordAgeAttestation(): Promise<void> {
+    const { error } = await (supabase as any).rpc("record_age_attestation");
+    if (error) throw error;
+  },
+
+  async hasAgeAttestation(userId?: string): Promise<boolean> {
+    const profile = await this.getProfile(userId);
+    return Boolean(profile?.age_attested_at);
+  },
+
+  async isLiveWalletReady(userId?: string): Promise<boolean> {
+    const profile = await this.getProfile(userId);
+    return profile?.kyc_status === "verified" && profile?.live_wallet_enabled === true;
+  },
+
+  async hasBetaAccess(userId?: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return false;
+
+    const { data, error } = await (supabase as any).rpc("user_has_beta_access", {
+      p_user_id: targetUserId,
+    });
+    if (error) return false;
+    return data === true;
   },
 
   async getRequiredPolicies(jurisdiction?: ComplianceJurisdiction): Promise<PolicyVersion[]> {

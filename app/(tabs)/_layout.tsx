@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { isAppAdmin } from '@/lib/admin';
+import { useTranslation } from 'react-i18next';
 
 const ICON_SIZE = Platform.OS === 'ios' ? 22 : 32;
 const AVATAR_SIZE = Platform.OS === 'ios' ? 22 : 32;
@@ -19,6 +20,7 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
   const { theme: colors } = useTheme();
   const { user } = useAuthContext();
   const router = useRouter();
+  const { t } = useTranslation('tabs');
   const isAdmin = isAppAdmin(user);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
@@ -99,16 +101,6 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
             );
           })}
 
-        <TouchableOpacity
-          onPress={() => router.push('/topup')}
-          style={[styles.sidebarItem, isCollapsed && styles.sidebarItemCollapsed, Platform.OS === 'web' && ({ cursor: 'pointer' } as any)]}
-          activeOpacity={0.82}>
-          <View style={styles.sidebarIconWrap}>
-            <IconSymbol name="dollarsign.circle.fill" size={20} color={colors.textSecondary} />
-          </View>
-          {!isCollapsed ? <Text style={[styles.sidebarLabel, { color: colors.textSecondary }]}>Top Up</Text> : null}
-        </TouchableOpacity>
-
         {isAdmin ? (
           <TouchableOpacity
             onPress={() => router.push('/admin-dashboard')}
@@ -117,7 +109,7 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
             <View style={styles.sidebarIconWrap}>
               <IconSymbol name="shield" size={20} color={colors.textSecondary} />
             </View>
-            {!isCollapsed ? <Text style={[styles.sidebarLabel, { color: colors.textSecondary }]}>Admin</Text> : null}
+            {!isCollapsed ? <Text style={[styles.sidebarLabel, { color: colors.textSecondary }]}>{t('admin')}</Text> : null}
           </TouchableOpacity>
         ) : null}
       </View>
@@ -157,6 +149,7 @@ function DesktopSidebarTabBar({ state, descriptors, navigation }: BottomTabBarPr
 export default function TabLayout() {
   const { theme: colors } = useTheme();
   const { user } = useAuthContext();
+  const { t } = useTranslation('tabs');
   const { width } = useWindowDimensions();
   const isCompactWeb = Platform.OS === 'web' && width < 420;
   const isDesktopWeb = Platform.OS === 'web' && width >= DESKTOP_BREAKPOINT;
@@ -190,28 +183,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: 'Home',
+          title: t('home'),
           tabBarIcon: ({ color }: { color: string }) => <IconSymbol size={ICON_SIZE} name="house" color={color} />,
         }}
       />
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Groups',
+          title: t('groups', { defaultValue: 'Groups' }),
           tabBarIcon: ({ color }: { color: string }) => <IconSymbol size={ICON_SIZE} name="person.3.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="wallet"
         options={{
-          title: 'Wallet',
+          title: t('wallet'),
           tabBarIcon: ({ color }: { color: string }) => <IconSymbol size={ICON_SIZE} name="wallet.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('profile'),
           tabBarIcon: ({ color }: { color: string }) => (
             user?.avatar_url ? (
               <Image
@@ -221,8 +214,8 @@ export default function TabLayout() {
                 transition={200}
               />
             ) : (
-               <View style={[styles.tabAvatarPlaceholderLarge, { backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}>
-                   <Text style={styles.tabAvatarInitialsLarge}>
+               <View style={[styles.tabAvatarPlaceholderLarge, { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border }]}>
+                   <Text style={[styles.tabAvatarInitialsLarge, { color: colors.primary }]}>
                      {user?.username ? user.username.substring(0, 1).toUpperCase() : "U"}
                    </Text>
                </View>
@@ -233,7 +226,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('settings'),
           href: null,
         }}
       />
@@ -279,7 +272,6 @@ const styles = StyleSheet.create({
   tabAvatarInitialsLarge: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
   },
   sidebar: {
     borderRightWidth: StyleSheet.hairlineWidth,

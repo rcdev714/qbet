@@ -63,7 +63,7 @@ export function AppButton({
           backgroundColor: isPrimary
             ? theme.primary
             : isSecondary
-              ? theme.primarySoft
+              ? theme.surface
               : "transparent",
           borderColor: isPrimary ? theme.primary : theme.border,
         },
@@ -82,7 +82,13 @@ export function AppButton({
       <Text
         style={[
           styles.label,
-          { color: isPrimary ? theme.onPrimary : theme.primary },
+          {
+            color: isPrimary
+              ? theme.onPrimary
+              : isSecondary
+                ? theme.text
+                : theme.primary,
+          },
         ]}
       >
         {loading ? `${title}…` : title}

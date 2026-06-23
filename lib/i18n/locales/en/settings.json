@@ -1,0 +1,22 @@
+{
+  "title": "Settings",
+  "subtitle": "Personalize your account and app appearance.",
+  "account": "Account",
+  "username": "Username",
+  "email": "Email",
+  "notSet": "Not set",
+  "notAvailable": "Not available",
+  "appearance": "Appearance",
+  "appearanceHelper": "Choose your preferred color mode.",
+  "themeSystem": "System",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "session": "Session",
+  "sessionHelper": "Sign out of this device at any time.",
+  "signOut": "Sign out",
+  "signOutError": "Could not sign out",
+  "signOutIssue": "Signed out with issue",
+  "residence": "Country of residence",
+  "legal": "Legal & policies",
+  "support": "Support"
+}

@@ -1,0 +1,16 @@
+# Web-only production deploy on push to master.
+# Requires GitHub repo linked in Expo: Project → GitHub settings.
+# Does NOT build or submit iOS/Android — use eas build manually for native.
+name: Deploy Web Production
+
+on:
+  push:
+    branches: ['master']
+
+jobs:
+  deploy_web:
+    name: Deploy web to production
+    type: deploy
+    environment: production
+    params:
+      prod: true

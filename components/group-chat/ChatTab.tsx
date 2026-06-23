@@ -1,24 +1,26 @@
+import { ReportContentButton } from "@/components/moderation/ReportContentButton";
 import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Brand } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMarket } from "@/hooks/useMarket";
 import { getRandomColor } from "@/lib/colors";
-import { feedService } from "@/services/feed.service";
+import { marketService } from "@/services/market.service";
 import type { Market } from "@/types/market";
 import type { Message } from "@/types/message";
 import { Image } from "expo-image";
 import { Router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 // ─── Sub-component: Market embedded in chat ────────────────────────────────
@@ -51,15 +53,21 @@ function MarketMessage({
   useEffect(() => {
     let mounted = true;
     if (marketId) {
-        feedService.getMarketWithStats(marketId).then(data => {
-            if (mounted && data) setStats(data);
-        });
+      marketService.getMarketWithStats(marketId).then((data) => {
+        if (mounted && data) setStats(data);
+      });
     }
     return () => { mounted = false; };
   }, [marketId, refreshTrigger]);
 
   if (loading) return <ActivityIndicator size="small" color="#999" style={{ margin: 20 }} />;
-  if (!market) return null;
+  if (!market) {
+    return (
+      <View style={styles.errorCard}>
+        <Text style={styles.errorCardText}>Could not load this prediction.</Text>
+      </View>
+    );
+  }
 
   // If it's a shared market in chat, we use the nice SocialShareMarketCard
   // But we need to make sure it handles interactions correctly (navigate to market)
@@ -150,9 +158,9 @@ export function ChatTab({
           case "sending":
             return <Text style={[styles.marketStatusIndicator, { color: '#8E8E93' }]}>✓</Text>;
           case "sent":
-            return <Text style={[styles.marketStatusIndicator, { color: '#007AFF' }]}>✓</Text>;
+            return <Text style={[styles.marketStatusIndicator, { color: theme.primary }]}>✓</Text>;
           default:
-            return <Text style={[styles.marketStatusIndicator, { color: '#007AFF' }]}>✓✓</Text>;
+            return <Text style={[styles.marketStatusIndicator, { color: theme.primary }]}>✓✓</Text>;
         }
       }
 
@@ -160,9 +168,9 @@ export function ChatTab({
         case "sending":
           return <Text style={styles.statusIndicatorText}>✓</Text>;
         case "sent":
-          return <Text style={[styles.statusIndicatorText, { color: '#007AFF' }]}>✓</Text>;
+          return <Text style={[styles.statusIndicatorText, { color: theme.primary }]}>✓</Text>;
         default:
-          return <Text style={[styles.statusIndicatorText, { color: '#007AFF' }]}>✓✓</Text>;
+          return <Text style={[styles.statusIndicatorText, { color: theme.primary }]}>✓✓</Text>;
       }
     };
 
@@ -189,7 +197,7 @@ export function ChatTab({
           {isOptimistic ? (
             <View style={styles.optimisticMarketCard}>
               <Text style={styles.optimisticMarketText}>{item.content?.replace("New Market: ", "")}</Text>
-              <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 12 }} />
+              <ActivityIndicator size="small" color={theme.primary} style={{ marginTop: 12 }} />
               <Text style={styles.optimisticMarketSubtext}>Creating prediction...</Text>
             </View>
           ) : (
@@ -246,7 +254,7 @@ export function ChatTab({
             style={[
               styles.imageBubble,
               isMe 
-                ? [styles.myImageBubble, { backgroundColor: isDark ? "rgba(0, 122, 255, 0.9)" : "rgba(0, 122, 255, 1)" }] 
+                ? [styles.myImageBubble, { backgroundColor: theme.primary }] 
                 : [styles.theirImageBubble, { backgroundColor: isDark ? "rgba(44, 44, 46, 0.8)" : "rgba(242, 242, 247, 0.9)" }],
               !isMe && { borderColor: theme.border, borderWidth: isDark ? 1 : 0 },
             ]}
@@ -263,6 +271,21 @@ export function ChatTab({
               <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.7)" : theme.textSecondary }]}>
                 {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </Text>
+              {!isMe && (
+                <ReportContentButton
+                  targetType="group_message"
+                  targetId={item.id}
+                  targetUserId={item.user_id}
+                  label="Report"
+                  theme={{
+                    text: theme.text,
+                    textSecondary: theme.textSecondary,
+                    surface: theme.surface,
+                    border: theme.border,
+                    primary: theme.primary,
+                  }}
+                />
+              )}
               {renderStatusIndicator()}
             </View>
           </View>
@@ -280,7 +303,7 @@ export function ChatTab({
             styles.messageBubble,
             isMe
               ? [styles.myMessage, { 
-                  backgroundColor: isDark ? "rgba(0, 122, 255, 0.9)" : "rgba(0, 122, 255, 1)", 
+                  backgroundColor: theme.primary, 
                   borderBottomRightRadius: 4, 
                   borderTopRightRadius: 20,
                   borderTopLeftRadius: 20,
@@ -307,6 +330,21 @@ export function ChatTab({
             <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.6)" : theme.textSecondary }]}>
               {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </Text>
+            {!isMe && (
+              <ReportContentButton
+                targetType="group_message"
+                targetId={item.id}
+                targetUserId={item.user_id}
+                label="Report"
+                theme={{
+                  text: theme.text,
+                  textSecondary: theme.textSecondary,
+                  surface: theme.surface,
+                  border: theme.border,
+                  primary: theme.primary,
+                }}
+              />
+            )}
             {renderStatusIndicator()}
           </View>
         </View>
@@ -501,7 +539,7 @@ const styles = StyleSheet.create({
   marketAnnounce: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#007AFF",
+    color: Brand.primary,
   },
   marketStatusRow: {
     flexDirection: "row",
@@ -526,6 +564,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8E8E93",
   },
+  errorCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.04)",
+  },
+  errorCardText: {
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: "center",
+  },
   // Image messages
   imageBubble: {
     padding: 2,
@@ -534,7 +583,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   myImageBubble: {
-    backgroundColor: "rgba(0, 122, 255, 1)",
+    backgroundColor: Brand.primary,
     borderBottomRightRadius: 4,
     borderTopRightRadius: 20,
     borderTopLeftRadius: 20,
@@ -582,7 +631,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#007AFF",
+    backgroundColor: Brand.primary,
     justifyContent: "center",
     alignItems: "center",
   },

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Modal,
     Platform,
@@ -21,7 +22,8 @@ interface PlayModeToggleProps {
 
 export function PlayModeToggle({ compact = false, transparent = false }: PlayModeToggleProps) {
   const { theme, isDark } = useTheme();
-  const { isPlayMode, toggleMode, playBalance, liveBalance } = useWalletContext();
+  const { isPlayMode, toggleMode, playBalance, liveBalance, requestLiveMode } = useWalletContext();
+  const { t } = useTranslation('wallet');
   const router = useRouter();
   const [showInfo, setShowInfo] = useState(false);
   const [focusedControl, setFocusedControl] = useState<"balance" | "wallet" | "mode" | null>(null);
@@ -117,7 +119,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
         <View
           style={[
             styles.modeDot,
-            { backgroundColor: isPlayMode ? '#007AFF' : theme.primary },
+            { backgroundColor: isPlayMode ? theme.primary : theme.success },
           ]}
         />
         <Text
@@ -158,7 +160,12 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
             { value: 'live', label: 'Live', description: 'Real money' },
           ]}
           onChange={(next) => {
-            if (next !== modeValue) toggleMode();
+            if (next === modeValue) return;
+            if (next === 'live') {
+              void requestLiveMode();
+              return;
+            }
+            void toggleMode();
           }}
         />
       </View>
@@ -191,13 +198,13 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
 
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
-                <Text style={[styles.balanceLabel, { color: '#007AFF' }]}>Play Balance</Text>
+                <Text style={[styles.balanceLabel, { color: theme.primary }]}>{t('playBalanceLabel')}</Text>
                 <Text style={[styles.balanceValue, { color: theme.text }]}>
                   {formatCurrency(playBalance)}
                 </Text>
               </View>
               <View style={styles.balanceItem}>
-                <Text style={[styles.balanceLabel, { color: theme.primary }]}>Live Balance</Text>
+                <Text style={[styles.balanceLabel, { color: theme.success }]}>{t('liveBalanceLabel')}</Text>
                 <Text style={[styles.balanceValue, { color: theme.text }]}>
                   {formatCurrency(liveBalance)}
                 </Text>
@@ -205,14 +212,19 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
             </View>
 
             <TouchableOpacity
-              style={[styles.switchButton, { backgroundColor: isPlayMode ? theme.primary : '#007AFF' }]}
-              onPress={() => {
-                toggleMode();
-                setShowInfo(false);
+              style={[styles.switchButton, { backgroundColor: theme.primary }]}
+              onPress={async () => {
+                if (isPlayMode) {
+                  const ok = await requestLiveMode();
+                  if (ok) setShowInfo(false);
+                } else {
+                  await toggleMode();
+                  setShowInfo(false);
+                }
               }}
             >
               <Text style={[styles.switchButtonText, { color: theme.onPrimary }]}>
-                Switch to {isPlayMode ? 'Live' : 'Play'} Mode
+                {isPlayMode ? t('switchToLive') : t('switchToPlay')}
               </Text>
             </TouchableOpacity>
 
@@ -224,7 +236,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
                   router.push('/topup' as any);
                 }}
               >
-                <Text style={[styles.addFundsButtonText, { color: theme.onPrimary }]}>Add live funds</Text>
+                <Text style={[styles.addFundsButtonText, { color: theme.onPrimary }]}>{t('addLiveFunds')}</Text>
               </TouchableOpacity>
             )}
 
@@ -233,7 +245,7 @@ export function PlayModeToggle({ compact = false, transparent = false }: PlayMod
               onPress={() => setShowInfo(false)}
             >
               <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>
-                Close
+                {t('close')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -408,20 +420,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   switchButtonText: {
-    color: '#fff',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   addFundsButton: {
     paddingVertical: 12,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
   },
   addFundsButtonText: {
-    color: '#071018',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   closeButton: {
     alignItems: 'center',

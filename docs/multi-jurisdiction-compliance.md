@@ -36,7 +36,7 @@ See migration: `supabase/migrations/20260622130000_country_jurisdiction_complian
 |-------|----------|------|
 | Jurisdiction resolver | `lib/compliance/jurisdiction.ts` | EC vs US mapping, UI labels |
 | Compliance service | `services/compliance.service.ts` | Residence, policies, acceptance |
-| Legal content | `lib/legal/policy-content.ts` | `POLICY_DOCUMENTS_BY_JURISDICTION` (EC + US packs) |
+| Legal content | `lib/legal/policy-content.ts`, `lib/legal/policy-content-es-ec.ts` | EC users receive Spanish-primary pack; US English pack |
 | Onboarding UI | `app/onboarding/residence.tsx`, `app/onboarding/policies.tsx` | Capture residence, accept policies |
 | Auth gate | `app/_layout.tsx` | Residence → policies → tabs |
 | Settings | `ResidenceSettingsSection` | Read-only country/framework; optional phone edit |
@@ -65,6 +65,10 @@ See migration: `supabase/migrations/20260622130000_country_jurisdiction_complian
 ## Related docs
 
 - [Ecuador compliance framework](./ecuador-compliance-framework.md) — EC-specific deep dive
+- [Product classification memo](./ec-product-classification-memo.md) — LOPD vs non-sports counsel template
+- [UAFE & SRI runbook](./ec-uafe-sri-compliance-runbook.md) — AML and tax operational checklist
+- [Local presence requirements](./ec-local-presence-requirements.md) — entity / domicile checklist
+- [Counsel launch checklist](./ec-counsel-launch-checklist.md) — blocking items before public launch
 
 ## Out of scope (v1)
 

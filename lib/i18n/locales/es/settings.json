@@ -1,0 +1,22 @@
+{
+  "title": "Ajustes",
+  "subtitle": "Personaliza tu cuenta y la apariencia de la app.",
+  "account": "Cuenta",
+  "username": "Usuario",
+  "email": "Correo",
+  "notSet": "Sin definir",
+  "notAvailable": "No disponible",
+  "appearance": "Apariencia",
+  "appearanceHelper": "Elige tu modo de color preferido.",
+  "themeSystem": "Sistema",
+  "themeDark": "Oscuro",
+  "themeLight": "Claro",
+  "session": "Sesión",
+  "sessionHelper": "Cierra sesión en este dispositivo en cualquier momento.",
+  "signOut": "Cerrar sesión",
+  "signOutError": "No se pudo cerrar sesión",
+  "signOutIssue": "Sesión cerrada con incidencia",
+  "residence": "País de residencia",
+  "legal": "Legal y políticas",
+  "support": "Soporte"
+}

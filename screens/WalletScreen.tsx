@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -26,6 +27,7 @@ import {
 import { WalletOnboardingCard } from "../components/wallet/WalletOnboardingCard";
 import { WalletOverviewCard } from "../components/wallet/WalletOverviewCard";
 import { useAuthContext } from "../contexts/AuthContext";
+import { useAppLocale } from "../contexts/LocaleContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { formatCurrency } from "../lib/parimutuel";
@@ -50,10 +52,10 @@ function sanitizeAmount(text: string) {
   return cleaned;
 }
 
-function mapOnboardingLabel(state: OnboardingState) {
-  if (state === "ready") return "Payouts enabled";
-  if (state === "pending_review") return "Verification in review";
-  return "Wallet setup required";
+function mapOnboardingLabel(state: OnboardingState, t: (key: string) => string) {
+  if (state === "ready") return t("payoutsEnabled");
+  if (state === "pending_review") return t("verificationReview");
+  return t("setupRequired");
 }
 
 function mapTxCategory(type: string): WalletHistoryFilter {
@@ -64,24 +66,24 @@ function mapTxCategory(type: string): WalletHistoryFilter {
   return "all";
 }
 
-function txTitle(type: string): string {
+function txTitle(type: string, t: (key: string) => string): string {
   switch (type) {
     case "deposit":
-      return "Deposit";
+      return t("depositLabel");
     case "withdrawal":
-      return "Withdraw";
+      return t("withdrawLabel");
     case "transfer_sent":
-      return "Sent";
+      return t("sent");
     case "transfer_received":
-      return "Received";
+      return t("received");
     case "bet_placed":
-      return "Bet Placed";
+      return t("betPlaced");
     case "bet_won":
-      return "Bet Won";
+      return t("betWon");
     case "bet_lost":
-      return "Bet Lost";
+      return t("betLost");
     default:
-      return "Transaction";
+      return t("history");
   }
 }
 
@@ -90,6 +92,9 @@ export function WalletScreen() {
   const stripe = useStripe();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
+  const { locale } = useAppLocale();
+  const { t } = useTranslation("wallet");
+  const intlLocale = locale === "es" ? "es-EC" : "en-US";
   const {
     balance,
     isPlayMode,
@@ -98,6 +103,8 @@ export function WalletScreen() {
     lookupRecipient,
     sendFunds,
     refresh,
+    liveWalletReady,
+    requestLiveMode,
   } = useWalletContext();
 
   const [walletAction, setWalletAction] = useState<WalletActionKey>("deposit");
@@ -168,7 +175,25 @@ export function WalletScreen() {
     }
   };
 
+  const ensureLiveWalletAccess = (): boolean => {
+    if (isPlayMode || liveWalletReady) return true;
+    if (Platform.OS === "web") {
+      router.push("/wallet/verify" as any);
+      return false;
+    }
+    Alert.alert(
+      "Identity verification required",
+      "Verify your identity before using the live wallet.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Verify", onPress: () => router.push("/wallet/verify" as any) },
+      ],
+    );
+    return false;
+  };
+
   const handleTopUp = async () => {
+    if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value < MIN_DEPOSIT) {
       Alert.alert("Minimum deposit", `Enter at least $${MIN_DEPOSIT}.00`);
@@ -271,6 +296,7 @@ export function WalletScreen() {
   };
 
   const handleWithdraw = async () => {
+    if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value < MIN_WITHDRAWAL) {
       Alert.alert("Minimum withdrawal", `Enter at least $${MIN_WITHDRAWAL}.00`);
@@ -323,6 +349,7 @@ export function WalletScreen() {
   };
 
   const handleSend = async () => {
+    if (!ensureLiveWalletAccess()) return;
     const value = Number(amount);
     if (!recipient) {
       Alert.alert("Recipient required", "Find a user first.");
@@ -413,7 +440,7 @@ export function WalletScreen() {
                 <Text
                   style={[
                     styles.quickChipText,
-                    { color: amount === String(value) ? "#fff" : theme.text },
+                    { color: amount === String(value) ? theme.onPrimary : theme.text },
                   ]}
                 >
                   ${value}
@@ -586,9 +613,9 @@ export function WalletScreen() {
         >
           <WalletOverviewCard
             balanceLabel={isPlayMode ? "Play balance" : "Live balance"}
-            balanceDisplay={formatCurrency(balance)}
+            balanceDisplay={formatCurrency(balance, "USD", intlLocale)}
             subtitle={isPlayMode ? "Trial credits for practice only." : "Real-money wallet"}
-            onboardingLabel={!isPlayMode ? mapOnboardingLabel(onboardingState) : undefined}
+            onboardingLabel={!isPlayMode ? mapOnboardingLabel(onboardingState, t) : undefined}
             theme={theme}
           />
 
@@ -606,8 +633,26 @@ export function WalletScreen() {
                   Practice credits help you learn the app. Switch to live only when you want to deposit or withdraw real money.
                 </Text>
               </View>
-              <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={toggleMode}>
+              <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={() => void requestLiveMode()}>
                 <Text style={styles.primaryButtonText}>Switch to Live Wallet</Text>
+              </TouchableOpacity>
+            </>
+          ) : !liveWalletReady ? (
+            <>
+              <View style={[styles.walletGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.walletGuideTitle, { color: theme.text }]}>Verify to use live wallet</Text>
+                <Text style={[styles.walletGuideText, { color: theme.textSecondary }]}>
+                  Complete Stripe Identity verification before depositing, withdrawing, or placing live bets.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+                onPress={() => router.push("/wallet/verify" as any)}
+              >
+                <Text style={styles.primaryButtonText}>Verify identity</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.secondaryLinkButton]} onPress={toggleMode}>
+                <Text style={[styles.secondaryLinkText, { color: theme.textSecondary }]}>Back to practice mode</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -664,15 +709,15 @@ export function WalletScreen() {
                     ]}
                   >
                     <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text style={[styles.txTitle, { color: theme.text }]}>{txTitle(tx.type)}</Text>
+                      <Text style={[styles.txTitle, { color: theme.text }]}>{txTitle(tx.type, t)}</Text>
                       <Text style={[styles.txSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
                         {direction ? `${direction} • ${date}` : date}
                       </Text>
                     </View>
                     <View style={styles.txRight}>
-                      <Text style={[styles.txAmount, { color: isPositive ? "#34C759" : theme.text }]}>
+                      <Text style={[styles.txAmount, { color: isPositive ? theme.success : theme.text }]}>
                         {isPositive ? "+" : ""}
-                        {formatCurrency(Number(tx.amount || 0))}
+                        {formatCurrency(Number(tx.amount || 0), "USD", intlLocale)}
                       </Text>
                       <Text style={[styles.txStatus, { color: theme.textSecondary }]}>
                         {(tx.status || "completed").toUpperCase()}
@@ -750,6 +795,15 @@ const styles = StyleSheet.create({
   walletGuideText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  secondaryLinkButton: {
+    marginTop: 8,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  secondaryLinkText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   walletModeCard: {
     borderWidth: StyleSheet.hairlineWidth,

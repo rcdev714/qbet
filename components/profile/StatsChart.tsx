@@ -108,7 +108,7 @@ export function StatsChart({ bets }: StatsChartProps) {
   const noData = data.length <= 1 && cumulativePL === 0;
 
   const isPositive = cumulativePL >= 0;
-  const lineColor = isPositive ? "#34C759" : "#FF3B30";
+  const lineColor = isPositive ? theme.success : theme.error;
   // Subtle gradient or just line? User asked for "candle or linear" "not smooth".
   // Stock charts often have gradient fill but let's make it very subtle or removed if linear line is focus.
   // We'll keep a very faint fill to anchor it visually, but the line is the hero.

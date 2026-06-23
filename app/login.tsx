@@ -1,7 +1,11 @@
+import { Brand } from "@/constants/theme";
+import { getBetaAccessIntent } from "@/lib/beta-access-intent";
+import { getParamString } from "@/lib/route-params";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -18,21 +22,41 @@ import { useAuthContext } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
   const { signIn, signUp, signInWithGoogle } = useAuthContext();
+  const { t } = useTranslation("auth");
+  const { t: tAccess } = useTranslation("accessRequest");
   const params = useLocalSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLogin, setIsLogin] = useState(params.mode !== "signup");
+  const signupMode = getParamString(params.mode) === "signup";
+  const [isLogin, setIsLogin] = useState(!signupMode);
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [approvedIntent, setApprovedIntent] = useState(false);
+
+  useEffect(() => {
+    setIsLogin(getParamString(params.mode) !== "signup");
+  }, [params.mode]);
+
+  useEffect(() => {
+    const paramEmail = getParamString(params.email);
+    if (paramEmail) {
+      setEmail(paramEmail);
+      return;
+    }
+    void getBetaAccessIntent().then((intent) => {
+      if (intent?.email) setEmail(intent.email);
+      if (intent?.status === "approved") setApprovedIntent(true);
+    });
+  }, [params.email]);
 
   const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert("Missing info", "Enter your email and password to continue.");
+      Alert.alert(t("missingInfo"), t("missingInfoBody"));
       return;
     }
 
     if (!isLogin && password !== confirmPassword) {
-      Alert.alert("Check password", "Both password fields need to match.");
+      Alert.alert(t("checkPassword"), t("checkPasswordBody"));
       return;
     }
 
@@ -47,21 +71,21 @@ export default function LoginScreen() {
 
         if (!newUser) {
           Alert.alert(
-            "Check your email",
-            "We have sent you a verification email. Please click the link in the email to verify your account.",
+            t("checkEmail"),
+            t("checkEmailBody"),
             [{ text: "OK", onPress: () => setIsLogin(true) }],
           );
         }
       }
     } catch (error) {
-      let errorMessage = "An error occurred. Please try again.";
+      let errorMessage = t("genericError");
       
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === "object" && error !== null) {
         const errObj = error as { status?: number; statusText?: string; message?: string };
         if (errObj.status === 502 || errObj.status === 503) {
-          errorMessage = "Service temporarily unavailable. Please wait a moment and try again.";
+          errorMessage = t("serviceUnavailable");
         } else if (errObj.message) {
           errorMessage = errObj.message;
         } else if (errObj.statusText) {
@@ -69,7 +93,7 @@ export default function LoginScreen() {
         }
       }
       
-      Alert.alert("Error", errorMessage);
+      Alert.alert(t("error"), errorMessage);
     } finally {
       setAuthSubmitting(false);
     }
@@ -99,13 +123,16 @@ export default function LoginScreen() {
                 <Text style={styles.brandName}>AnyMarket</Text>
               </View>
               <Text style={styles.subtitle}>
-                {isLogin ? "Welcome back" : "Create your account"}
+                {isLogin ? t("welcomeBack") : t("createAccount")}
               </Text>
               {!isLogin && (
                 <Text style={styles.helperText}>
-                  After signup you will set your country of residence and accept the policies that apply to you.
+                  {t("signupHelper")}
                 </Text>
               )}
+              {approvedIntent ? (
+                <Text style={styles.approvedBanner}>{tAccess("approvedLoginBanner")}</Text>
+              ) : null}
             </View>
 
             <View style={styles.form}>
@@ -115,9 +142,12 @@ export default function LoginScreen() {
                     style={[styles.googleButton, authSubmitting && styles.buttonDisabled, Platform.OS === "web" && { cursor: "pointer" } as any]}
                     onPress={async () => {
                       setAuthSubmitting(true);
-                      const { error } = await signInWithGoogle();
-                      if (error) {
-                        Alert.alert("Error", error.message);
+                      try {
+                        const { error } = await signInWithGoogle();
+                        if (error) {
+                          Alert.alert(t("error"), error.message);
+                        }
+                      } finally {
                         setAuthSubmitting(false);
                       }
                     }}
@@ -126,13 +156,13 @@ export default function LoginScreen() {
                   >
                     <Ionicons name="logo-google" size={20} color="#16243F" style={{ marginRight: 10 }} />
                     <Text style={styles.googleButtonText}>
-                      {isLogin ? "Continue with Google" : "Create account with Google"}
+                      {isLogin ? t("continueGoogle") : t("createGoogle")}
                     </Text>
                   </TouchableOpacity>
 
                   <View style={styles.dividerRow}>
                     <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or continue with email</Text>
+                    <Text style={styles.dividerText}>{t("orEmail")}</Text>
                     <View style={styles.dividerLine} />
                   </View>
                 </View>
@@ -140,7 +170,7 @@ export default function LoginScreen() {
 
               <TextInput
                 style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                placeholder="Email"
+                placeholder={t("email")}
                 placeholderTextColor="rgba(219, 231, 255, 0.55)"
                 value={email}
                 onChangeText={setEmail}
@@ -149,7 +179,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={[styles.input, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                placeholder="Password"
+                placeholder={t("password")}
                 placeholderTextColor="rgba(219, 231, 255, 0.55)"
                 value={password}
                 onChangeText={setPassword}
@@ -159,7 +189,7 @@ export default function LoginScreen() {
               {!isLogin && (
                 <TextInput
                   style={[styles.input, Platform.OS === "web" && { cursor: "text" } as any]}
-                  placeholder="Confirm password"
+                  placeholder={t("confirmPassword")}
                   placeholderTextColor="rgba(219, 231, 255, 0.55)"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -177,7 +207,7 @@ export default function LoginScreen() {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>
-                    {isLogin ? "Sign in" : "Create account"}
+                    {isLogin ? t("signIn") : t("createAccountButton")}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -190,9 +220,7 @@ export default function LoginScreen() {
                 }}
               >
                 <Text style={styles.switchButtonText}>
-                  {isLogin
-                    ? "New here? Create account"
-                    : "Have an account? Sign in"}
+                  {isLogin ? t("switchToSignup") : t("switchToLogin")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -276,6 +304,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: 360,
   },
+  approvedBanner: {
+    marginTop: 10,
+    color: "#86EFAC",
+    fontSize: 13.5,
+    lineHeight: 20,
+    textAlign: "center",
+    maxWidth: 360,
+  },
   form: {
     gap: 12,
   },
@@ -327,8 +363,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: '#0090FF',
-    borderColor: '#0090FF',
+    backgroundColor: Brand.primary,
+    borderColor: Brand.primary,
   },
   checkboxLabel: {
     fontSize: 13,
@@ -347,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: 'center',
-    backgroundColor: '#0090FF',
+    backgroundColor: Brand.primary,
   },
   buttonDisabled: {
     opacity: 0.7,

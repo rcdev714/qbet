@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { decode } from "base64-arraybuffer";
 import * as Clipboard from 'expo-clipboard';
@@ -26,6 +27,7 @@ import {
 } from "react-native";
 
 import { shareService } from "@/services/share.service";
+import { useTranslation } from "react-i18next";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { ActiveBetsTab } from "../components/group-chat/ActiveBetsTab";
@@ -39,15 +41,19 @@ import { PlayModeToggle } from "../components/PlayModeToggle";
 import { PublicBetPickerModal } from "../components/PublicBetPickerModal";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
+import { useAppLocale } from "../contexts/LocaleContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { useGroup, useGroupMembers } from "../hooks/useGroups";
 import { useGroupMarkets } from "../hooks/useMarket";
 import { useMessages } from "../hooks/useMessages";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
+import { getSportsBlockMessage, scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { formatCurrency } from "../lib/parimutuel";
+import { getParamString } from "../lib/route-params";
 import { supabase } from "../lib/supabase";
 import { betService } from "../services/bet.service";
+import { complianceService } from "../services/compliance.service";
 import { groupService } from "../services/group.service";
 import { marketService } from "../services/market.service";
 import type { Market, MarketOption } from "../types/market";
@@ -59,8 +65,12 @@ function actionErrorMessage(error: unknown, fallback: string) {
 
 export function GroupScreen() {
   const router = useRouter();
+  const { t } = useTranslation("group");
+  const { locale } = useAppLocale();
   const { navigate } = usePremiumNavigation();
-  const { id: groupId, onboarding } = useLocalSearchParams<{ id: string; onboarding?: string }>();
+  const params = useLocalSearchParams<{ id: string; onboarding?: string }>();
+  const groupId = getParamString(params.id) ?? null;
+  const onboarding = getParamString(params.onboarding);
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
   const { balance, isPlayMode, refresh: refreshWallet, lastBetTime } = useWalletContext();
@@ -125,7 +135,7 @@ export function GroupScreen() {
   useEffect(() => {
     let cancelled = false;
     const loadShareCode = async () => {
-      if (!isAdmin) { setShareCode(null); return; }
+      if (!isAdmin || !groupId) { setShareCode(null); return; }
       const { shareCode: code } = await groupService.getGroupShareCode(groupId);
       if (!cancelled) setShareCode(code ?? null);
     };
@@ -281,9 +291,14 @@ export function GroupScreen() {
   };
 
   const handleCopyInviteCode = async () => {
+    if (!group || !shareCode) {
+      Alert.alert("Invite code unavailable", "Open group info again or refresh this group, then try copying the invite code.");
+      setAttachMenuVisible(false);
+      return;
+    }
     if (shareCode) {
-      const groupName = group?.name || "this group";
-      const shareUrl = shareService.getGroupInviteShareUrl(groupId, shareCode);
+      const groupName = group.name || "this group";
+      const shareUrl = shareService.getGroupInviteShareUrl(group.id, shareCode);
       const title = groupName;
       const message = `Join ${groupName} with invite code ${shareCode}.`;
 
@@ -346,8 +361,35 @@ export function GroupScreen() {
 
   const handleCreateMarket = async () => {
     const filteredOptions = newOptions.filter((opt: string) => opt.trim() !== "");
-    if (!newQuestion.trim() || filteredOptions.length < 2) { Alert.alert("Add a question and 2 options", "Predictions need a clear question and at least 2 possible outcomes."); return; }
-    if (!user) { Alert.alert("Sign in to create a prediction", "Log in, then come back to start this prediction."); return; }
+    if (!newQuestion.trim() || filteredOptions.length < 2) {
+      Alert.alert(t("addQuestionOptions"), t("addQuestionOptionsBody"));
+      return;
+    }
+    if (!user) {
+      Alert.alert(t("signInRequired"), t("signInRequiredBody"));
+      return;
+    }
+    if (!group) return;
+    const createGroupId = group.id;
+
+    try {
+      const residence = await complianceService.getUserResidence();
+      if (residence?.jurisdiction === "EC") {
+        const sportsScan = scanMarketTextForSports({
+          question: newQuestion,
+          optionLabels: filteredOptions,
+        });
+        if (sportsScan.blocked) {
+          Alert.alert(
+            t("sportsBlockedTitle"),
+            getSportsBlockMessage(locale),
+          );
+          return;
+        }
+      }
+    } catch {
+      // Continue; server gate is authoritative.
+    }
 
     const marketClosesAt = closesAt;
     
@@ -363,7 +405,7 @@ export function GroupScreen() {
     const now = new Date().toISOString();
 
     const optimisticMessage: Message = {
-      id: tempId, group_id: groupId, user_id: user.id,
+      id: tempId, group_id: createGroupId, user_id: user.id,
       content: `New Market: ${newQuestion}`, message_type: "market",
       market_id: tempId, created_at: now, status: "sending",
     };
@@ -380,7 +422,7 @@ export function GroupScreen() {
       if (marketImage?.base64) {
         try {
           const timestamp = Date.now();
-          const fileName = `${groupId}/${timestamp}.jpg`;
+          const fileName = `${createGroupId}/${timestamp}.jpg`;
           const arrayBuffer = decode(marketImage.base64);
           const { error: uploadError } = await supabase.storage.from("market-images").upload(fileName, arrayBuffer, { contentType: marketImage.mimeType ?? "image/jpeg", upsert: false });
           if (uploadError) throw uploadError;
@@ -391,7 +433,7 @@ export function GroupScreen() {
         }
       }
 
-      const { market, error } = await marketService.createMarket({ groupId, question: newQuestion, options: filteredOptions, closesAt: marketClosesAt, imageUrl });
+      const { market, error } = await marketService.createMarket({ groupId: createGroupId, question: newQuestion, options: filteredOptions, closesAt: marketClosesAt, imageUrl });
       if (error) throw error;
 
       if (market) {
@@ -500,6 +542,22 @@ export function GroupScreen() {
   if (groupLoading) {
     return <AnyMarketLoader message="Opening your group..." />;
   }
+
+  if (!groupId || !group) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centeredFallback, { backgroundColor: theme.background }]}>
+        <Text style={[styles.fallbackTitle, { color: theme.text }]}>Group not found</Text>
+        <Text style={[styles.fallbackBody, { color: theme.textSecondary }]}>
+          This group may have been deleted or you may not have access.
+        </Text>
+        <TouchableOpacity style={[styles.fallbackButton, { backgroundColor: theme.primary }]} onPress={() => router.back()}>
+          <Text style={[styles.fallbackButtonText, { color: theme.onPrimary }]}>Go back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const activeGroupId = group.id;
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
@@ -619,7 +677,7 @@ export function GroupScreen() {
 
       {activeTab === "rankings" && (
         <RankingsTab
-          groupId={groupId}
+          groupId={activeGroupId}
           members={members}
           markets={markets}
           currentUserId={user?.id}
@@ -1166,9 +1224,14 @@ export function GroupScreen() {
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F2F2F7" },
+  centeredFallback: { justifyContent: "center", alignItems: "center", padding: 24 },
+  fallbackTitle: { fontSize: 20, fontWeight: "600", marginBottom: 8, textAlign: "center" },
+  fallbackBody: { fontSize: 15, textAlign: "center", marginBottom: 20, lineHeight: 22 },
+  fallbackButton: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
+  fallbackButtonText: { fontSize: 16, fontWeight: "600" },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   backButton: { padding: 8, marginLeft: -8 },
-  backButtonText: { fontSize: 17, color: "#007AFF", marginLeft: 4 },
+  backButtonText: { fontSize: 17, color: Brand.primary, marginLeft: 4 },
   headerTitle: { fontSize: 17, fontWeight: "600" },
   headerSubtitle: { fontSize: 12, color: "#8E8E93" },
   headerInfo: { alignItems: "center", flexDirection: "row" },
@@ -1199,7 +1262,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerActionText: { fontSize: 17, color: "#007AFF", fontWeight: "600" },
+  headerActionText: { fontSize: 17, color: Brand.primary, fontWeight: "600" },
   groupHeaderAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
   groupHeaderAvatarPlaceholder: { width: 36, height: 36, borderRadius: 18, marginRight: 10, alignItems: "center", justifyContent: "center" },
   groupHeaderAvatarInitials: { fontSize: 14, fontWeight: "600" },
@@ -1226,7 +1289,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: StyleSheet.hairlineWidth },
   modalTitle: { fontSize: 18, fontWeight: "600" },
   modalCloseButton: { padding: 4 },
-  closeModalText: { fontSize: 17, color: "#007AFF" },
+  closeModalText: { fontSize: 17, color: Brand.primary },
   modalSection: { gap: 8 },
   modalSectionTitle: { fontSize: 13, fontWeight: "600", color: "#8E8E93", textTransform: "uppercase", letterSpacing: 0.3 },
   modalInput: { fontSize: 16, padding: 16, borderRadius: 12 },
@@ -1295,13 +1358,13 @@ const styles = StyleSheet.create({
   descriptionEditBox: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
   descriptionInput: { fontSize: 15, minHeight: 60 },
   saveDescriptionBtn: { marginTop: 8, alignSelf: "flex-end" },
-  saveDescriptionBtnText: { fontSize: 15, color: "#007AFF", fontWeight: "600" },
+  saveDescriptionBtnText: { fontSize: 15, color: Brand.primary, fontWeight: "600" },
   predictionsSection: { padding: 20, gap: 8 },
   accordionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
   accordionTitle: { fontSize: 16, fontWeight: "600" },
   accordionRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  accordionCount: { fontSize: 14, fontWeight: "600", color: "#007AFF" },
-  accordionChevron: { fontSize: 14, color: "#007AFF" },
+  accordionCount: { fontSize: 14, fontWeight: "600", color: Brand.primary },
+  accordionChevron: { fontSize: 14, color: Brand.primary },
   accordionBody: { paddingVertical: 8, gap: 8 },
   accordionEmpty: { fontSize: 14, color: "#8E8E93", textAlign: "center", paddingVertical: 12 },
   marketRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 },
@@ -1309,7 +1372,7 @@ const styles = StyleSheet.create({
   marketRowTitle: { fontSize: 15, fontWeight: "400" },
   marketRowMeta: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
   marketStatusPill: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: "hidden" },
-  marketStatusOpen: { color: "#007AFF", backgroundColor: "#E7F3FF" },
+  marketStatusOpen: { color: Brand.primary, backgroundColor: Brand.primarySoft },
   marketStatusClosed: { color: "#8E8E93", backgroundColor: "#F2F2F7" },
 
   // Members
@@ -1318,7 +1381,7 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 16, fontWeight: "400" },
   memberRole: { fontSize: 13, color: "#8E8E93" },
   promoteBtn: { padding: 8 },
-  promoteBtnText: { fontSize: 14, color: "#007AFF", fontWeight: "600" },
+  promoteBtnText: { fontSize: 14, color: Brand.primary, fontWeight: "600" },
   removeMemberBtn: { padding: 8 },
   removeMemberBtnText: { fontSize: 14, color: "#FF3B30", fontWeight: "600" },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: "#C6C6C8", marginVertical: 8 },
@@ -1334,7 +1397,7 @@ const styles = StyleSheet.create({
   betSide: { fontSize: 14 },
   betInputWrapper: { flexDirection: "row", alignItems: "center", marginHorizontal: 20, backgroundColor: "#F2F2F7", borderRadius: 12, padding: 16, marginVertical: 20 },
   betInput: { flex: 1, fontSize: 18, fontWeight: "600", marginLeft: 8 },
-  betButton: { margin: 20, backgroundColor: "#007AFF", padding: 16, borderRadius: 16, alignItems: "center" },
+  betButton: { margin: 20, backgroundColor: Brand.primary, padding: 16, borderRadius: 16, alignItems: "center" },
   betButtonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
   quickAmounts: { flexDirection: "row", gap: 8, marginHorizontal: 20, marginBottom: 16 },
   quickChip: { flex: 1, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(142, 142, 147, 0.2)" },

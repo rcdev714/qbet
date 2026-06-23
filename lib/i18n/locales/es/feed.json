@@ -1,0 +1,15 @@
+{
+  "title": "Feed público",
+  "empty": "Ningún mercado coincide con tus filtros.",
+  "createBet": "Hacer predicción",
+  "discover": "Descubrir",
+  "forYou": "Para ti",
+  "noCloseDate": "Sin fecha de cierre",
+  "closed": "Cerrado",
+  "closingSoon": "Cierra pronto",
+  "hoursLeft": "{{hours}}h restantes",
+  "daysHoursLeft": "{{days}}d {{hours}}h restantes",
+  "chatNoMessages": "Aún no hay mensajes. ¡Sé el primero en comentar!",
+  "chatPlaceholder": "Di algo...",
+  "chatReport": "Reportar"
+}

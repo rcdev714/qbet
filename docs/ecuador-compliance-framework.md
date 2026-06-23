@@ -77,8 +77,11 @@ For counsel or regulator review, export:
 
 ## Open Legal Questions
 
+See [`ec-product-classification-memo.md`](./ec-product-classification-memo.md) for counsel decision tree. Summary:
+
 - Whether non-sports future-event markets are outside Ecuador's sports-betting licensing regime.
 - Whether private real-money event markets are treated as gaming, financial contracts, payment services, or another category.
 - Whether wallet balances and crypto rails trigger fintech/payment authorization.
-- Tax base, withholding, VAT/digital service treatment, and monthly reporting obligations.
-- Whether UAFE registration and formal suspicious transaction reporting are required before launch.
+- Tax base, withholding, VAT/digital service treatment, and monthly reporting obligations — see [`ec-uafe-sri-compliance-runbook.md`](./ec-uafe-sri-compliance-runbook.md).
+- Whether UAFE registration and formal suspicious transaction reporting are required before launch — see runbook.
+- Whether local Ecuadorian entity or representative is required — see [`ec-local-presence-requirements.md`](./ec-local-presence-requirements.md).

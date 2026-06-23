@@ -1,0 +1,15 @@
+{
+  "title": "Public feed",
+  "empty": "No markets match your filters.",
+  "createBet": "Place prediction",
+  "discover": "Discover",
+  "forYou": "For you",
+  "noCloseDate": "No close date",
+  "closed": "Closed",
+  "closingSoon": "Closing soon",
+  "hoursLeft": "{{hours}}h left",
+  "daysHoursLeft": "{{days}}d {{hours}}h left",
+  "chatNoMessages": "No messages yet. Be the first to comment!",
+  "chatPlaceholder": "Say something...",
+  "chatReport": "Report"
+}

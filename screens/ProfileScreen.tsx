@@ -3,7 +3,8 @@ import * as Haptics from "expo-haptics";
 import { ImagePickerAsset } from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, RefreshControl, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Platform, RefreshControl, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ReportContentButton } from "../components/moderation/ReportContentButton";
 import { PlayStatsView } from "../components/play-mode/PlayStatsView";
 import { AuraScoreModal } from "../components/profile/AuraScoreModal";
 import { BetHistoryCard } from "../components/profile/BetHistoryCard";
@@ -20,6 +21,7 @@ import { isAppAdmin } from "../lib/admin";
 import { supabase } from "../lib/supabase";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
+import { moderationService } from "../services/moderation.service";
 import { shareService } from "../services/share.service";
 import { socialService, UserProfile } from "../services/social.service";
 import { BetWithDetails } from "../types/market";
@@ -203,6 +205,30 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       }
   };
 
+  const handleBlockUser = async () => {
+    if (!targetUserId || isOwnProfile) return;
+    Alert.alert(
+      "Block user",
+      `Block @${viewedUser?.username || "this user"}? They will not be able to interact with you in chat.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await moderationService.blockUser(targetUserId);
+              Alert.alert("User blocked", "You will no longer see content from this user.");
+              router.back();
+            } catch (error) {
+              Alert.alert("Could not block user", error instanceof Error ? error.message : "Try again.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleMessage = async () => {
       if (!currentUser || !viewedUser || !targetUserId) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -381,6 +407,29 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
                 onShare={() => setShowShareOverlay(true)}
                 onFollowersPress={() => setFollowersModalVisible(true)}
             />
+            {!isOwnProfile && targetUserId ? (
+              <View style={[styles.moderationRow, { borderColor: theme.border }]}>
+                <ReportContentButton
+                  targetType="user_profile"
+                  targetId={targetUserId}
+                  targetUserId={targetUserId}
+                  label="Report profile"
+                  theme={{
+                    text: theme.text,
+                    textSecondary: theme.textSecondary,
+                    surface: theme.surface,
+                    border: theme.border,
+                    primary: theme.primary,
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={handleBlockUser}
+                  style={[styles.blockButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
+                >
+                  <Text style={[styles.blockButtonText, { color: theme.error }]}>Block user</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
             <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
           </>
         }
@@ -458,6 +507,22 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontSize: 17,
+    fontWeight: '600',
+  },
+  moderationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  blockButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  blockButtonText: {
+    fontSize: 13,
     fontWeight: '600',
   },
 });

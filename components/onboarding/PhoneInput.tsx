@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import type { SupportedCountryRow } from "@/services/compliance.service";
 import { AsYouType, parsePhoneNumberFromString } from "libphonenumber-js";
 import React, { useEffect, useState } from "react";
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     minWidth: 44,
   },
   textLight: {
-    color: "#1A2F5C",
+    color: Brand.deep,
   },
   textDark: {
     color: "#F8FBFF",

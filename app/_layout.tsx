@@ -2,8 +2,8 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@rea
 import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { AnyMarketLoader } from '@/components/AnyMarketLoader';
@@ -12,8 +12,14 @@ import { SEO } from '@/components/SEO';
 import { SignupBanner } from '@/components/SignupBanner';
 import { WebContainer } from '@/components/WebContainer';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
+import { LocaleProvider } from '@/contexts/LocaleContext';
+import { OnboardingGuardProvider } from '@/contexts/OnboardingGuardContext';
+import { PolicyFrameworkProvider } from '@/contexts/PolicyFrameworkContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { WalletProvider } from '@/contexts/WalletContext';
+import { isAppAdmin } from '@/lib/admin';
+import { LEGAL_COLORS, LEGAL_STACK_SCREEN_OPTIONS } from '@/lib/legal/typography';
+import { getPublicEnv } from '@/lib/public-env';
 import { StripeProvider } from '@/lib/stripe-bridge';
 import { complianceService } from '@/services/compliance.service';
 import { groupService } from '@/services/group.service';
@@ -23,6 +29,17 @@ export const unstable_settings = {
 };
 
 const PENDING_WEB_INVITE_KEY = 'anymarket:pending-web-invite';
+const ONBOARDING_CHECK_TIMEOUT_MS = 12_000;
+const POST_AUTH_HOME = '/(tabs)/feed' as const;
+
+async function resolveBetaAccess(
+  userId: string,
+  user: { email?: string | null; is_admin?: boolean | null } | null,
+): Promise<boolean> {
+  if (getPublicEnv().betaRequired !== 'true') return true;
+  if (isAppAdmin(user)) return true;
+  return complianceService.hasBetaAccess(userId);
+}
 
 type PendingWebInvite = {
   inviteCode: string;
@@ -135,6 +152,8 @@ function isPublicSegment(segment: string | undefined) {
   return (
     isLandingSegment(segment) ||
     segment === 'login' ||
+    segment === 'request-access' ||
+    segment === 'beta' ||
     segment === 'market' ||
     segment === 'profile' ||
     segment === 'share' ||
@@ -154,6 +173,7 @@ function RootLayoutNav() {
   const [policyCheckDone, setPolicyCheckDone] = useState(!hasSession);
   const [hasPolicyAcceptances, setHasPolicyAcceptances] = useState(true);
   const [hasResidence, setHasResidence] = useState(true);
+  const [hasBetaAccess, setHasBetaAccess] = useState(true);
   const hasPageLevelSeo =
     isLanding ||
     currentSegment === 'market' ||
@@ -164,35 +184,109 @@ function RootLayoutNav() {
   const initialUrlHandled = useRef(false);
   const pendingDeepLink = useRef<string | null>(null);
   const consumingInvite = useRef(false);
+  const onboardingSnapshotRef = useRef({
+    hasResidence: true,
+    hasPolicyAcceptances: true,
+    hasBetaAccess: true,
+  });
 
-  useEffect(() => {
-    if (loading || !hasSession) {
+  const refreshOnboardingStatus = useCallback(async () => {
+    if (!hasSession || !user?.id) return;
+
+    const betaRequired = getPublicEnv().betaRequired === 'true';
+
+    try {
+      const residenceSet = await complianceService.hasSetResidence(user.id);
+      const accepted = residenceSet
+        ? await complianceService.hasAcceptedCurrentPolicies(user.id)
+        : false;
+      const betaAccess = betaRequired
+        ? await resolveBetaAccess(user.id, user)
+        : true;
+
+      onboardingSnapshotRef.current = {
+        hasResidence: residenceSet,
+        hasPolicyAcceptances: accepted,
+        hasBetaAccess: betaAccess,
+      };
+      setHasResidence(residenceSet);
+      setHasPolicyAcceptances(accepted);
+      setHasBetaAccess(betaAccess);
+      setPolicyCheckDone(true);
+    } catch (error) {
+      console.warn('[Auth] Onboarding refresh failed:', error);
+      const snapshot = onboardingSnapshotRef.current;
+      setHasResidence(snapshot.hasResidence);
+      setHasPolicyAcceptances(snapshot.hasPolicyAcceptances);
+      setHasBetaAccess(snapshot.hasBetaAccess);
+      setPolicyCheckDone(true);
+    }
+  }, [hasSession, user?.id, user?.email, user?.is_admin]);
+
+  useLayoutEffect(() => {
+    if (loading) return;
+    if (!hasSession) {
       setPolicyCheckDone(true);
       setHasPolicyAcceptances(true);
       setHasResidence(true);
+      setHasBetaAccess(true);
+      onboardingSnapshotRef.current = {
+        hasResidence: true,
+        hasPolicyAcceptances: true,
+        hasBetaAccess: true,
+      };
       return;
     }
+    setPolicyCheckDone(false);
+  }, [loading, hasSession]);
+
+  useEffect(() => {
+    if (loading || !hasSession || !user?.id) return;
 
     let mounted = true;
-    setPolicyCheckDone(false);
+    const betaRequired = getPublicEnv().betaRequired === 'true';
+    const timeoutId = setTimeout(() => {
+      if (!mounted) return;
+      console.warn('[Auth] Onboarding check timed out; using last-known-good flags');
+      const snapshot = onboardingSnapshotRef.current;
+      setHasResidence(snapshot.hasResidence);
+      setHasPolicyAcceptances(snapshot.hasPolicyAcceptances);
+      setHasBetaAccess(snapshot.hasBetaAccess);
+      setPolicyCheckDone(true);
+    }, ONBOARDING_CHECK_TIMEOUT_MS);
 
     const verifyOnboarding = async () => {
       try {
         const residenceSet = await complianceService.hasSetResidence(user?.id);
-        const accepted = residenceSet
-          ? await complianceService.hasAcceptedCurrentPolicies(user?.id)
-          : false;
+        const [accepted, betaAccess] = await Promise.all([
+          residenceSet
+            ? complianceService.hasAcceptedCurrentPolicies(user?.id)
+            : Promise.resolve(false),
+          betaRequired
+            ? resolveBetaAccess(user.id, user)
+            : Promise.resolve(true),
+        ]);
 
         if (mounted) {
+          clearTimeout(timeoutId);
+          onboardingSnapshotRef.current = {
+            hasResidence: residenceSet,
+            hasPolicyAcceptances: accepted,
+            hasBetaAccess: betaAccess,
+          };
           setHasResidence(residenceSet);
           setHasPolicyAcceptances(accepted);
+          setHasBetaAccess(betaAccess);
           setPolicyCheckDone(true);
         }
       } catch (error) {
         console.warn('[Auth] Onboarding check failed:', error);
         if (mounted) {
-          setHasResidence(false);
-          setHasPolicyAcceptances(false);
+          clearTimeout(timeoutId);
+          const snapshot = onboardingSnapshotRef.current;
+          setHasResidence(snapshot.hasResidence);
+          setHasPolicyAcceptances(snapshot.hasPolicyAcceptances);
+          setHasBetaAccess(snapshot.hasBetaAccess);
           setPolicyCheckDone(true);
         }
       }
@@ -202,8 +296,9 @@ function RootLayoutNav() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
     };
-  }, [loading, hasSession, user?.id]);
+  }, [loading, hasSession, user?.id, user?.email, user?.is_admin]);
 
   // Handle deep links
   useEffect(() => {
@@ -377,7 +472,22 @@ function RootLayoutNav() {
   }, [loading, router, hasSession]);
 
   useEffect(() => {
-    if (loading || !policyCheckDone) return;
+    if (loading || !hasSession || !user?.id || hasBetaAccess) return;
+
+    const segment = segments[0];
+    const onboardingSegment = (segments as string[])[1];
+    const isBetaWaitlist = segment === 'onboarding' && onboardingSegment === 'beta-waitlist';
+    if (!isBetaWaitlist) return;
+
+    const interval = setInterval(() => {
+      void refreshOnboardingStatus();
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [loading, hasSession, user?.id, hasBetaAccess, segments, refreshOnboardingStatus]);
+
+  useEffect(() => {
+    if (loading || !policyCheckDone || (hasSession && !user?.id)) return;
 
     const segment = segments[0];
     const isLanding = isLandingSegment(segment);
@@ -385,6 +495,9 @@ function RootLayoutNav() {
     const onboardingSegment = (segments as string[])[1];
     const isPolicyOnboarding = segment === 'onboarding' && onboardingSegment === 'policies';
     const isResidenceOnboarding = segment === 'onboarding' && (onboardingSegment === 'residence' || !onboardingSegment);
+    const isBetaWaitlist = segment === 'onboarding' && onboardingSegment === 'beta-waitlist';
+    const isRequestAccess = segment === 'request-access';
+    const isWalletVerify = segment === 'wallet' && (segments as string[])[1] === 'verify';
     const isAuthenticated = hasSession;
     const inviteIntent = getCurrentWebInviteIntent();
     const hasPendingInvite = Boolean(readPendingWebInvite());
@@ -393,7 +506,13 @@ function RootLayoutNav() {
       isLegalSegment(segment) ||
       isPolicyOnboarding ||
       isResidenceOnboarding ||
-      segment === 'share';
+      isBetaWaitlist ||
+      isRequestAccess ||
+      isWalletVerify ||
+      segment === 'share' ||
+      segment === 'group' ||
+      segment === 'market' ||
+      segment === 'bet';
 
     if (!isAuthenticated && inviteIntent) {
       storePendingWebInvite(inviteIntent);
@@ -402,6 +521,16 @@ function RootLayoutNav() {
     }
 
     if (isAuthenticated && hasPendingInvite) {
+      return;
+    }
+
+    if (isAuthenticated && hasBetaAccess && isBetaWaitlist) {
+      router.replace('/onboarding/residence' as any);
+      return;
+    }
+
+    if (isAuthenticated && getPublicEnv().betaRequired === 'true' && !hasBetaAccess && !isBetaWaitlist) {
+      router.replace('/onboarding/beta-waitlist' as any);
       return;
     }
 
@@ -416,23 +545,23 @@ function RootLayoutNav() {
     }
 
     if (isAuthenticated && hasResidence && hasPolicyAcceptances && (isPolicyOnboarding || isResidenceOnboarding)) {
-      router.replace('/(tabs)');
+      router.replace(POST_AUTH_HOME as any);
       return;
     }
 
     if (!isAuthenticated && !isPublicRoute) {
       router.replace('/');
     } else if (isAuthenticated && hasResidence && hasPolicyAcceptances && (isLanding || isLogin)) {
-      router.replace('/(tabs)');
+      router.replace(POST_AUTH_HOME as any);
     }
-  }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence]);
+  }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence, hasBetaAccess, user?.id]);
 
-  if (loading || (hasSession && !policyCheckDone)) {
-    return <AnyMarketLoader message="Preparing AnyMarket..." />;
-  }
+  const showBootstrapLoader =
+    loading || (hasSession && (!policyCheckDone || !user?.id));
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      <OnboardingGuardProvider refreshOnboardingStatus={refreshOnboardingStatus}>
       <PremiumNavigationProvider>
         {!hasSession && !isLanding && currentSegment !== 'login' && !isLegalSegment(currentSegment) && <SignupBanner />}
         {!hasPageLevelSeo && <SEO />}
@@ -447,14 +576,20 @@ function RootLayoutNav() {
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="login" />
-          <Stack.Screen name="terms" />
-          <Stack.Screen name="privacy" />
-          <Stack.Screen name="risk" />
-          <Stack.Screen name="market-rules" />
-          <Stack.Screen name="aml-kyc" />
-          <Stack.Screen name="prohibited-markets" />
+          <Stack.Screen name="request-access" />
+          <Stack.Screen name="beta/welcome" />
+          <Stack.Screen name="admin-dashboard" />
+          <Stack.Screen name="admin/users" />
+          <Stack.Screen name="terms" options={LEGAL_STACK_SCREEN_OPTIONS} />
+          <Stack.Screen name="privacy" options={LEGAL_STACK_SCREEN_OPTIONS} />
+          <Stack.Screen name="risk" options={LEGAL_STACK_SCREEN_OPTIONS} />
+          <Stack.Screen name="market-rules" options={LEGAL_STACK_SCREEN_OPTIONS} />
+          <Stack.Screen name="aml-kyc" options={LEGAL_STACK_SCREEN_OPTIONS} />
+          <Stack.Screen name="prohibited-markets" options={LEGAL_STACK_SCREEN_OPTIONS} />
           <Stack.Screen name="onboarding/residence" />
           <Stack.Screen name="onboarding/policies" />
+          <Stack.Screen name="onboarding/beta-waitlist" />
+          <Stack.Screen name="wallet/verify" />
           <Stack.Screen name="group/[id]" />
           <Stack.Screen name="market/[id]" />
           <Stack.Screen name="bet/[id]" />
@@ -462,10 +597,24 @@ function RootLayoutNav() {
           <Stack.Screen name="topup" options={{ animation: Platform.OS === 'web' ? 'fade' : 'slide_from_bottom' }} />
         </Stack>
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        {showBootstrapLoader ? (
+          <View style={[styles.bootstrapLoaderOverlay, { pointerEvents: 'auto' }]}>
+            <AnyMarketLoader message="Preparing AnyMarket..." />
+          </View>
+        ) : null}
       </PremiumNavigationProvider>
+      </OnboardingGuardProvider>
     </NavThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  bootstrapLoaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+});
 
 /** Matches `app/index.tsx` landing root so wide-web gutters are not theme.dark while the page is light. */
 const LANDING_PAGE_BACKGROUND = '#F5F7FB';
@@ -473,9 +622,13 @@ const LANDING_PAGE_BACKGROUND = '#F5F7FB';
 function WebShell({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const segment = segments[0];
-  const useLandingBackground =
-    Platform.OS === 'web' && (isLandingSegment(segment) || isLegalSegment(segment));
-  const shellBackgroundColor = useLandingBackground ? LANDING_PAGE_BACKGROUND : undefined;
+  const useLegalBackground = Platform.OS === 'web' && isLegalSegment(segment);
+  const useLandingBackground = Platform.OS === 'web' && isLandingSegment(segment);
+  const shellBackgroundColor = useLegalBackground
+    ? LEGAL_COLORS.pageBg
+    : useLandingBackground
+      ? LANDING_PAGE_BACKGROUND
+      : undefined;
 
   return (
     <WebContainer shellBackgroundColor={shellBackgroundColor}>
@@ -489,11 +642,15 @@ export default function RootLayout() {
     <ThemeProvider>
       <WebShell>
         <AuthProvider>
-          <WalletProvider>
-            <StripeProvider publishableKey ={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
-              <RootLayoutNav />
-            </StripeProvider>
-          </WalletProvider>
+          <LocaleProvider>
+            <PolicyFrameworkProvider>
+            <WalletProvider>
+              <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
+                <RootLayoutNav />
+              </StripeProvider>
+            </WalletProvider>
+            </PolicyFrameworkProvider>
+          </LocaleProvider>
         </AuthProvider>
       </WebShell>
     </ThemeProvider>

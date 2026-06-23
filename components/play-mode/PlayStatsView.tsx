@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { formatCurrency } from "../../lib/parimutuel";
 import {
-  playStatsService,
-  type PlayStats,
+    playStatsService,
+    type PlayStats,
 } from "../../services/play-stats.service";
 import type { BetWithDetails } from "../../types/market";
 import { PlayStatsChart } from "./PlayStatsChart";
@@ -119,7 +119,7 @@ export function PlayStatsView({ userId }: PlayStatsViewProps) {
         <StatCard
           label="Total Won"
           value={formatCurrency(stats.totalWon)}
-          color="#007AFF"
+          color={theme.primary}
           icon="trending-up-outline"
         />
         <StatCard
@@ -148,7 +148,7 @@ export function PlayStatsView({ userId }: PlayStatsViewProps) {
           },
         ]}
       >
-        <Ionicons name="information-circle-outline" size={16} color="#007AFF" />
+        <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
         <Text style={[styles.infoText, { color: theme.textSecondary }]}>
           Play mode stats are tracked locally. They don&apos;t affect your real
           balance.

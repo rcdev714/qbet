@@ -6,6 +6,8 @@ type PublicEnvExtra = {
   supabaseAnonKey?: string;
   stripePublishableKey?: string;
   adminEmail?: string;
+  launchJurisdiction?: string;
+  betaRequired?: string;
 };
 
 function readExtra(): PublicEnvExtra {
@@ -32,5 +34,13 @@ export function getPublicEnv() {
       "",
     adminEmail:
       extra.adminEmail || process.env.EXPO_PUBLIC_ADMIN_EMAIL || "",
+    launchJurisdiction:
+      extra.launchJurisdiction ||
+      process.env.EXPO_PUBLIC_LAUNCH_JURISDICTION ||
+      "EC",
+    betaRequired:
+      extra.betaRequired ||
+      process.env.EXPO_PUBLIC_BETA_REQUIRED ||
+      "true",
   };
 }

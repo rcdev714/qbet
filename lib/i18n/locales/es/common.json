@@ -1,0 +1,26 @@
+{
+  "appName": "AnyMarket",
+  "continue": "Continuar",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "back": "Volver",
+  "loading": "Cargando…",
+  "countries": {
+    "EC": "Ecuador",
+    "US": "Estados Unidos",
+    "CA": "Canadá",
+    "MX": "México",
+    "GB": "Reino Unido",
+    "DE": "Alemania",
+    "FR": "Francia",
+    "ES": "España",
+    "CO": "Colombia",
+    "PE": "Perú",
+    "CL": "Chile",
+    "AR": "Argentina",
+    "BR": "Brasil",
+    "AU": "Australia",
+    "JP": "Japón",
+    "IN": "India"
+  }
+}

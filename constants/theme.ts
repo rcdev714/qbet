@@ -5,26 +5,35 @@
 
 import { Platform } from "react-native";
 
-const tintColorLight = "#007AFF";
-const tintColorDark = "#2E8F54";
+/** Shared brand tokens — use these instead of hardcoded hex values in UI code. */
+export const Brand = {
+  primary: "#006ADC",
+  primarySoft: "#DBEAFE",
+  deep: "#1A2F5C",
+  onPrimary: "#FFFFFF",
+  success: "#22C55E",
+  error: "#DC2626",
+  warning: "#FBBF24",
+  mutedText: "#526173",
+} as const;
 
 export const Colors = {
   light: {
-    text: "#11181C",
-    background: "#fff",
-    tint: tintColorLight,
-    icon: "#687076",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight,
+    text: "#111827",
+    background: "#F3F5F8",
+    tint: Brand.primary,
+    icon: "#4B5563",
+    tabIconDefault: "#6B7280",
+    tabIconSelected: Brand.primary,
   },
   dark: {
-    text: "#D1D5DB",
-    background: "#0F212E",
-    tint: tintColorDark,
-    icon: "#B1BAD3",
-    tabIconDefault: "#B1BAD3",
-    tabIconSelected: tintColorDark,
-    accent: "#1475E1",
+    text: "#E5E7EB",
+    background: "#141A22",
+    tint: Brand.primary,
+    icon: "#9CA3AF",
+    tabIconDefault: "#9CA3AF",
+    tabIconSelected: Brand.primary,
+    accent: Brand.primary,
   },
 };
 

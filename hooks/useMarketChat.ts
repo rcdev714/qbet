@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../contexts/AuthContext";
+import { teardownChannel } from "../lib/supabase-realtime";
 import { marketChatService } from "../services/marketChat.service";
 import type { MarketChatMessage } from "../types/marketChat";
 
@@ -30,7 +31,7 @@ export function useMarketChat(marketId: string) {
         );
 
         return () => {
-            subscription.unsubscribe();
+            void teardownChannel(subscription);
         };
     }, [marketId]);
 

@@ -1,10 +1,13 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { supabase } from "../lib/supabase";
+import { createPostgresChannel } from "../lib/supabase-realtime";
 import type {
-  Market,
-  MarketInsert,
-  MarketOption,
-  MarketOptionInsert,
+    Market,
+    MarketInsert,
+    MarketOption,
+    MarketOptionInsert,
+    MarketWithStats,
 } from "../types/market";
 import { messageService } from "./message.service";
 
@@ -76,6 +79,33 @@ export const marketService = {
         // Clean up market if options creation fails
         await supabase.from("markets").delete().eq("id", market.id);
         return { market: null, error: optionsError };
+      }
+
+      const complianceCategory = "general_event";
+      const { error: reviewError } = await (supabase as any).rpc(
+        "upsert_market_compliance_review",
+        {
+          p_market_id: market.id,
+          p_category: complianceCategory,
+          p_resolution_source:
+            data.description?.trim() || "Creator-declared source at market creation",
+          p_creator_attestation: true,
+          p_resolver_type: "creator_source",
+          p_metadata: {
+            source: "group_market_create",
+            sports_scan: scanMarketTextForSports({
+              question: data.question,
+              description: data.description,
+              optionLabels: data.options,
+              category: complianceCategory,
+            }),
+          },
+        },
+      );
+
+      if (reviewError) {
+        await supabase.from("markets").delete().eq("id", market.id);
+        return { market: null, error: new Error(reviewError.message) };
       }
 
       // Create a message for the new market
@@ -194,8 +224,7 @@ export const marketService = {
     marketId: string,
     callback: (market: Market) => void,
   ): RealtimeChannel {
-    const channel = supabase
-      .channel(`market:${marketId}`)
+    const channel = createPostgresChannel(`market:${marketId}`)
       .on(
         "postgres_changes",
         {
@@ -227,8 +256,7 @@ export const marketService = {
     marketId: string,
     callback: (options: MarketOption[]) => void,
   ): RealtimeChannel {
-    const channel = supabase
-      .channel(`market-options:${marketId}`)
+    const channel = createPostgresChannel(`market-options:${marketId}`)
       .on(
         "postgres_changes",
         {
@@ -247,14 +275,102 @@ export const marketService = {
     return channel;
   },
   /**
+   * Get a market with pool statistics (public or group-scoped).
+   */
+  async getMarketWithStats(marketId: string): Promise<MarketWithStats | null> {
+    try {
+      const { data: market, error } = await supabase
+        .from("markets")
+        .select("*, creator:users(username, avatar_url)")
+        .eq("id", marketId)
+        .single();
+
+      if (error || !market) return null;
+
+      const { data: options } = await supabase
+        .from("options")
+        .select("*")
+        .eq("market_id", marketId);
+
+      const { count: betCount } = await supabase
+        .from("bets")
+        .select("*", { count: "exact", head: true })
+        .eq("market_id", marketId);
+
+      const { data: bets } = await supabase
+        .from("bets")
+        .select("option_id, amount, placed_at")
+        .eq("market_id", marketId)
+        .order("placed_at", { ascending: false })
+        .limit(30);
+
+      const safeOptions = options || [];
+      const safeBets = bets || [];
+
+      const totalPool = safeOptions.reduce((sum, opt) => {
+        const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
+        const noPool = Number(opt.no_pool ?? 0);
+        return sum + yesPool + noPool;
+      }, 0);
+
+      const optionStats = safeOptions.map((opt) => {
+        const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
+        const noPool = Number(opt.no_pool ?? 0);
+        const optionTotal = yesPool + noPool;
+        const percentage = totalPool > 0 ? (optionTotal / totalPool) * 100 : 0;
+        const numOptions = safeOptions.length;
+        let yesPrice = totalPool > 0 ? optionTotal / totalPool : 1 / numOptions;
+        let noPrice = 1 - yesPrice;
+        const MIN_PRICE = 0.01;
+        const MAX_PRICE = 0.99;
+        if (yesPrice < MIN_PRICE) {
+          yesPrice = MIN_PRICE;
+          noPrice = MAX_PRICE;
+        } else if (yesPrice > MAX_PRICE) {
+          yesPrice = MAX_PRICE;
+          noPrice = MIN_PRICE;
+        }
+
+        return {
+          optionId: opt.id,
+          label: opt.label || "Option",
+          yesPool,
+          noPool,
+          percentage,
+          yesPrice,
+          noPrice,
+        };
+      }).sort((a, b) => b.percentage - a.percentage);
+
+      const recentBets = safeBets
+        .map((b) => ({
+          optionId: b.option_id,
+          amount: b.amount,
+          placedAt: b.placed_at,
+        }))
+        .reverse();
+
+      return {
+        ...market,
+        totalPool,
+        betCount: betCount || 0,
+        optionStats,
+        recentBets,
+      } as MarketWithStats;
+    } catch (error) {
+      console.error("Error getting market stats:", error);
+      return null;
+    }
+  },
+
+  /**
    * Subscribe to new markets in a group
    */
   subscribeToGroupMarkets(
     groupId: string,
     callback: () => void,
   ): RealtimeChannel {
-    const channel = supabase
-      .channel(`group-markets:${groupId}`)
+    const channel = createPostgresChannel(`group-markets:${groupId}`)
       .on(
         "postgres_changes",
         {

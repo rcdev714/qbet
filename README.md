@@ -1,50 +1,45 @@
-# Welcome to your Expo app 👋
+# AnyMarket (qbet)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Social prediction infrastructure for private groups — web (Expo) + Supabase backend.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Quick start
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env   # fill in Supabase + Stripe public keys
+npx supabase start
+npx supabase migration up --local
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Open http://localhost:8081
 
-## Learn more
+## Health checks
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm run typecheck
+npm run lint
+npm run check:web:prod   # typecheck + lint + static web export
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Documentation
 
-## Join the community
+| Doc | Purpose |
+|-----|---------|
+| [docs/local-dev-verification.md](./docs/local-dev-verification.md) | Local setup, migrations, auth/beta verification |
+| [docs/ec-beta-e2e-checklist.md](./docs/ec-beta-e2e-checklist.md) | EC private beta E2E test plan |
+| [docs/ec-counsel-launch-checklist.md](./docs/ec-counsel-launch-checklist.md) | Legal/counsel launch gate |
+| [docs/deploy-web-production.md](./docs/deploy-web-production.md) | Web production deploy |
+| [docs/multi-jurisdiction-compliance.md](./docs/multi-jurisdiction-compliance.md) | US/EC compliance model |
 
-Join our community of developers creating universal apps.
+## Stack
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **App:** Expo Router (React Native Web + iOS/Android)
+- **Backend:** Supabase (Postgres, Auth, Edge Functions, RLS)
+- **Payments:** Stripe (Identity, Connect, deposits)
+
+## Beta access (EC)
+
+- Landing page: WhatsApp request access (`lib/contact.ts`)
+- Auth: **Log in** (nav) → `/login` → **Create account** for invited emails
+- Allowlist: `public.beta_invites`

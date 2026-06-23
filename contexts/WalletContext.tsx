@@ -1,5 +1,6 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import { useWallet } from "../hooks/useWallet";
+import type { ComplianceProfile } from "../services/compliance.service";
 import type {
     TransferFundsInput,
     WalletRecipient,
@@ -9,11 +10,15 @@ import { useAuthContext } from "./AuthContext";
 
 interface WalletContextType {
   wallet: Wallet | null;
-  balance: number;          // Active balance based on current mode
-  liveBalance: number;      // Real Stripe money
-  playBalance: number;      // Play credits
-  isPlayMode: boolean;      // Current mode (true = play, false = live)
-  toggleMode: () => Promise<void>;  // Switch between modes
+  balance: number;
+  liveBalance: number;
+  playBalance: number;
+  isPlayMode: boolean;
+  toggleMode: () => Promise<void>;
+  requestLiveMode: () => Promise<boolean>;
+  liveWalletReady: boolean;
+  complianceProfile: ComplianceProfile | null;
+  refreshComplianceProfile: () => Promise<ComplianceProfile | null>;
   isVirtual: boolean;
   loading: boolean;
   error: Error | null;

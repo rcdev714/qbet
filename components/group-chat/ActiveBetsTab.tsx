@@ -56,7 +56,13 @@ function ActiveMarketItem({
     );
   }
 
-  if (!liveMarket) return null;
+  if (!liveMarket) {
+    return (
+      <View style={styles.errorCard}>
+        <Text style={styles.errorCardText}>Could not load this prediction.</Text>
+      </View>
+    );
+  }
 
   const isCreator = currentUserId ? liveMarket.creator_id === currentUserId : false;
   const canResolve = isAdmin || isCreator;
@@ -206,6 +212,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
     backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  errorCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "rgba(0,0,0,0.04)",
+  },
+  errorCardText: {
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: "center",
   },
   emptyState: {
     alignItems: "center",

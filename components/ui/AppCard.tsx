@@ -42,10 +42,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   elevated: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 3,
   },
 });

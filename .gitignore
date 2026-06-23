@@ -33,12 +33,14 @@ yarn-error.*
 
 # local env files
 .env*.local
+supabase/functions/.env
 .cursorignore
 .env
 .env.production.example
 .env.production
 # typescript
 *.tsbuildinfo
+*.swp
 
 app-example
 

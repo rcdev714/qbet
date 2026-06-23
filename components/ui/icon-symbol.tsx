@@ -21,6 +21,7 @@ const MAPPING = {
   'creditcard': 'credit-card',
   'person': 'person-outline',
   'person.fill': 'person',
+  'person.2': 'people-outline',
   'person.2.fill': 'people',
   'person.3': 'groups',
   'person.3.fill': 'groups',
@@ -35,6 +36,7 @@ const MAPPING = {
   'dollarsign.circle.fill': 'monetization-on',
   'clock': 'access-time',
   'trash': 'delete',
+  'chart.bar': 'bar-chart',
   'chart.bar.fill': 'bar-chart',
   'sparkles': 'auto-awesome',
   // Social icons for viral sharing

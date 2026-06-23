@@ -23,24 +23,23 @@ export function ModeToggle({
   liveBalance,
   compact = false,
 }: ModeToggleProps) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   const activeBalance = isPlayMode ? playBalance : liveBalance;
 
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
-      {/* Toggle Switch */}
       <View
         style={[
           styles.toggleContainer,
-          { backgroundColor: isDark ? "#1C1C1E" : "#E5E5EA" },
+          { backgroundColor: theme.input, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth },
         ]}
       >
         <TouchableOpacity
           style={[
             styles.toggleOption,
             isPlayMode && styles.activeOption,
-            isPlayMode && { backgroundColor: "#9B59B6" },
+            isPlayMode && { backgroundColor: theme.primary },
           ]}
           onPress={() => !isPlayMode && onToggle()}
           activeOpacity={0.8}
@@ -49,7 +48,7 @@ export function ModeToggle({
           <Text
             style={[
               styles.toggleText,
-              { color: isPlayMode ? "#fff" : theme.textSecondary },
+              { color: isPlayMode ? theme.onPrimary : theme.textSecondary },
             ]}
           >
             PLAY
@@ -60,7 +59,7 @@ export function ModeToggle({
           style={[
             styles.toggleOption,
             !isPlayMode && styles.activeOption,
-            !isPlayMode && { backgroundColor: "#007AFF" },
+            !isPlayMode && { backgroundColor: theme.success },
           ]}
           onPress={() => isPlayMode && onToggle()}
           activeOpacity={0.8}
@@ -69,7 +68,7 @@ export function ModeToggle({
           <Text
             style={[
               styles.toggleText,
-              { color: !isPlayMode ? "#fff" : theme.textSecondary },
+              { color: !isPlayMode ? theme.onPrimary : theme.textSecondary },
             ]}
           >
             LIVE
@@ -77,7 +76,6 @@ export function ModeToggle({
         </TouchableOpacity>
       </View>
 
-      {/* Balance Display */}
       {!compact && (
         <View style={styles.balanceContainer}>
           <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>
@@ -86,7 +84,7 @@ export function ModeToggle({
           <Text
             style={[
               styles.balanceAmount,
-              { color: isPlayMode ? "#9B59B6" : "#007AFF" },
+              { color: isPlayMode ? theme.primary : theme.success },
             ]}
           >
             {formatCurrency(activeBalance)}

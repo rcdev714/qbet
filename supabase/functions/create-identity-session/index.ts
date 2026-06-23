@@ -61,7 +61,7 @@ serve(async (req: Request) => {
         options: {
           document: { require_matching_selfie: true },
         },
-        return_url: `${appUrl}/wallet?kyc=return`,
+        return_url: `${appUrl}/wallet/verify?kyc=return`,
       },
       { idempotencyKey: requestId },
     );

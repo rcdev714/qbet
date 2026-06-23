@@ -48,7 +48,7 @@ const CARD_HEIGHT = Platform.OS === 'web' ? undefined : (windowHeight - TAB_BAR_
 export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps) {
   const router = useRouter();
   const { user } = useAuthContext();
-  const { isDark } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = Platform.OS === 'web' ? Math.min(windowWidth, MAX_WEB_WIDTH) : windowWidth;
@@ -467,7 +467,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                               return (
                                 <View style={{ flexDirection: 'row', gap: 16 }}>
                                   <Text style={styles.previewText}>
-                                    Yes: <Text style={{ color: isPlayMode ? '#007AFF' : '#34C759', fontWeight: '600', fontSize: 18 }}>{formatCurrency(yesPayout)}</Text>
+                                    Yes: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '600', fontSize: 18 }}>{formatCurrency(yesPayout)}</Text>
                                   </Text>
                                   <Text style={styles.previewText}>
                                     No: <Text style={{ color: '#F87171', fontWeight: '600', fontSize: 18 }}>{formatCurrency(noPayout)}</Text>
@@ -485,7 +485,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                         return (
                             <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
                                 <Text style={styles.previewText}>
-                                    Est. Payout: <Text style={{ color: isPlayMode ? '#007AFF' : '#34C759', fontWeight: '600', fontSize: 18 }}>{formatCurrency(payout)}</Text>
+                                    Est. Payout: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '600', fontSize: 18 }}>{formatCurrency(payout)}</Text>
                                 </Text>
                             </View>
                         );
@@ -510,8 +510,8 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                                 style={[
                                   styles.actionButton, 
                                   { 
-                                    backgroundColor: isPlayMode ? '#007AFF' : '#34C759', 
-                                    borderColor: isPlayMode ? '#007AFF' : '#34C759', 
+                                    backgroundColor: isPlayMode ? theme.primary : theme.success, 
+                                    borderColor: isPlayMode ? theme.primary : theme.success, 
                                     borderWidth: 1 
                                   }
                                 ]}
@@ -567,8 +567,8 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                            style={[
                              styles.actionButton, 
                              { 
-                               backgroundColor: isPlayMode ? '#007AFF' : '#34C759', 
-                               borderColor: isPlayMode ? '#007AFF' : '#34C759', 
+                               backgroundColor: isPlayMode ? theme.primary : theme.success, 
+                               borderColor: isPlayMode ? theme.primary : theme.success, 
                                borderWidth: 1, 
                                flex: 1 
                              }
@@ -587,7 +587,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
           <View style={styles.optionsList}>
             {stats.optionStats.slice(0, 4).map((opt, index) => {
               const isSelected = selectedOptionId === opt.optionId;
-              const accentColor = isPlayMode ? '#007AFF' : '#34C759'; 
+              const accentColor = isPlayMode ? theme.primary : theme.success; 
 
               return (
                 <TouchableOpacity

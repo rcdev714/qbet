@@ -101,7 +101,7 @@ export function PlayStatsChart({ bets }: PlayStatsChartProps) {
 
   const noData = data.length <= 1 && cumulativePL === 0;
   const isPositive = cumulativePL >= 0;
-  const lineColor = isPositive ? "#007AFF" : "#FF3B30";
+  const lineColor = isPositive ? theme.primary : theme.error;
 
   const TimeButton = ({
     range: r,

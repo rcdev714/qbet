@@ -11,6 +11,7 @@ import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
 import { isAppAdmin } from "@/lib/admin";
 import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
 import { formatCurrency } from "@/lib/parimutuel";
+import { teardownChannel } from "@/lib/supabase-realtime";
 import { feedService } from "@/services/feed.service";
 import type { Market, MarketWithStats } from "@/types/market";
 import { Image } from "expo-image";
@@ -41,20 +42,21 @@ const CARD_HEIGHT = height - TAB_BAR_HEIGHT;
 const IS_WEB = Platform.OS === 'web';
 
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useTranslation } from "react-i18next";
 
-function getMarketTimeLabel(closesAt: string | null) {
-  if (!closesAt) return "No close date";
+function getMarketTimeLabel(closesAt: string | null, t: (key: string, opts?: Record<string, unknown>) => string) {
+  if (!closesAt) return t("noCloseDate");
   const closeDate = new Date(closesAt);
-  if (Number.isNaN(closeDate.getTime())) return "No close date";
+  if (Number.isNaN(closeDate.getTime())) return t("noCloseDate");
 
   const diff = closeDate.getTime() - Date.now();
-  if (diff <= 0) return "Closed";
+  if (diff <= 0) return t("closed");
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  if (days > 0) return `${days}d ${hours}h left`;
-  if (hours > 0) return `${hours}h left`;
-  return "Closing soon";
+  if (days > 0) return t("daysHoursLeft", { days, hours });
+  if (hours > 0) return t("hoursLeft", { hours });
+  return t("closingSoon");
 }
 
 function normalizePercentage(value: number | undefined, fallback = 50) {
@@ -66,6 +68,7 @@ function normalizePercentage(value: number | undefined, fallback = 50) {
 function DesktopMarketTile({ market }: { market: Market }) {
   const { navigate } = usePremiumNavigation();
   const { theme, isDark } = useTheme();
+  const { t } = useTranslation("feed");
   const [stats, setStats] = useState<MarketWithStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -141,7 +144,7 @@ function DesktopMarketTile({ market }: { market: Market }) {
           <Text style={[styles.webMarketCategory, { color: theme.primary }]} numberOfLines={1}>
             {market.category || "General"}
           </Text>
-          <Text style={[styles.webMarketTime, { color: theme.textSecondary }]}>{getMarketTimeLabel(market.closes_at)}</Text>
+          <Text style={[styles.webMarketTime, { color: theme.textSecondary }]}>{getMarketTimeLabel(market.closes_at, t)}</Text>
         </View>
         <View style={[styles.webStatusDot, { backgroundColor: market.status === "open" ? theme.success : theme.textSecondary }]} />
       </View>
@@ -223,6 +226,7 @@ function DesktopMarketTile({ market }: { market: Market }) {
 export default function FeedScreen() {
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
+  const { t } = useTranslation("feed");
   const { lastBetTime, isPlayMode } = useWalletContext();
   const { width } = useWindowDimensions();
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -321,7 +325,7 @@ export default function FeedScreen() {
     });
 
     return () => {
-      subscription.unsubscribe();
+      void teardownChannel(subscription);
     };
   }, [fetchFeed]);
 
@@ -383,7 +387,7 @@ export default function FeedScreen() {
           }}
           activeOpacity={0.85}
         >
-          <Text style={styles.retryButtonText}>Try again</Text>
+          <Text style={[styles.retryButtonText, { color: theme.onPrimary }]}>Try again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -437,7 +441,7 @@ export default function FeedScreen() {
             <View style={[styles.webInlineNotice, { backgroundColor: theme.card, borderColor: theme.border }]}>
               <Text style={[styles.webInlineNoticeText, { color: theme.text }]}>{feedError}</Text>
               <TouchableOpacity onPress={() => fetchFeed()} style={[styles.webSmallButton, { backgroundColor: theme.primary }]}>
-                <Text style={styles.webSmallButtonText}>Try again</Text>
+                <Text style={[styles.webSmallButtonText, { color: theme.onPrimary }]}>Try again</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -448,7 +452,7 @@ export default function FeedScreen() {
               onPress={applyPendingMarkets}
               activeOpacity={0.85}
             >
-              <Text style={styles.webNewMarketsText}>Show new markets</Text>
+              <Text style={[styles.webNewMarketsText, { color: theme.onPrimary }]}>Show new markets</Text>
             </TouchableOpacity>
           )}
 
@@ -460,12 +464,15 @@ export default function FeedScreen() {
                   key={category}
                   style={[
                     styles.webCategoryChip,
-                    { backgroundColor: active ? theme.primary : theme.surface, borderColor: active ? theme.primary : theme.border },
+                    {
+                      backgroundColor: active ? theme.primarySoft : theme.surface,
+                      borderColor: active ? theme.primary : theme.border,
+                    },
                   ]}
                   onPress={() => setSelectedCategory(category)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.webCategoryText, { color: active ? "#071018" : theme.text }]}>
+                  <Text style={[styles.webCategoryText, { color: active ? theme.primary : theme.text }]}>
                     {category}
                   </Text>
                 </TouchableOpacity>
@@ -481,7 +488,7 @@ export default function FeedScreen() {
 
           {visibleMarkets.length === 0 && (
             <View style={[styles.webEmptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.text, { color: theme.text }]}>No markets in this category</Text>
+              <Text style={[styles.text, { color: theme.text }]}>{t("empty")}</Text>
               <Text style={[styles.subtext, { color: theme.textSecondary }]}>Try another category or refresh the board.</Text>
             </View>
           )}
@@ -536,7 +543,7 @@ export default function FeedScreen() {
           onPress={applyPendingMarkets}
           activeOpacity={0.85}
         >
-          <Text style={styles.newMarketsButtonText}>New markets available</Text>
+          <Text style={[styles.newMarketsButtonText, { color: theme.onPrimary }]}>New markets available</Text>
         </TouchableOpacity>
       )}
 
@@ -596,7 +603,7 @@ export default function FeedScreen() {
         }
         ListEmptyComponent={
           <View style={styles.center}>
-            <Text style={[styles.text, { color: theme.text }]}>No markets are open right now</Text>
+            <Text style={[styles.text, { color: theme.text }]}>{t("empty")}</Text>
             <Text style={[styles.subtext, { color: theme.textSecondary }]}>When one appears, open it to practice before using live funds.</Text>
           </View>
         }
@@ -688,7 +695,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   newMarketsButtonText: {
-    color: "#fff",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -712,7 +718,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   retryButtonText: {
-    color: "#fff",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -795,7 +800,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   webSmallButtonText: {
-    color: "#071018",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -806,7 +810,6 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   webNewMarketsText: {
-    color: "#071018",
     fontSize: 13,
     fontWeight: "600",
   },

@@ -1,0 +1,12 @@
+{
+  "createPrediction": "Create prediction",
+  "addQuestionOptions": "Add a question and 2 options",
+  "addQuestionOptionsBody": "Predictions need a clear question and at least 2 possible outcomes.",
+  "signInRequired": "Sign in to create a prediction",
+  "signInRequiredBody": "Log in, then come back to start this prediction.",
+  "futureCloseDate": "Choose a future close date",
+  "futureCloseDateBody": "Predictions need a close time after the current time.",
+  "sportsBlockedTitle": "Sports content not allowed",
+  "sportsBlockedBody": "Sports markets and sports-related content are not permitted for Ecuador users.",
+  "createFailed": "Prediction wasn't created"
+}

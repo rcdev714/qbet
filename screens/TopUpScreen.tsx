@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import { isAppAdmin } from "@/lib/admin";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -39,8 +40,9 @@ export function TopUpScreen() {
     liveBalance, 
     playBalance, 
     isPlayMode, 
-    toggleMode, 
-    withdrawToStripe 
+    liveWalletReady,
+    requestLiveMode,
+    withdrawToStripe,
   } = useWalletContext();
   const [walletAction, setWalletAction] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState<string>("");
@@ -159,6 +161,14 @@ export function TopUpScreen() {
 
 
   const handleTopUp = async () => {
+    if (isPlayMode) {
+      void requestLiveMode();
+      return;
+    }
+    if (!liveWalletReady) {
+      void requestLiveMode();
+      return;
+    }
     const value = parseFloat(amount);
     if (isNaN(value) || value <= 0) {
       Alert.alert("Invalid Amount", "Please enter a valid amount.");
@@ -252,6 +262,10 @@ export function TopUpScreen() {
   };
 
   const handleStripeWithdrawal = async () => {
+    if (isPlayMode || !liveWalletReady) {
+      void requestLiveMode();
+      return;
+    }
     const value = parseFloat(amount);
     if (isNaN(value) || value <= 0) {
       Alert.alert("Invalid Amount", "Please enter a valid amount to withdraw.");
@@ -379,7 +393,7 @@ export function TopUpScreen() {
               </View>
               <Text style={[
                 styles.txAmount,
-                { color: isPositive ? '#34C759' : (tx.type === 'bet_lost' ? theme.textSecondary : theme.text) }
+                { color: isPositive ? theme.success : (tx.type === 'bet_lost' ? theme.textSecondary : theme.text) }
               ]}>
                 {isPositive ? '+' : ''}{formatCurrency(tx.amount)}
               </Text>
@@ -466,8 +480,8 @@ export function TopUpScreen() {
           {isPlayMode ? (
              <View style={styles.sectionContainer}>
                 <TouchableOpacity 
-                    style={[styles.primaryButton, { backgroundColor: '#007AFF', marginTop: 24 }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-                    onPress={toggleMode}
+                    style={[styles.primaryButton, { backgroundColor: theme.primary, marginTop: 24 }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
+                    onPress={() => void requestLiveMode()}
                 >
                     <Text style={[styles.primaryButtonText, { color: '#fff' }]}>
                         Switch to Live Mode
@@ -515,7 +529,7 @@ export function TopUpScreen() {
                                 <Text style={[
                                     styles.quickBetText, 
                                     { color: theme.text },
-                                    amount === val.toString() && { color: '#fff' }
+                                    amount === val.toString() && { color: theme.onPrimary }
                                 ]}>${val}</Text>
                             </TouchableOpacity>
                             ))}
@@ -616,7 +630,7 @@ export function TopUpScreen() {
 
                                 <View style={styles.receiptRow}>
                                 <Text style={[styles.receiptLabel, { color: theme.text, fontWeight: '600', fontSize: 15 }]}>Estimated Payout</Text>
-                                <Text style={[styles.receiptValue, { color: '#34C759', fontWeight: '600', fontSize: 16 }]}>
+                                <Text style={[styles.receiptValue, { color: theme.success, fontWeight: '600', fontSize: 16 }]}>
                                     ${(parseFloat(amount) - calculateFee(parseFloat(amount)).feeAmount).toFixed(2)}
                                 </Text>
                                 </View>
@@ -776,7 +790,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Brand.primary,
     paddingHorizontal: 24,
     borderRadius: 10,
     justifyContent: "center",

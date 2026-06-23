@@ -20,6 +20,7 @@ import {
     View,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
+import { scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { supabase } from "../lib/supabase";
 import { adminService } from "../services/admin.service";
 import {
@@ -307,6 +308,19 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
       return;
     }
 
+    const sportsScan = scanMarketTextForSports({
+      question,
+      optionLabels: options,
+      category,
+    });
+    if (sportsScan.blocked) {
+      Alert.alert(
+        "Sports content detected",
+        "This market text matches sports-betting patterns blocked for Ecuador users. Adjust the question or options before saving.",
+      );
+      return;
+    }
+
     setCreating(true);
     try {
       if (editingMarketId) {
@@ -341,7 +355,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
 
         if (error) throw error;
 
-        Alert.alert("Success", "Public market created!", [
+        Alert.alert("Success", "Public market created! Compliance review runs automatically before feed visibility.", [
           {
             text: "OK",
             onPress: () => {
@@ -598,7 +612,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
                             color: theme.primary,
                           }]}
                         >
-                          {percentage}%
+                          {`${percentage}%`}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -752,6 +766,9 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           {(item.status || "open").toUpperCase()} •{" "}
           {new Date(item.created_at || "").toLocaleDateString()} •{" "}
           {item.category || "General"}
+          {isManage
+            ? ` • Feed: ${(item as any).public_feed_allowed ? "allowed" : "blocked"} • Review: ${(item as any).compliance_review_state || "pending"}`
+            : null}
         </Text>
       </View>
 
@@ -846,6 +863,9 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
 
       {/* Category */}
       <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+      <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+        Sports markets are not permitted on the public feed for Ecuador launch.
+      </Text>
       <View style={styles.categoryRow}>
         {FEED_CATEGORIES.map((cat) => (
           <TouchableOpacity
@@ -853,17 +873,15 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
             style={[
               styles.categoryChip,
               {
-                backgroundColor: category === cat
-                  ? theme.primary
-                  : theme.surface,
-                borderColor: theme.border,
+                backgroundColor: category === cat ? theme.primarySoft : theme.surface,
+                borderColor: category === cat ? theme.primary : theme.border,
               },
             ]}
             onPress={() => setCategory(cat)}
           >
             <Text
               style={{
-                color: category === cat ? "#fff" : theme.text,
+                color: category === cat ? theme.primary : theme.text,
                 fontWeight: "600",
               }}
             >
@@ -1163,7 +1181,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               </Text>
             </View>
           </View>
-          <Text style={styles.helperText}>
+          <Text style={[styles.helperText, { color: theme.textSecondary }]}>
             Portrait background (Phone dimensions)
           </Text>
           {imageUrl && (
@@ -1221,7 +1239,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
               style={[
                 styles.manageFilterChip,
                 {
-                  backgroundColor: active ? theme.primary : theme.surface,
+                  backgroundColor: active ? theme.primarySoft : theme.surface,
                   borderColor: active ? theme.primary : theme.border,
                 },
               ]}
@@ -1229,7 +1247,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
             >
               <Text
                 style={{
-                  color: active ? "#071018" : theme.textSecondary,
+                  color: active ? theme.primary : theme.textSecondary,
                   fontWeight: active ? "600" : "400",
                 }}
               >

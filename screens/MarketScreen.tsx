@@ -1,9 +1,11 @@
+import { Brand } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AnyMarketLoader } from "../components/AnyMarketLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
@@ -11,12 +13,15 @@ import { MarketChatTab } from "../components/MarketChatTab";
 import { MarketProbabilityChart } from "../components/MarketProbabilityChart";
 import { SEO } from "../components/SEO";
 import { SocialShareMarketCard } from "../components/SocialShareMarketCard";
+import { useAppLocale } from "../contexts/LocaleContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { useMarket } from "../hooks/useMarket";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
+import { scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { getBinaryOptions, isBinaryMarket } from "../lib/market-utils";
 import { calculateYesNoPayout, formatCurrency } from "../lib/parimutuel";
+import { getParamString } from "../lib/route-params";
 import { betService } from "../services/bet.service";
 import { shareService } from "../services/share.service";
 import type { MarketWithStats } from "../types/market";
@@ -31,16 +36,19 @@ const contentWidth = Platform.OS === 'web' ? Math.min(windowWidth, MAX_WEB_WIDTH
 export function MarketScreen() {
   const router = useRouter();
   const { navigate } = usePremiumNavigation();
-  const { id: marketId, optionId, previewAmount, side, tab } = useLocalSearchParams<{ id: string; optionId?: string; previewAmount?: string; side?: string; tab?: string }>();
+  const params = useLocalSearchParams<{ id: string; optionId?: string; previewAmount?: string; side?: string; tab?: string }>();
+  const marketId = getParamString(params.id) ?? null;
   const { market, options, userBets, loading, refresh } = useMarket(marketId);
   const { balance, isPlayMode, refresh: refreshWallet, notifyBetPlaced } = useWalletContext();
   const { theme, isDark } = useTheme();
+  const { locale, residence } = useAppLocale();
+  const { t } = useTranslation("compliance");
   
   // Initialize with optionId and previewAmount if present (ensure they're strings, useLocalSearchParams can return arrays)
-  const initialOption = Array.isArray(optionId) ? optionId[0] : optionId;
-  const initialAmount = Array.isArray(previewAmount) ? previewAmount[0] : previewAmount;
-  const initialSide = Array.isArray(side) ? side[0] : side;
-  const initialTab = Array.isArray(tab) ? tab[0] : tab;
+  const initialOption = getParamString(params.optionId);
+  const initialAmount = getParamString(params.previewAmount);
+  const initialSide = getParamString(params.side);
+  const initialTab = getParamString(params.tab);
   
   const [bettingAmount, setBettingAmount] = useState<string>(initialAmount || "");
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOption || null);
@@ -68,17 +76,80 @@ export function MarketScreen() {
     setShowShareOverlay(false);
   };
 
+  const marketStats = React.useMemo(() => {
+    if (!market || !options) return null;
+
+    const totalPool = options.reduce((sum, opt) => {
+      const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
+      const noPool = Number(opt.no_pool ?? 0);
+      return sum + yesPool + noPool;
+    }, 0);
+
+    const optionStats = options.map(opt => {
+      const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
+      const noPool = Number(opt.no_pool ?? 0);
+      const optionTotal = yesPool + noPool;
+      
+      const percent = totalPool > 0 ? (optionTotal / totalPool) * 100 : 0;
+      
+      const numOptions = options.length;
+      let yesPrice = totalPool > 0 ? optionTotal / totalPool : (1 / numOptions);
+      let noPrice = 1 - yesPrice;
+      
+      // Clamp
+      if (yesPrice < 0.01) { yesPrice = 0.01; noPrice = 0.99; }
+      else if (yesPrice > 0.99) { yesPrice = 0.99; noPrice = 0.01; }
+
+      return {
+        optionId: opt.id,
+        label: opt.label || 'Option',
+        yesPool,
+        noPool,
+        yesPrice,
+        noPrice,
+        percentage: percent
+      };
+    });
+
+    return {
+      ...market,
+      totalPool,
+      betCount: 0,
+      optionStats,
+      recentBets: []
+    } as MarketWithStats;
+  }, [market, options]);
+
+  const isEcSportsBlocked = React.useMemo(() => {
+    if (residence?.jurisdiction !== "EC" || !market) return false;
+    const category = String(market.market_category || market.category || "");
+    return scanMarketTextForSports({
+      question: market.question,
+      description: market.description,
+      resolutionSource: market.resolution_source,
+      optionLabels: options.map((option) => option.label),
+      category,
+    }).blocked;
+  }, [market, options, residence?.jurisdiction]);
+
   if (loading) {
     return <AnyMarketLoader message="Preparing the market..." />;
   }
 
   if (!market) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>This market could not be found. Go back and choose another prediction.</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.background, flex: 1 }]}>
+        <Text style={[styles.errorText, { color: theme.text }]}>
+          This market could not be found. Go back and choose another prediction.
+        </Text>
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.back()}>
+          <Text style={{ color: theme.primary, fontWeight: "600" }}>Go back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
+
+  const resolvedMarketId = market.id;
 
   const totalPool = options.reduce((sum, opt) => {
     const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
@@ -87,6 +158,11 @@ export function MarketScreen() {
   }, 0);
 
   const handlePlaceBet = async () => {
+    if (isEcSportsBlocked && !isPlayMode) {
+      setError(t("sportsMarketBlockedBody"));
+      return;
+    }
+
     if (!selectedOption || !selectedSide) {
       setError("Choose an outcome before placing your bet.");
       return;
@@ -112,7 +188,7 @@ export function MarketScreen() {
     setError(null);
 
     const { error: betError } = await betService.placeBet({
-      marketId,
+      marketId: resolvedMarketId,
       optionId: selectedOption,
       amount,
       side: selectedSide,
@@ -159,50 +235,6 @@ export function MarketScreen() {
     return calculateYesNoPayout(amount, sidePrice, 0.0795);
   };
 
-  const marketStats = React.useMemo(() => {
-    if (!market || !options) return null;
-
-    const totalPool = options.reduce((sum, opt) => {
-      const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
-      const noPool = Number(opt.no_pool ?? 0);
-      return sum + yesPool + noPool;
-    }, 0);
-
-    const optionStats = options.map(opt => {
-      const yesPool = Number(opt.yes_pool ?? opt.total_pool ?? 0);
-      const noPool = Number(opt.no_pool ?? 0);
-      const optionTotal = yesPool + noPool;
-      
-      const percent = totalPool > 0 ? (optionTotal / totalPool) * 100 : 0;
-      
-      const numOptions = options.length;
-      let yesPrice = totalPool > 0 ? optionTotal / totalPool : (1 / numOptions);
-      let noPrice = 1 - yesPrice;
-      
-      // Clamp
-      if (yesPrice < 0.01) { yesPrice = 0.01; noPrice = 0.99; }
-      else if (yesPrice > 0.99) { yesPrice = 0.99; noPrice = 0.01; }
-
-      return {
-        optionId: opt.id,
-        label: opt.label || 'Option',
-        yesPool,
-        noPool,
-        yesPrice,
-        noPrice,
-        percentage: percent
-      };
-    });
-
-    return {
-      ...market,
-      totalPool,
-      betCount: 0, // Not strictly needed for the visual card
-      optionStats,
-      recentBets: [] // Not needed for visual card
-    } as MarketWithStats;
-  }, [market, options]);
-
   const leadingOptions = marketStats?.optionStats
     ?.slice()
     .sort((a, b) => b.percentage - a.percentage)
@@ -222,7 +254,8 @@ export function MarketScreen() {
         description={marketPreviewDescription}
         image={market.image_url || undefined}
         imageAlt={`AnyMarket prediction market: ${market.question}`}
-        url={`/market/${marketId}`}
+        url={`/market/${resolvedMarketId}`}
+        locale={locale === "es" ? "es_ES" : "en_US"}
       />
       
       {/* Background Image Header */}
@@ -310,7 +343,7 @@ export function MarketScreen() {
           )}
           <TouchableOpacity
             style={styles.poolContainer}
-            onPress={() => navigate(`/bet/${marketId}`, { message: "Loading market activity..." })}
+            onPress={() => navigate(`/bet/${resolvedMarketId}`, { message: "Loading market activity..." })}
             activeOpacity={0.7}
           >
             <View>
@@ -350,12 +383,21 @@ export function MarketScreen() {
 
         {/* Chat tab renders directly (has its own FlatList) - avoids VirtualizedList nesting */}
         {activeTab === 'chat' && (
-          <MarketChatTab marketId={marketId} />
+          <MarketChatTab marketId={resolvedMarketId} />
         )}
 
         {/* Other tabs render in ScrollView */}
         {activeTab !== 'chat' && (
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {isEcSportsBlocked && (
+              <View style={[styles.sportsBlockBanner, { backgroundColor: "rgba(255, 59, 48, 0.12)", borderColor: theme.error }]}>
+                <Text style={[styles.sportsBlockTitle, { color: theme.error }]}>{t("sportsMarketBlockedTitle")}</Text>
+                <Text style={[styles.sportsBlockBody, { color: theme.textSecondary }]}>{t("sportsMarketBlockedBody")}</Text>
+                {isPlayMode ? (
+                  <Text style={[styles.sportsBlockNote, { color: theme.textSecondary }]}>{t("sportsMarketPracticeNote")}</Text>
+                ) : null}
+              </View>
+            )}
             {activeTab === 'predict' && (
               <View style={styles.optionsContainer}>
                 <View style={[styles.beginnerGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -406,7 +448,7 @@ export function MarketScreen() {
                           styles.binaryOptionCard,
                           { 
                             backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
-                            borderColor: isYesSelected ? (isDark ? theme.primary : '#007AFF') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(0, 122, 255, 0.2)')
+                            borderColor: isYesSelected ? theme.primary : (isDark ? 'rgba(212, 175, 55, 0.3)' : `${theme.primary}33`)
                           },
                           isYesSelected && styles.optionSelected
                         ]}
@@ -419,16 +461,16 @@ export function MarketScreen() {
                       >
                         <View style={[
                           styles.progressBarContainer,
-                          { width: `${yesPercent}%`, backgroundColor: isDark ? theme.primary : '#007AFF', opacity: isDark ? 0.3 : 0.1 }
+                          { width: `${yesPercent}%`, backgroundColor: theme.primary, opacity: isDark ? 0.3 : 0.1 }
                         ]} />
                         <View style={styles.binaryOptionContent}>
-                          <Text style={[styles.binaryOptionLabel, { color: isYesSelected ? (isDark ? '#ffffff' : '#007AFF') : theme.text, fontWeight: '400' }]}>
+                          <Text style={[styles.binaryOptionLabel, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '400' }]}>
                             Yes
                           </Text>
-                          <Text style={[styles.binaryOptionPrice, { color: isDark ? '#ffffff' : '#007AFF', fontWeight: '600' }]}>
+                          <Text style={[styles.binaryOptionPrice, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '600' }]}>
                             {yesCents}¢
                           </Text>
-                          <Text style={[styles.binaryOptionPercent, { color: isYesSelected ? (isDark ? '#ffffff' : '#007AFF') : theme.textSecondary, fontWeight: '400' }]}>
+                          <Text style={[styles.binaryOptionPercent, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: '400' }]}>
                             {Math.round(yesPercent)}%
                           </Text>
                         </View>
@@ -440,7 +482,7 @@ export function MarketScreen() {
                           styles.binaryOptionCard,
                           { 
                             backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
-                            borderColor: isNoSelected ? theme.error : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(0, 122, 255, 0.2)')
+                            borderColor: isNoSelected ? theme.error : (isDark ? 'rgba(212, 175, 55, 0.3)' : `${theme.primary}33`)
                           },
                           isNoSelected && styles.optionSelected
                         ]}
@@ -481,7 +523,7 @@ export function MarketScreen() {
                           </View>
                           <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
                             <Text style={[styles.payoutLabel, { fontWeight: '600' }]}>Net Profit</Text>
-                            <Text style={[styles.profitValue, { color: isDark ? "#2ECC71" : "#1A7A3E" }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
+                            <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
                           </View>
                           <Text style={styles.payoutNote}>
                             After fee: {(1 - 0.0795) * 100}% payout
@@ -522,7 +564,7 @@ export function MarketScreen() {
 
                   // Percentage = option's share of total market pool
                   const percent = totalPool > 0 ? (optionTotal / totalPool) * 100 : 0;
-                  const accentColor = isDark ? theme.primary : '#007AFF';
+                  const accentColor = theme.primary;
                   const isSelected = isYesSelected || isNoSelected;
 
                   return (
@@ -550,11 +592,11 @@ export function MarketScreen() {
                       <View style={styles.optionHeader}>
                         <View style={styles.optionLeft}>
                           <View style={[styles.optionDot, { backgroundColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)') }]} />
-                          <Text style={[styles.optionLabel, { color: theme.text, fontWeight: isSelected ? '600' : '400' }, isSelected && { color: isDark ? '#ffffff' : '#007AFF' }]}>
+                          <Text style={[styles.optionLabel, { color: theme.text, fontWeight: isSelected ? '600' : '400' }, isSelected && { color: isDark ? theme.onPrimary : theme.primary }]}>
                             {option.label}
                           </Text>
                         </View>
-                        <Text style={[styles.optionPercentText, { color: isSelected ? (isDark ? '#ffffff' : '#007AFF') : theme.textSecondary, fontWeight: isSelected ? '600' : '400' }]}>
+                        <Text style={[styles.optionPercentText, { color: isSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: isSelected ? '600' : '400' }]}>
                           {Math.round(percent)}%
                         </Text>
                       </View>
@@ -565,8 +607,8 @@ export function MarketScreen() {
                             styles.binaryButton,
                             {
                               backgroundColor: isYesSelected 
-                                ? (isDark ? 'rgba(1, 22, 39, 0.8)' : '#B8D9FF')
-                                : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,122,255,0.05)'),
+                                ? (isDark ? 'rgba(1, 22, 39, 0.8)' : theme.primarySoft)
+                                : (isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}0D`),
                               borderColor: isYesSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.08)' : theme.primary),
                               borderWidth: isYesSelected ? 2 : 1,
                             },
@@ -577,7 +619,7 @@ export function MarketScreen() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <Text style={[styles.binaryButtonLabel, { color: isDark ? '#ffffff' : '#007AFF' }]}>YES {yesCents}¢</Text>
+                          <Text style={[styles.binaryButtonLabel, { color: isDark ? theme.onPrimary : theme.primary }]}>YES {yesCents}¢</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[
@@ -612,7 +654,7 @@ export function MarketScreen() {
                           </View>
                           <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
                             <Text style={[styles.payoutLabel, { fontWeight: '600' }]}>Net Profit</Text>
-                            <Text style={[styles.profitValue, { color: isDark ? "#2ECC71" : "#1A7A3E" }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
+                            <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
                           </View>
                           <Text style={styles.payoutNote}>
                             After fee: {(1 - 0.0795) * 100}% payout
@@ -629,7 +671,7 @@ export function MarketScreen() {
                <View style={styles.positionSection}>
                  <View style={styles.chartContainer}>
                   <MarketProbabilityChart
-                    marketId={marketId}
+                    marketId={resolvedMarketId}
                     options={options}
                     height={300}
                     showLegend={true}
@@ -707,7 +749,7 @@ export function MarketScreen() {
                               setError(null);
                               
                               const { error: betError } = await betService.placeBet({
-                                marketId,
+                                marketId: resolvedMarketId,
                                 optionId: selectedOption,
                                 amount: amt,
                                 side: selectedSide,
@@ -758,15 +800,21 @@ export function MarketScreen() {
               />
               {(() => {
                 const amount = bettingAmount ? parseFloat(bettingAmount) : 0;
-                const isDisabled = !bettingAmount || isNaN(amount) || amount <= 0 || amount > balance || isPlacingBet;
+                const isDisabled =
+                  !bettingAmount ||
+                  isNaN(amount) ||
+                  amount <= 0 ||
+                  amount > balance ||
+                  isPlacingBet ||
+                  (isEcSportsBlocked && !isPlayMode);
 
                 return (
                   <TouchableOpacity
-                    style={[styles.placeBetButton, isDisabled && styles.placeBetButtonDisabled, { backgroundColor: isDark ? '#1A1A1A' : '#007AFF', borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#007AFF', borderWidth: 1 }]}
+                    style={[styles.placeBetButton, isDisabled && styles.placeBetButtonDisabled, { backgroundColor: theme.primary, borderColor: theme.primary, borderWidth: 1 }]}
                     onPress={handlePlaceBet}
                     disabled={isDisabled}
                   >
-                    <Text style={[styles.placeBetButtonText, { color: isDark ? '#ffffff' : '#fff' }]}>
+                    <Text style={[styles.placeBetButtonText, { color: theme.onPrimary }]}>
                       {isPlacingBet ? `Placing ${isPlayMode ? "practice" : "live"} bet…` : `Place ${isPlayMode ? "practice" : "live"} bet`}
                     </Text>
                   </TouchableOpacity>
@@ -831,7 +879,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: "#007AFF",
+    color: Brand.primary,
     fontWeight: "400",
   },
   headerContent: {
@@ -845,7 +893,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.5,
   },
-  statusOpen: { color: "#34C759" }, // Green for open in header
+  statusOpen: { color: Brand.success },
   statusClosed: { color: "#8E8E93" },
   headerDate: {
     fontSize: 13,
@@ -912,6 +960,26 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     marginBottom: 18,
+  },
+  sportsBlockBanner: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 6,
+    marginBottom: 12,
+  },
+  sportsBlockTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  sportsBlockBody: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  sportsBlockNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
   modePill: {
     alignSelf: "flex-start",
@@ -1148,7 +1216,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: Brand.primary,
   },
   hintText: {
     fontSize: 11,
@@ -1178,7 +1246,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   placeBetButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Brand.primary,
     paddingHorizontal: 24,
     borderRadius: 10,
     justifyContent: "center",

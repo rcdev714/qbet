@@ -1,6 +1,9 @@
+import { ReportContentButton } from "@/components/moderation/ReportContentButton";
+import { Brand } from "@/constants/theme";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     FlatList,
@@ -22,6 +25,7 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
   const router = useRouter();
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
+  const { t } = useTranslation("feed");
   const { messages, loading, sendMessage } = useMarketChat(marketId);
   const [inputText, setInputText] = useState("");
   const flatListRef = useRef<FlatList<MarketChatMessage>>(null);
@@ -78,7 +82,7 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
         <View style={[
           styles.messageBubble,
           isMe
-            ? [styles.myMessage, { backgroundColor: "#007AFF", borderBottomRightRadius: 2, borderTopRightRadius: 18 }]
+            ? [styles.myMessage, { backgroundColor: theme.primary, borderBottomRightRadius: 2, borderTopRightRadius: 18 }]
             : [styles.theirMessage, { backgroundColor: isBetNotification ? (isDark ? '#2C2C2E' : '#F2F2F7') : theme.surface, borderBottomLeftRadius: 2, borderTopLeftRadius: 18, borderWidth: 1, borderColor: theme.border }],
           isOptimistic && { opacity: 0.7 },
           isBetNotification && { borderStyle: 'dashed' }
@@ -104,6 +108,21 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
           <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.7)" : theme.textSecondary }]}>
             {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
+          {!isMe && !isBetNotification && !isOptimistic ? (
+            <ReportContentButton
+              targetType="market_chat_message"
+              targetId={item.id}
+              targetUserId={item.user_id}
+              label={t("chatReport")}
+              theme={{
+                text: theme.text,
+                textSecondary: theme.textSecondary,
+                surface: theme.surface,
+                border: theme.border,
+                primary: theme.primary,
+              }}
+            />
+          ) : null}
         </View>
       </View>
     );
@@ -131,7 +150,7 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              No messages yet. Be the first to comment!
+              {t("chatNoMessages")}
             </Text>
           </View>
         }
@@ -144,7 +163,7 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
         <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <TextInput
             style={[styles.input, { backgroundColor: isDark ? theme.background : "#F2F2F7", color: theme.text }, Platform.OS === 'web' && { cursor: 'text' } as any]}
-            placeholder="Say something..."
+            placeholder={t("chatPlaceholder")}
             placeholderTextColor={theme.textSecondary}
             value={inputText}
             onChangeText={setInputText}
@@ -271,7 +290,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: Brand.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 0,

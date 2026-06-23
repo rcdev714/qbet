@@ -43,6 +43,29 @@ Set these in the EAS production environment before deploying:
 
 Admin resolve/delete actions also require `users.is_admin = true` in the production Supabase database. Use `supabase/scripts/grant_app_admin.sql` in the SQL Editor if admin UI works but resolve/delete fail.
 
+Beta approval emails (Resend + edge function secrets + migrations): see [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md).
+
+## Automatic web deploy (GitHub → EAS Hosting)
+
+This repo includes [`.eas/workflows/deploy-web-production.yml`](../.eas/workflows/deploy-web-production.yml), which deploys **web only** on push to `master`. It does **not** build or submit iOS/Android.
+
+One-time Expo dashboard setup:
+
+1. Open [Expo project GitHub settings](https://expo.dev/accounts/[account]/projects/[project]/github)
+2. Install the GitHub app and connect `rcdev714/qbet`
+3. Enable **EAS Workflows** for the linked repo
+
+After linking, every push to `master` runs `type: deploy` with `prod: true` (same as `npm run deploy:web:prod` export + promote).
+
+Native builds remain **manual** only:
+
+```bash
+eas build --profile production --platform ios
+eas build --profile production --platform android
+```
+
+If you previously added dashboard workflows that auto-build iOS/Android on push, remove or disable those in the Expo dashboard — only `deploy-web-production.yml` should trigger on push.
+
 ## Rollback
 
 If a deploy is bad, promote the previous deployment alias in Expo dashboard, or redeploy the last known good commit with `npm run deploy:web:prod`.

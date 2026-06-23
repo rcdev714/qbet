@@ -33,7 +33,7 @@ export function SegmentedControl<T extends string>({
       style={[
         styles.container,
         {
-          backgroundColor: theme.surface,
+          backgroundColor: theme.input,
           borderColor: theme.border,
           borderRadius: theme.radius.md,
           padding: theme.spacing.xs,
@@ -56,7 +56,11 @@ export function SegmentedControl<T extends string>({
             style={[
               styles.item,
               { borderRadius: theme.radius.sm },
-              isActive && { backgroundColor: theme.primarySoft },
+              isActive && {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                borderWidth: StyleSheet.hairlineWidth,
+              },
               Platform.OS === "web" && ({ cursor: "pointer", touchAction: "manipulation" } as any),
               isFocused && focusRing,
             ]}
@@ -64,7 +68,7 @@ export function SegmentedControl<T extends string>({
             <Text
               style={[
                 styles.label,
-                { color: isActive ? theme.primary : theme.textSecondary },
+                { color: isActive ? theme.text : theme.textSecondary },
               ]}
             >
               {segment.label}
@@ -73,7 +77,7 @@ export function SegmentedControl<T extends string>({
               <Text
                 style={[
                   styles.description,
-                  { color: isActive ? theme.primary : theme.textSecondary },
+                  { color: isActive ? theme.textSecondary : theme.textSecondary },
                 ]}
                 numberOfLines={1}
               >

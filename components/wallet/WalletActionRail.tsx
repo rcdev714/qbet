@@ -48,7 +48,7 @@ export function WalletActionRail({
             <Text
               style={[
                 styles.itemText,
-                { color: isActive ? theme.primary : theme.textSecondary },
+                { color: isActive ? theme.primary : theme.text },
               ]}
             >
               {action.label}

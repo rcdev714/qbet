@@ -4,6 +4,7 @@
     "strict": true,
     "jsx": "react-native",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": [
         "./*"

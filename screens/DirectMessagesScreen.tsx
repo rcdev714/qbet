@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -724,7 +725,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "#007AFF",
+    backgroundColor: Brand.primary,
     borderRadius: 11,
     minWidth: 22,
     height: 22,
@@ -989,7 +990,7 @@ const styles = StyleSheet.create({
     color: "#111B21",
   },
   closeModalText: {
-    color: "#007AFF",
+    color: Brand.primary,
     fontSize: 16,
   },
   modalInput: {

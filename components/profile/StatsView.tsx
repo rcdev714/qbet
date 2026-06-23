@@ -42,7 +42,7 @@ export function StatsView({ stats, bets }: StatsViewProps) {
         <StatCard 
             label="Total Won" 
             value={formatCurrency(stats.totalWon)} 
-            color="#34C759"
+            color={theme.success}
             icon="trending-up-outline"
         />
         <StatCard 

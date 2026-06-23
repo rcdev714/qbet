@@ -72,7 +72,7 @@ export function HistoryTab({ markets, loading, onRefresh }: HistoryTabProps) {
                 style={[
                   styles.statusText,
                   {
-                    color: item.status === "resolved" ? "#34C759" : theme.textSecondary,
+                    color: item.status === "resolved" ? theme.success : theme.textSecondary,
                   },
                 ]}
               >

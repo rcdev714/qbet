@@ -1,3 +1,4 @@
+import { Brand } from "@/constants/theme";
 import { countryCodeToFlag, FALLBACK_COUNTRIES } from "@/lib/compliance/countries";
 import { complianceService, type SupportedCountryRow } from "@/services/compliance.service";
 import React, { useEffect, useMemo, useState } from "react";
@@ -74,7 +75,7 @@ export function CountryPicker({
       />
 
       {loading ? (
-        <ActivityIndicator style={{ marginVertical: 16 }} color="#0090FF" />
+        <ActivityIndicator style={{ marginVertical: 16 }} color={Brand.primary} />
       ) : (
         <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
           {filtered.map((country) => {
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   searchLight: {
     backgroundColor: "#FFFFFF",
     borderColor: "rgba(15, 23, 42, 0.12)",
-    color: "#1A2F5C",
+    color: Brand.deep,
   },
   searchDark: {
     backgroundColor: "rgba(255,255,255,0.08)",
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   },
   rowSelected: {
     borderWidth: 1,
-    borderColor: "#0090FF",
+    borderColor: Brand.primary,
   },
   flag: {
     fontSize: 22,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   textLight: {
-    color: "#1A2F5C",
+    color: Brand.deep,
   },
   textDark: {
     color: "#F8FBFF",
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
     color: "rgba(228,236,250,0.65)",
   },
   check: {
-    color: "#0090FF",
+    color: Brand.primary,
     fontSize: 16,
     fontWeight: "700",
   },

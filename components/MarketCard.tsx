@@ -55,8 +55,8 @@ export function MarketCard({
       styles.container,
       {
         backgroundColor: theme.surface,
-        borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(17,24,39,0.08)",
-        shadowOpacity: isDark ? 0.26 : 0.08,
+        borderColor: theme.border,
+        shadowOpacity: isDark ? 0.26 : 0.1,
       },
       compact && styles.compactContainer,
       isResolved && { opacity: 0.95 }

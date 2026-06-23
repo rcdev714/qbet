@@ -124,7 +124,7 @@ export function PlayBetDetailView({
                 {option.label}
               </Text>
               <Text
-                style={[styles.optionPct, { color: "#007AFF" }]}
+                style={[styles.optionPct, { color: theme.primary }]}
               >
                 {pct.toFixed(0)}%
               </Text>
@@ -146,7 +146,7 @@ export function PlayBetDetailView({
                   styles.progressFill,
                   {
                     width: `${pct}%`,
-                    backgroundColor: "#007AFF",
+                    backgroundColor: theme.primary,
                     opacity: 0.7,
                   },
                 ]}
@@ -173,7 +173,7 @@ export function PlayBetDetailView({
         <Ionicons
           name="information-circle-outline"
           size={14}
-          color="#007AFF"
+          color={theme.primary}
         />
         <Text style={[styles.infoText, { color: theme.textSecondary }]}>
           Play bets use real market odds but don&apos;t affect the pool

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     AccessibilityInfo,
+    ActivityIndicator,
     Animated,
     Easing,
     Platform,
@@ -147,8 +148,11 @@ export function AnyMarketLoader({
       ]}
     >
       <View style={styles.wordmarkMeasure}>
+        {wordMetrics.w === 0 ? (
+          <ActivityIndicator size="large" color={theme.primary} style={styles.spinnerFallback} />
+        ) : null}
         <Text
-          style={[wordmarkTextStyle, { color: theme.textSecondary }]}
+          style={[wordmarkTextStyle, { color: theme.textSecondary, opacity: wordMetrics.w > 0 ? 1 : 0 }]}
           {...(Platform.OS === "android" ? { includeFontPadding: false } : {})}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
@@ -270,6 +274,13 @@ const styles = StyleSheet.create({
     position: "relative",
     alignSelf: "center",
     marginBottom: 8,
+    minHeight: WORDMARK_LINE_HEIGHT,
+    minWidth: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spinnerFallback: {
+    position: "absolute",
   },
   wordmarkBase: {
     fontWeight: "400",

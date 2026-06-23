@@ -1,23 +1,24 @@
+import { Brand } from "@/constants/theme";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from "react-native";
 import { CodeInput } from "../components/ui/CodeInput";
 import { IconSymbol } from "../components/ui/icon-symbol";
@@ -638,7 +639,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "#007AFF",
+    backgroundColor: Brand.primary,
     borderRadius: 11,
     minWidth: 22,
     height: 22,
@@ -755,7 +756,7 @@ const styles = StyleSheet.create({
     color: "#111B21",
   },
   closeModalText: {
-    color: "#007AFF",
+    color: Brand.primary,
     fontSize: 16,
   },
   modalInput: {

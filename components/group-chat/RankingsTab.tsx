@@ -5,12 +5,12 @@ import { supabase } from "@/lib/supabase";
 import type { Market } from "@/types/market";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 interface RankingsTabProps {
@@ -187,9 +187,9 @@ export function RankingsTab({ groupId, members, markets, currentUserId }: Rankin
                   {
                     color:
                       item.netPnL > 0
-                        ? "#34C759"
+                        ? theme.success
                         : item.netPnL < 0
-                        ? "#FF3B30"
+                        ? theme.error
                         : theme.textSecondary,
                   },
                 ]}

@@ -1,27 +1,27 @@
+import { AdminShell, useAdminLayoutMetrics } from "@/components/admin/AdminShell";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Dimensions,
     RefreshControl,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { useTheme } from "../contexts/ThemeContext";
 import { adminService, FraudAlert, GrowthMetric, KPISummary } from "../services/admin.service";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
+import { moderationService, type ContentReport } from "../services/moderation.service";
 
 export default function AdminDashboardScreen() {
   const { theme, isDark } = useTheme();
-  const router = useRouter();
+  const { contentWidth } = useAdminLayoutMetrics();
+  const { width: windowWidth } = useWindowDimensions();
+  const chartWidth = Math.max(260, Math.min(contentWidth - 32, windowWidth - 48));
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,20 +29,23 @@ export default function AdminDashboardScreen() {
   const [userGrowth, setUserGrowth] = useState<GrowthMetric[]>([]);
   const [volumeData, setVolumeData] = useState<GrowthMetric[]>([]);
   const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>([]);
+  const [contentReports, setContentReports] = useState<ContentReport[]>([]);
 
   const loadData = async () => {
     try {
-      const [kpiData, growthData, betVolume, alerts] = await Promise.all([
+      const [kpiData, growthData, betVolume, alerts, reports] = await Promise.all([
         adminService.getKPISummary(),
         adminService.getUserGrowth(14), // Last 14 days
         adminService.getBettingVolume(14),
-        adminService.getFraudAlerts()
+        adminService.getFraudAlerts(),
+        moderationService.listContentReports("open"),
       ]);
 
       setKpi(kpiData);
       setUserGrowth(growthData);
       setVolumeData(betVolume);
       setFraudAlerts(alerts);
+      setContentReports(reports);
     } catch (e) {
       console.error("Failed to load admin data", e);
     } finally {
@@ -73,23 +76,17 @@ export default function AdminDashboardScreen() {
   }));
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Admin Dashboard (Palantir Mode)</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
-        }
-      >
+      <AdminShell>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.text} />
+          }
+        >
         {loading && !refreshing ? (
           <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
         ) : (
@@ -151,7 +148,7 @@ export default function AdminDashboardScreen() {
                     yAxisColor={theme.border}
                     yAxisTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
                     xAxisLabelTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
-                    width={SCREEN_WIDTH - 64}
+                    width={chartWidth}
                     hideRules
                     initialSpacing={20}
                  />
@@ -174,7 +171,7 @@ export default function AdminDashboardScreen() {
                     yAxisColor={theme.border}
                     yAxisTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
                     xAxisLabelTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
-                    width={SCREEN_WIDTH - 64}
+                    width={chartWidth}
                     hideRules
                     initialSpacing={20}
                     curved
@@ -211,11 +208,49 @@ export default function AdminDashboardScreen() {
               )}
             </View>
 
+            <View style={[styles.section, { backgroundColor: theme.surface }]}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Content reports</Text>
+              </View>
+              {contentReports.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={{ color: theme.textSecondary }}>No open reports.</Text>
+                </View>
+              ) : (
+                contentReports.map((report) => (
+                  <View key={report.id} style={[styles.alertRow, { borderBottomColor: theme.border }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.alertUser, { color: theme.text }]}>{report.target_type}</Text>
+                      <Text style={[styles.alertReason, { color: theme.error }]}>{report.reason}</Text>
+                      <Text style={[styles.alertDetails, { color: theme.textSecondary }]}>
+                        Target {report.target_id.slice(0, 12)}… · {new Date(report.created_at).toLocaleString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await moderationService.resolveContentReport({
+                          reportId: report.id,
+                          status: "resolved",
+                          adminNotes: "Reviewed from admin dashboard",
+                          restrictUser: false,
+                        });
+                        loadData();
+                      }}
+                      style={[styles.resolveButton, { borderColor: theme.border }]}
+                    >
+                      <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>Resolve</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </View>
+
              <View style={{ height: 40 }} />
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </AdminShell>
+    </>
   );
 }
 
@@ -242,33 +277,21 @@ function StatItem({ label, value, theme }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(150,150,150,0.1)",
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
   scrollContent: {
-    padding: 16,
+    paddingBottom: 32,
   },
   row: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 12,
   },
   card: {
     flex: 1,
+    minWidth: 140,
     padding: 16,
     borderRadius: 12,
     shadowColor: "#000",
@@ -336,6 +359,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
+    gap: 12,
+  },
+  resolveButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   alertUser: {
     fontWeight: "600",

@@ -17,6 +17,9 @@
 echo "🚀 QBet Production Deployment"
 echo "=============================="
 echo ""
+echo "STEP 0: Run the pre-deploy gate first:"
+echo "  npm run predeploy:prod"
+echo ""
 
 # Check if Supabase CLI is installed
 if ! command -v supabase &> /dev/null; then
@@ -36,6 +39,9 @@ echo ""
 echo "supabase secrets set STRIPE_SECRET_KEY=sk_live_YOUR_LIVE_SECRET_KEY"
 echo "supabase secrets set STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_LIVE_PUBLISHABLE_KEY"
 echo "supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_YOUR_LIVE_WEBHOOK_SECRET"
+echo "supabase secrets set RESEND_API_KEY=re_YOUR_PRODUCTION_RESEND_KEY"
+echo "supabase secrets set RESEND_FROM_EMAIL=\"AnyMarket <onboarding@yourdomain.com>\""
+echo "supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app"
 echo ""
 
 # Uncomment and fill in your keys to run automatically:
@@ -64,6 +70,7 @@ supabase functions deploy create-connect-account
 supabase functions deploy onboarding-callback
 supabase functions deploy update-connect-account
 supabase functions deploy payout
+supabase functions deploy send-beta-approval-email
 
 # =============================================================================
 # STEP 4: Apply database migration (removes admin bypass)

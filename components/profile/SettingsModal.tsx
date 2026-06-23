@@ -134,8 +134,8 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
 
             <DeleteAccountSection theme={theme} style={styles.section} onDeleted={onSignOut} />
 
-            <TouchableOpacity style={[styles.saveButton, { backgroundColor: isDark ? theme.surface : theme.primary, borderColor: isDark ? theme.primary : 'transparent', borderWidth: isDark ? 1 : 0 }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={handleSave}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.saveButtonText, { color: isDark ? theme.primary : '#fff' }]}>Save Changes</Text>}
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={handleSave}>
+                {loading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.saveButtonText, { color: theme.onPrimary }]}>Save Changes</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.signOutButton, { backgroundColor: theme.surface }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={onSignOut}>

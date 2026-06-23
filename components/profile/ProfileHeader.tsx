@@ -78,14 +78,28 @@ export function ProfileHeader({
               <TouchableOpacity 
                   style={[
                       styles.followButton, 
-                      { backgroundColor: isFollowing ? theme.card : (isDark ? theme.surface : theme.primary), borderColor: isDark ? theme.primary : theme.border, borderWidth: 1 },
+                      {
+                        backgroundColor: isFollowing
+                          ? theme.input
+                          : isDark
+                            ? theme.surface
+                            : theme.primary,
+                        borderColor: isFollowing ? theme.border : isDark ? theme.primary : theme.primary,
+                        borderWidth: 1,
+                      },
                       Platform.OS === 'web' && { cursor: 'pointer' } as any
                   ]}
                   onPress={onFollow}
               >
                   <Text style={[
                       styles.followButtonText, 
-                      { color: isFollowing ? theme.text : (isDark ? theme.primary : '#fff') }
+                      {
+                        color: isFollowing
+                          ? theme.text
+                          : isDark
+                            ? theme.primary
+                            : theme.onPrimary,
+                      },
                   ]}>
                       {isFollowing ? "Following" : "Follow"}
                   </Text>
