@@ -115,7 +115,7 @@ export default function LoginScreen() {
                   style={styles.logo}
                   contentFit="contain"
                 />
-                <AppText variant="display" style={styles.brandName}>AnyMarket</AppText>
+                <AppText variant="display" style={styles.brandName}>Anymarkt</AppText>
               </View>
               <AppText variant="title3" style={styles.subtitle}>
                 {isLogin ? t("welcomeBack") : t("createAccount")}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" width="100%" height="100%">
+  <g transform="translate(8, 10) scale(0.1)">
+    <rect width="1020" height="1020" fill="#010053" rx="48" />
+    <line x1="235" y1="785" x2="785" y2="235" stroke="white" stroke-width="30" stroke-linecap="butt" />
+    <rect x="150" y="700" width="170" height="170" rx="6" fill="white" />
+    <rect x="425" y="425" width="170" height="170" rx="6" fill="white" />
+    <rect x="700" y="150" width="170" height="170" rx="6" fill="white" />
+  </g>
+  <text x="130" y="78" fill="#010053" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="56" font-weight="700" letter-spacing="-1">Anymarkt</text>
+</svg>

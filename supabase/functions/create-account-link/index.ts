@@ -23,7 +23,7 @@ function allowedOrigins(supabaseUrl: string) {
     Deno.env.get("EXPO_PUBLIC_APP_URL"),
     Deno.env.get("APP_URL"),
     supabaseUrl,
-    "https://anymarket.expo.app",
+    "https://anymarkt.com",
   ]);
 }
 

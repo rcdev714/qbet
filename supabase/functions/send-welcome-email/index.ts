@@ -35,7 +35,7 @@ serve(async (req) => {
     const isServiceRole = serviceRoleKey.length > 0 && token === serviceRoleKey;
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "AnyMarket <onboarding@camella.app>";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "Anymarkt <onboarding@anymarkt.com>";
     const appUrl = Deno.env.get("EXPO_PUBLIC_APP_URL") ?? "http://localhost:8081";
 
     if (!resendApiKey) {

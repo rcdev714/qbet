@@ -59,7 +59,7 @@ function allowedOrigins() {
   return buildAllowedOrigins([
     Deno.env.get("EXPO_PUBLIC_APP_URL"),
     Deno.env.get("APP_URL"),
-    "https://anymarket.expo.app",
+    "https://anymarkt.com",
   ]);
 }
 
@@ -179,7 +179,7 @@ serve(async (req: Request) => {
     // Determine return URLs
     const origin = Deno.env.get("EXPO_PUBLIC_APP_URL") ||
       Deno.env.get("APP_URL") ||
-      "https://anymarket.expo.app";
+      "https://anymarkt.com";
 
     const defaultSuccessUrl =
       `${origin}/topup?success=true&session_id={CHECKOUT_SESSION_ID}`;

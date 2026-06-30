@@ -98,7 +98,7 @@ serve(async (req: Request) => {
             },
             business_profile: {
                 mcc: "7999", // Recreation Services (betting/gaming)
-                url: "https://qbet.app", // TODO: Update to actual production URL
+                url: "https://anymarkt.com",
             },
         });
 

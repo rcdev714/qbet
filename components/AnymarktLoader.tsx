@@ -13,11 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/contexts/ThemeContext";
 
-type AnyMarketLoaderVariant = "screen" | "overlay" | "inline";
+type AnymarktLoaderVariant = "screen" | "overlay" | "inline";
 
-interface AnyMarketLoaderProps {
+interface AnymarktLoaderProps {
   message?: string;
-  variant?: AnyMarketLoaderVariant;
+  variant?: AnymarktLoaderVariant;
 }
 
 /** Full-screen / inline loop timing (auth, long loads). */
@@ -32,10 +32,10 @@ const SCREEN_LOOP_FILL_MS = ANYMARKET_LOADER_FILL_DURATION_MS;
 const WORDMARK_FONT_SIZE = 56;
 const WORDMARK_LINE_HEIGHT = Math.round(WORDMARK_FONT_SIZE * 1.06);
 
-export function AnyMarketLoader({
+export function AnymarktLoader({
   message = "Loading",
   variant = "screen",
-}: AnyMarketLoaderProps) {
+}: AnymarktLoaderProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -159,7 +159,7 @@ export function AnyMarketLoader({
             setWordMetrics((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
           }}
         >
-          AnyMarket
+          Anymarkt
         </Text>
         {wordMetrics.w > 0 ? (
           <View
@@ -185,7 +185,7 @@ export function AnyMarketLoader({
                 ]}
                 {...(Platform.OS === "android" ? { includeFontPadding: false } : {})}
               >
-                AnyMarket
+                Anymarkt
               </Text>
             </Animated.View>
           </View>
@@ -203,7 +203,7 @@ export function AnyMarketLoader({
     return (
       <View
         accessibilityRole="progressbar"
-        accessibilityLabel={`${message}. AnyMarket`}
+        accessibilityLabel={`${message}. Anymarkt`}
         style={[styles.overlayRoot, { pointerEvents: "box-none" }]}
         pointerEvents="box-none"
       >
@@ -216,7 +216,7 @@ export function AnyMarketLoader({
 
   if (variant === "inline") {
     return (
-      <View accessibilityRole="progressbar" accessibilityLabel={`${message}. AnyMarket`} style={styles.inlineRoot}>
+      <View accessibilityRole="progressbar" accessibilityLabel={`${message}. Anymarkt`} style={styles.inlineRoot}>
         {strip}
       </View>
     );
@@ -225,7 +225,7 @@ export function AnyMarketLoader({
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={`${message}. AnyMarket`}
+      accessibilityLabel={`${message}. Anymarkt`}
       style={[
         styles.screenRoot,
         {

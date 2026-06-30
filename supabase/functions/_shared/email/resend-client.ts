@@ -1,3 +1,8 @@
+export type ResendAttachment = {
+  filename: string;
+  content: string;
+};
+
 export type ResendSendParams = {
   from: string;
   to: string[];
@@ -5,6 +10,8 @@ export type ResendSendParams = {
   html: string;
   text?: string;
   idempotencyKey: string;
+  attachments?: ResendAttachment[];
+  headers?: Record<string, string>;
 };
 
 export type ResendSendResult =
@@ -34,6 +41,8 @@ export async function sendViaResend(
         subject: params.subject,
         html: params.html,
         text: params.text,
+        ...(params.attachments?.length ? { attachments: params.attachments } : {}),
+        ...(params.headers ? { headers: params.headers } : {}),
       }),
     });
 

@@ -1,6 +1,6 @@
 # EC Real-Money Web Beta — E2E Test Checklist
 
-Manual QA checklist before inviting beta users. Run against **local** (`http://localhost:8081`) or **production** (`https://anymarket.expo.app`) with Stripe test mode where applicable.
+Manual QA checklist before inviting beta users. Run against **local** (`http://localhost:8081`) or **production** (`https://anymarkt.com`) with Stripe test mode where applicable.
 
 **Related:** [local-dev-verification.md](./local-dev-verification.md) · [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) · [deploy-web-production.md](./deploy-web-production.md)
 
@@ -11,9 +11,9 @@ Manual QA checklist before inviting beta users. Run against **local** (`http://l
 - [ ] Apply migrations through `20260626120000_beta_approval_notify.sql`
 - [ ] Set `EXPO_PUBLIC_LAUNCH_JURISDICTION=EC`
 - [ ] Set `EXPO_PUBLIC_BETA_REQUIRED=true`
-- [ ] Supabase secrets: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app` (prod)
+- [ ] Supabase secrets: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `EXPO_PUBLIC_APP_URL=https://anymarkt.com` (prod)
 - [ ] Edge function `send-beta-approval-email` deployed (prod)
-- [ ] Resend domain `camella.app` verified (prod)
+- [ ] Resend domain `anymarkt.com` verified (prod)
 - [ ] Confirm EC-only countries: only Ecuador enabled in `supported_residence_countries`
 - [ ] Run `npm run verify` (typecheck + lint + web export + unit + Deno email tests)
 - [ ] Run `npm run test:beta-approval-flow` locally
@@ -35,8 +35,8 @@ on conflict (email) do nothing;
 - [ ] Row appears in `beta_access_requests` with status `pending`
 - [ ] Admin **Users** (`/admin/users`) → approve → green success banner (web uses confirm dialog)
 - [ ] **Approved** tab shows request + **Approval email sent** timestamp
-- [ ] Email arrives from `AnyMarket <onboarding@camella.app>` (prod) or test sender (local)
-- [ ] Welcome link opens `/beta/welcome?token=...` on correct host (`anymarket.expo.app` in prod)
+- [ ] Email arrives from `Anymarkt <onboarding@anymarkt.com>` (prod) or test sender (local)
+- [ ] Welcome link opens `/beta/welcome?token=...` on correct host (`anymarkt.com` in prod)
 - [ ] Welcome page shows approved state; local intent saved (`lib/beta-access-intent`)
 - [ ] **Sign up** / **Sign in** with **same email** → skips waitlist → `/onboarding/residence`
 - [ ] **Resend approval email** works from admin (no duplicate-user confusion)
@@ -135,9 +135,9 @@ on conflict (email) do nothing;
 
 After `git push master` or `npm run deploy:web:prod`:
 
-- [ ] https://anymarket.expo.app/request-access returns 200
-- [ ] https://anymarket.expo.app/beta/welcome returns 200 (without token shows error state, not 404)
-- [ ] https://anymarket.expo.app/admin/users returns 200 (auth required for data)
+- [ ] https://anymarkt.com/request-access returns 200
+- [ ] https://anymarkt.com/beta/welcome returns 200 (without token shows error state, not 404)
+- [ ] https://anymarkt.com/admin/users returns 200 (auth required for data)
 - [ ] EAS workflow run succeeded (`npx eas workflow:runs --limit 3`)
 - [ ] No unintended iOS/Android builds triggered on push
 

@@ -2,13 +2,13 @@ import { createClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database";
 
-const SITE_NAME = "AnyMarket";
+const SITE_NAME = "Anymarkt";
 const APP_SCHEME = "qbet";
 const IOS_APP_STORE_URL = "https://apps.apple.com/app/qbet/id123456789";
 const ANDROID_PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.rcdev714.qbet";
 const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || process.env.APP_URL ||
-  "https://anymarket.expo.app").replace(/\/$/, "");
+  "https://anymarkt.com").replace(/\/$/, "");
 const DEFAULT_OG_IMAGE = `${APP_URL}/og-image.png`;
 
 type SupabaseServerClient = ReturnType<typeof createClient<Database>>;
@@ -232,7 +232,7 @@ export async function getMarketSharePreview(
       moneyLabel(pool),
       inviteCode ? `Invite code: ${inviteCode}.` : null,
       market?.description || group?.description ||
-      "Open this AnyMarket prediction with friends.",
+      "Open this Anymarkt prediction with friends.",
     ]),
     imageUrl: absoluteUrl(group?.avatar_url || market?.image_url),
     imageAlt: group
@@ -279,7 +279,7 @@ export async function getGroupSharePreview(
       memberCount ? `${memberCount.toLocaleString()} members.` : null,
       moneyLabel(pool),
       inviteCode ? `Invite code: ${inviteCode}.` : null,
-      group?.description || "Join this AnyMarket group and predict with friends.",
+      group?.description || "Join this Anymarkt group and predict with friends.",
     ]),
     imageUrl: absoluteUrl(group?.avatar_url),
     imageAlt: `${groupName} group invite preview`,

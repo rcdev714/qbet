@@ -1,10 +1,11 @@
 import { Platform, Share } from "react-native";
 import { supabase } from "../lib/supabase";
+import { APP_URL as BRAND_APP_URL } from "../lib/brand";
 import type { Market } from "../types/market";
 
 export type ShareEntityType = "profile" | "group" | "bets" | "bet";
 
-const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || "https://anymarket.expo.app")
+const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || BRAND_APP_URL)
     .replace(/\/$/, "");
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const SHARE_REDIRECT_URL = `${SUPABASE_URL}/functions/v1/share-redirect`;
@@ -135,8 +136,8 @@ export const shareService = {
                 console.error,
             );
 
-            const message = `Predict this with me on AnyMarket:\n${market.question}`;
-            const title = `Predict: ${market.question} | AnyMarket`;
+            const message = `Predict this with me on Anymarkt:\n${market.question}`;
+            const title = `Predict: ${market.question} | Anymarkt`;
 
             // Use native share
             const result = await Share.share(
@@ -185,8 +186,8 @@ export const shareService = {
                 console.error,
             );
 
-            const message = `See ${username}'s prediction track record on AnyMarket.`;
-            const title = `${username} on AnyMarket`;
+            const message = `See ${username}'s prediction track record on Anymarkt.`;
+            const title = `${username} on Anymarkt`;
 
             const result = await Share.share(
                 Platform.OS === "ios"

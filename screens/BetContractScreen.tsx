@@ -100,7 +100,7 @@ export function BetContractScreen() {
     setDownloading(true);
     pushDebug("pdf.start", contract.contract_number);
     try {
-      const appUrl = getPublicEnv().appUrl ?? "https://anymarket.expo.app";
+      const appUrl = getPublicEnv().appUrl ?? "https://anymarkt.com";
       const html = buildBetContractHtml({
         contract,
         eventType: contract.resolved_snapshot ? "resolved" : "placed",
@@ -173,7 +173,7 @@ export function BetContractScreen() {
 
   const handleShareText = async () => {
     if (!contract) return;
-    const appUrl = getPublicEnv().appUrl ?? "https://anymarket.expo.app";
+    const appUrl = getPublicEnv().appUrl ?? "https://anymarkt.com";
     await Share.share({
       message: buildBetContractPlainText({
         contract,
@@ -255,7 +255,7 @@ export function BetContractScreen() {
 
   const snapshot = parseBetContractSnapshot(contract.placed_snapshot);
   const resolution = parseBetContractResolution(contract.resolved_snapshot);
-  const appUrl = getPublicEnv().appUrl ?? "https://anymarket.expo.app";
+  const appUrl = getPublicEnv().appUrl ?? "https://anymarkt.com";
 
   return (
     <AppScreen testID="contract-root" maxWidth="narrow" scroll scrollProps={{ contentContainerStyle: styles.content }}>

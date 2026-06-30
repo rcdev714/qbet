@@ -2,7 +2,7 @@
 
 **Status:** Engineering and operations runbook for counsel validation — **not legal advice.**
 
-**Scope:** AnyMarket users with `country_of_residence = EC` and Live wallet activity.
+**Scope:** Anymarkt users with `country_of_residence = EC` and Live wallet activity.
 
 **Related:** [`ec-product-classification-memo.md`](./ec-product-classification-memo.md), [`ecuador-compliance-framework.md`](./ecuador-compliance-framework.md)
 
@@ -12,7 +12,7 @@
 
 ### 1.1 When UAFE matters
 
-UAFE is Ecuador’s financial intelligence unit. Obligations may attach if AnyMarket is classified as:
+UAFE is Ecuador’s financial intelligence unit. Obligations may attach if Anymarkt is classified as:
 
 - a licensed **pronósticos deportivos** operator (explicit UAFE registration under 2026 regulation), or
 - a **reporting entity** under Ecuador AML law for payment/wallet activity (counsel to confirm for non-LOPD classification).
@@ -85,7 +85,7 @@ When escalating to counsel, attach:
 
 ### 2.3 Contacts
 
-- Platform support: support@anymarket.app
+- Platform support: support@anymarkt.com
 - Compliance escalation: _[appoint internal alias]_
 - Ecuador counsel: _[firm / contact]_
 
@@ -97,8 +97,8 @@ When escalating to counsel, attach:
 
 | # | Question | Notes |
 |---|----------|-------|
-| 1 | Is AnyMarket subject to **Impuesto a la Renta Único (15%)** as a prediction-market operator? | Sports-betting regime uses IRU; confirm if non-LOPD path differs |
-| 2 | Must AnyMarket **withhold on user prizes/winnings** (~15% under sports regulation)? | Parimutuel payouts may trigger withholding |
+| 1 | Is Anymarkt subject to **Impuesto a la Renta Único (15%)** as a prediction-market operator? | Sports-betting regime uses IRU; confirm if non-LOPD path differs |
+| 2 | Must Anymarkt **withhold on user prizes/winnings** (~15% under sports regulation)? | Parimutuel payouts may trigger withholding |
 | 3 | **VAT / digital services** on platform fees or spreads? | Monthly reporting obligations |
 | 4 | **RUC / tax registration** requirements for foreign operator vs local entity | See [`ec-local-presence-requirements.md`](./ec-local-presence-requirements.md) |
 | 5 | Monthly / periodic **information returns** to SRI? | Engineering: `regulatory_report_periods`, `prepare_regulatory_report_period` |

@@ -75,7 +75,7 @@ export function PolicyDocumentScreen({ document }: PolicyDocumentScreenProps) {
         title={document.title}
         description={document.seoDescription}
         url={documentUrl}
-        keywords={`AnyMarket, ${document.title}, legal, compliance, ${document.jurisdiction}`}
+        keywords={`Anymarkt, ${document.title}, legal, compliance, ${document.jurisdiction}`}
       />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.utilityBar}>

@@ -32,7 +32,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "AnyMarket <onboarding@camella.app>";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "Anymarkt <onboarding@anymarkt.com>";
     const appUrl = Deno.env.get("EXPO_PUBLIC_APP_URL") ?? "http://localhost:8081";
 
     if (!resendApiKey) {
@@ -106,9 +106,9 @@ serve(async (req) => {
       body: JSON.stringify({
         from: fromEmail,
         to: [request.email],
-        subject: "Your AnyMarket beta access is approved",
+        subject: "Your Anymarkt beta access is approved",
         html: buildApprovalEmailHtml({ fullName: request.full_name, welcomeUrl }),
-        text: `Your AnyMarket beta access is approved. Continue here: ${welcomeUrl}`,
+        text: `Your Anymarkt beta access is approved. Continue here: ${welcomeUrl}`,
       }),
     });
 

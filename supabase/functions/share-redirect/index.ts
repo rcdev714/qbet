@@ -14,8 +14,8 @@ const ANDROID_PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.rcdev714.qbet";
 const APP_SCHEME = "qbet";
 const APP_URL = (Deno.env.get("EXPO_PUBLIC_APP_URL") ||
-  Deno.env.get("APP_URL") || "https://anymarket.expo.app").replace(/\/$/, "");
-const SITE_NAME = "AnyMarket";
+  Deno.env.get("APP_URL") || "https://anymarkt.com").replace(/\/$/, "");
+const SITE_NAME = "Anymarkt";
 const DEFAULT_OG_IMAGE = `${APP_URL}/og-image.png`;
 
 interface MarketOption {
@@ -196,9 +196,9 @@ function generateRedirectHTML(
   };
 
   const title = escapeHtml(market.question) ||
-    "AnyMarket | Predict the Future with friends";
+    "Anymarkt | Predict the Future with friends";
   const rawDesc = market.description ||
-    "Predict future outcomes with friends on AnyMarket.";
+    "Predict future outcomes with friends on Anymarkt.";
   // Only show odds if public
   const description = `${
     odds && market.is_public ? `Current predictions: ${odds}. ` : ""
@@ -388,7 +388,7 @@ function generateRedirectHTML(
   <div class="background"></div>
   <div class="container">
     <div class="logo">
-        AnyMarket
+        Anymarkt
         <span class="logo-badge">Beta</span>
     </div>
     
@@ -399,9 +399,9 @@ function generateRedirectHTML(
         ${odds ? `<div class="odds-badge">${odds}</div>` : ""}
     </div>
     
-    <a href="${deepLink}" class="cta-btn">Open in AnyMarket</a>
+    <a href="${deepLink}" class="cta-btn">Open in Anymarkt</a>
     <a href="${safeCanonicalUrl}" class="cta-btn" style="background: rgba(42,91,255,0.12); color:#1A2F5C; box-shadow:none;">
-        Continue to AnyMarket
+        Continue to Anymarkt
     </a>
     
     <div class="footer">

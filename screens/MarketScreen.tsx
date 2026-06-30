@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
-import { AnyMarketLoader } from "../components/AnyMarketLoader";
+import { AnymarktLoader } from "../components/AnymarktLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { MarketChatTab } from "../components/MarketChatTab";
 import { MarketProbabilityChart } from "../components/MarketProbabilityChart";
@@ -140,7 +140,7 @@ export function MarketScreen() {
   }, [market, options, residence?.jurisdiction]);
 
   if (loading) {
-    return <AnyMarketLoader message="Preparing the market..." />;
+    return <AnymarktLoader message="Preparing the market..." />;
   }
 
   if (!market) {
@@ -261,7 +261,7 @@ export function MarketScreen() {
     .map((option) => `${option.label} ${Math.round(option.percentage)}%`)
     .join(" · ");
   const marketPreviewDescription = [
-    market.description || `Predict how this market resolves with friends on AnyMarket.`,
+    market.description || `Predict how this market resolves with friends on Anymarkt.`,
     leadingOptions ? `Current predictions: ${leadingOptions}.` : null,
     totalPool > 0 ? `$${totalPool.toLocaleString()} predicted so far.` : null,
   ].filter(Boolean).join(" ");
@@ -272,7 +272,7 @@ export function MarketScreen() {
         title={`Predict: ${market.question}`}
         description={marketPreviewDescription}
         image={market.image_url || undefined}
-        imageAlt={`AnyMarket prediction market: ${market.question}`}
+        imageAlt={`Anymarkt prediction market: ${market.question}`}
         url={`/market/${resolvedMarketId}`}
         locale={locale === "es" ? "es_ES" : "en_US"}
       />

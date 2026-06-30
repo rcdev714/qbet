@@ -26,16 +26,20 @@ import { adminService } from "../services/admin.service";
 import {
     FEED_CATEGORIES,
     type FeedCategory,
+    type FeedMarketSuggestion,
     feedService,
 } from "../services/feed.service";
 import type { Market } from "../types/market";
 
+export type AdminFeedManagerTab = "suggestions" | "promote" | "create" | "manage" | "resolve";
+
 interface AdminFeedManagerProps {
   visible: boolean;
   onClose: () => void;
+  initialTab?: AdminFeedManagerTab;
 }
 
-type Tab = "promote" | "create" | "manage" | "resolve";
+type Tab = AdminFeedManagerTab;
 
 type ManageStatusFilter = "all" | "open" | "closed" | "resolved";
 
@@ -60,9 +64,9 @@ interface MarketOption {
   total_pool: number;
 }
 
-export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
+export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" }: AdminFeedManagerProps) {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<Tab>("promote");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [candidates, setCandidates] = useState<Market[]>([]);
   const [activeMarkets, setActiveMarkets] = useState<Market[]>([]);
   const [openMarketsForResolve, setOpenMarketsForResolve] = useState<Market[]>(
@@ -100,11 +104,31 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
   const [evidenceNotes, setEvidenceNotes] = useState("");
   const [manageStatusFilter, setManageStatusFilter] =
     useState<ManageStatusFilter>("all");
+  const [suggestions, setSuggestions] = useState<FeedMarketSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionSourceId, setSuggestionSourceId] = useState<string | null>(null);
 
   const filteredManageMarkets = useMemo(() => {
     if (manageStatusFilter === "all") return activeMarkets;
     return activeMarkets.filter((market) => market.status === manageStatusFilter);
   }, [activeMarkets, manageStatusFilter]);
+
+  const fetchSuggestions = async () => {
+    setSuggestionsLoading(true);
+    try {
+      const { suggestions: rows, error } = await feedService.getFeedSuggestions({
+        status: "pending",
+        limit: 100,
+      });
+      if (error) throw error;
+      setSuggestions(rows);
+    } catch (err) {
+      console.error("Error fetching feed suggestions:", err);
+      Alert.alert("Error", formatActionError(err, "Failed to load suggestions"));
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
 
   // Fetch recent private markets that are candidates for the feed
   const fetchCandidates = async () => {
@@ -270,10 +294,18 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
 
   useEffect(() => {
     if (visible) {
+      setActiveTab(initialTab);
+    }
+  }, [visible, initialTab]);
+
+  useEffect(() => {
+    if (visible) {
       if (activeTab === "manage") {
         fetchActiveMarkets();
       } else if (activeTab === "resolve") {
         fetchOpenMarketsForResolve();
+      } else if (activeTab === "suggestions") {
+        fetchSuggestions();
       } else {
         fetchCandidates();
       }
@@ -295,6 +327,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
     setClosesAt(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     setImageUrl("");
     setEditingMarketId(null);
+    setSuggestionSourceId(null);
   };
 
   const handleEdit = (market: Market) => {
@@ -381,7 +414,7 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           return;
         }
 
-        const { error } = await feedService.createPublicMarket({
+        const { market, error } = await feedService.createPublicMarket({
           question: question.trim(),
           category,
           options: options.filter((o) => o.trim()),
@@ -391,6 +424,29 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
         });
 
         if (error) throw error;
+
+        if (suggestionSourceId && market?.id) {
+          const sourceSuggestion = suggestions.find((item) => item.id === suggestionSourceId);
+          const markError = await feedService.markSuggestionCreated(
+            suggestionSourceId,
+            market.id,
+            sourceSuggestion
+              ? {
+                original_question: sourceSuggestion.question,
+                final_question: question.trim(),
+                original_options: sourceSuggestion.options,
+                final_options: options.filter((o) => o.trim()),
+                original_closes_at: sourceSuggestion.suggested_closes_at,
+                final_closes_at: closesAt.toISOString(),
+              }
+              : undefined,
+          );
+          if (markError) {
+            console.warn("Failed to link suggestion to market:", markError);
+          }
+          setSuggestionSourceId(null);
+          fetchSuggestions();
+        }
 
         Alert.alert("Success", "Public market created! Compliance review runs automatically before feed visibility.", [
           {
@@ -408,6 +464,191 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
     } finally {
       setCreating(false);
     }
+  };
+
+  const dismissSuggestionWithReason = async (suggestionId: string, reason: string) => {
+    setProcessingId(suggestionId);
+    try {
+      const error = await feedService.dismissFeedSuggestion(suggestionId, reason);
+      if (error) throw error;
+      setSuggestions((prev) => prev.filter((item) => item.id !== suggestionId));
+    } catch (err) {
+      console.error("Error dismissing suggestion:", err);
+      Alert.alert("Error", formatActionError(err, "Failed to dismiss suggestion"));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDismissSuggestion = async (suggestionId: string) => {
+    Alert.alert(
+      "Dismiss suggestion",
+      "Why should this suggestion be blocked?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Not engaging",
+          onPress: () => dismissSuggestionWithReason(suggestionId, "not_engaging"),
+        },
+        {
+          text: "Quality issue",
+          style: "destructive",
+          onPress: () => dismissSuggestionWithReason(suggestionId, "weak_sources"),
+        },
+      ],
+    );
+  };
+
+  const handleUseSuggestion = (suggestion: FeedMarketSuggestion) => {
+    const labels = suggestion.options.filter(Boolean);
+    setQuestion(suggestion.question);
+    setCategory(
+      FEED_CATEGORIES.includes(suggestion.category as FeedCategory)
+        ? (suggestion.category as FeedCategory)
+        : "Politics",
+    );
+    setIsBinaryMarket(labels.length === 2);
+    setOptions(labels.length >= 2 ? labels : ["Yes", "No"]);
+    setClosesAt(new Date(suggestion.suggested_closes_at));
+    setImageUrl("");
+    setEditingMarketId(null);
+    setSuggestionSourceId(suggestion.id);
+    setActiveTab("create");
+  };
+
+  const groupedSuggestions = useMemo(() => {
+    const groups = new Map<string, FeedMarketSuggestion[]>();
+    for (const item of suggestions) {
+      const batchKey = item.batch_id;
+      const list = groups.get(batchKey) ?? [];
+      list.push(item);
+      groups.set(batchKey, list);
+    }
+    return [...groups.entries()].map(([batchId, items]) => ({
+      batchId,
+      header: items[0]?.batch
+        ? `${items[0].batch.run_date} · ${items[0].batch.cron_slot} ET`
+        : "Suggestions",
+      items,
+    }));
+  }, [suggestions]);
+
+  const renderSuggestionsContent = () => {
+    if (suggestionsLoading) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      );
+    }
+
+    if (groupedSuggestions.length === 0) {
+      return (
+        <View style={styles.center}>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            No pending AI suggestions. New batches arrive at 8am, 12pm, and 3pm ET.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <ScrollView contentContainerStyle={styles.suggestionsList}>
+        {groupedSuggestions.map((group) => (
+          <View key={group.batchId} style={styles.suggestionGroup}>
+            <Text style={[styles.suggestionGroupTitle, { color: theme.text }]}>
+              {group.header}
+            </Text>
+            {group.items.map((item) => (
+              <View
+                key={item.id}
+                style={[styles.suggestionCard, {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                }]}
+              >
+                <View style={styles.suggestionMetaRow}>
+                  <Text style={[styles.suggestionCategory, { color: theme.primary }]}>
+                    {item.category}
+                  </Text>
+                  <Text style={[styles.suggestionChip, { color: theme.textSecondary }]}>
+                    {item.horizon === "near_term" ? "Near-term" : "Long-term"}
+                  </Text>
+                  <Text style={[styles.suggestionChip, { color: theme.textSecondary }]}>
+                    {item.autopilot_status === "eligible"
+                      ? `Autopilot eligible · ${item.autopilot_score}`
+                      : `${item.autopilot_status.replace("_", " ")} · ${item.autopilot_score}`}
+                  </Text>
+                </View>
+                <Text style={[styles.suggestionSubject, { color: theme.textSecondary }]}>
+                  {item.subject}
+                </Text>
+                <Text style={[styles.suggestionQuestion, { color: theme.text }]}>
+                  {item.question}
+                </Text>
+                <Text style={[styles.suggestionOptions, { color: theme.textSecondary }]}>
+                  Options: {item.options.join(" · ")}
+                </Text>
+                <Text style={[styles.suggestionMeta, { color: theme.textSecondary }]}>
+                  Closes {new Date(item.suggested_closes_at).toLocaleString()}
+                </Text>
+                <Text style={[styles.suggestionMeta, { color: theme.textSecondary }]}>
+                  Source score {item.source_quality_score} · Resolution score {item.resolution_quality_score} · Engagement {item.engagement_score}
+                </Text>
+                {item.rationale ? (
+                  <Text style={[styles.suggestionRationale, { color: theme.textSecondary }]}>
+                    {item.rationale}
+                  </Text>
+                ) : null}
+                {item.resolution_criteria ? (
+                  <Text style={[styles.suggestionRationale, { color: theme.textSecondary }]}>
+                    Resolution: {item.resolution_criteria}
+                  </Text>
+                ) : null}
+                {item.autopilot_reasons?.length ? (
+                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                    Checks: {item.autopilot_reasons.slice(0, 4).join(", ")}
+                  </Text>
+                ) : null}
+                {item.evidence_sources?.length ? (
+                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                    Evidence: {item.evidence_sources.slice(0, 3).map((source) =>
+                      `${source.publisher || "Source"} (${source.source_type})`
+                    ).join(", ")}
+                  </Text>
+                ) : null}
+                {item.source_urls?.length ? (
+                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                    Sources: {item.source_urls.slice(0, 3).join(", ")}
+                  </Text>
+                ) : null}
+                <View style={styles.suggestionActions}>
+                  <TouchableOpacity
+                    style={[styles.suggestionActionBtn, { backgroundColor: theme.primary }]}
+                    onPress={() => handleUseSuggestion(item)}
+                  >
+                    <Text style={styles.suggestionActionText}>Use in Create</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.suggestionActionBtn, {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderWidth: 1,
+                    }]}
+                    disabled={processingId === item.id}
+                    onPress={() => handleDismissSuggestion(item.id)}
+                  >
+                    <Text style={[styles.suggestionActionText, { color: theme.text }]}>
+                      Dismiss
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+    );
   };
 
   const updateOption = (index: number, value: string) => {
@@ -1335,6 +1576,25 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           <TouchableOpacity
             style={[
               styles.tab,
+              activeTab === "suggestions" &&
+              { borderBottomColor: theme.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab("suggestions")}
+          >
+            <Text
+              style={[styles.tabText, {
+                color: activeTab === "suggestions"
+                  ? theme.primary
+                  : theme.textSecondary,
+              }]}
+            >
+              Suggestions
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tab,
               activeTab === "promote" &&
               { borderBottomColor: theme.primary, borderBottomWidth: 2 },
             ]}
@@ -1421,6 +1681,10 @@ export function AdminFeedManager({ visible, onClose }: AdminFeedManagerProps) {
           : activeTab === "resolve"
           ? (
             renderResolveContent()
+          )
+          : activeTab === "suggestions"
+          ? (
+            renderSuggestionsContent()
           )
           : (
             <FlatList
@@ -1800,5 +2064,77 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
     marginBottom: 24,
+  },
+  emptyText: {
+    fontSize: 15,
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  suggestionsList: {
+    padding: 16,
+    gap: 16,
+  },
+  suggestionGroup: {
+    gap: 12,
+  },
+  suggestionGroupTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  suggestionCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  suggestionMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  suggestionCategory: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  suggestionChip: {
+    fontSize: 12,
+  },
+  suggestionSubject: {
+    fontSize: 13,
+  },
+  suggestionQuestion: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  suggestionOptions: {
+    fontSize: 13,
+  },
+  suggestionMeta: {
+    fontSize: 12,
+  },
+  suggestionRationale: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  suggestionSources: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  suggestionActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  suggestionActionBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  suggestionActionText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

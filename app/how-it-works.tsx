@@ -8,7 +8,7 @@ const SECTIONS = [
   {
     title: "Practice first, Live when verified",
     body:
-      "AnyMarket is social prediction infrastructure. Use Practice mode to learn with trial credits. Live wallet features unlock only after residence, policy acceptance, age attestation, and KYC verification.",
+      "Anymarkt is social prediction infrastructure. Use Practice mode to learn with trial credits. Live wallet features unlock only after residence, policy acceptance, age attestation, and KYC verification.",
   },
   {
     title: "Objective markets or no market",
@@ -18,7 +18,7 @@ const SECTIONS = [
   {
     title: "Parimutuel pools, not house odds",
     body:
-      "Winners share the pool proportionally. AnyMarket facilitates the market protocol and debits your wallet when you participate—it is not a counterparty to individual wagers.",
+      "Winners share the pool proportionally. Anymarkt facilitates the market protocol and debits your wallet when you participate—it is not a counterparty to individual wagers.",
   },
   {
     title: "Harm prohibition over engagement",
@@ -34,15 +34,15 @@ export default function HowItWorksPage() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO
-        title="How AnyMarket Works"
-        description="Learn how Practice mode, Live wallet verification, parimutuel pools, and compliance gates work on AnyMarket."
+        title="How Anymarkt Works"
+        description="Learn how Practice mode, Live wallet verification, parimutuel pools, and compliance gates work on Anymarkt."
         url="/how-it-works"
       />
       <ScrollView contentContainerStyle={styles.content}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: theme.primary, marginBottom: 12 }}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>How AnyMarket Works</Text>
+        <Text style={[styles.title, { color: theme.text }]}>How Anymarkt Works</Text>
         <Text style={[styles.lead, { color: theme.textSecondary }]}>
           Social prediction infrastructure with backend gates, published market rules, and wallet-tied wager agreements.
         </Text>

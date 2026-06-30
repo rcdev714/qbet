@@ -1,12 +1,8 @@
 // @ts-nocheck: Deno edge runtime (Supabase).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import {
-  buildBetContractEmailHtml,
-  buildBetContractIdempotencyKey,
-  buildBetContractSubject,
-} from "../_shared/bet-contract-email.ts";
 import { createEdgeLogger } from "../_shared/edge-logger.ts";
+import { sendBetContractEmail } from "../_shared/send-bet-contract-email-shared.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,11 +28,10 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization") ?? req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
 
-    const token = authHeader.replace(/^Bearer\s+/i, "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "AnyMarket <onboarding@camella.app>";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "Anymarkt <onboarding@anymarkt.com>";
     const appUrl = Deno.env.get("EXPO_PUBLIC_APP_URL") ?? "http://localhost:8081";
 
     if (!resendApiKey) {
@@ -62,15 +57,14 @@ serve(async (req) => {
       return json({ error: "eventType must be placed or resolved" }, 400);
     }
 
+    const token = authHeader.replace(/^Bearer\s+/i, "");
     const isServiceRole = token === serviceRoleKey;
-    let callerUserId: string | null = null;
 
     if (!isServiceRole) {
       const { data: authData, error: authError } = await userClient.auth.getUser(token);
       if (authError || !authData.user) {
         return json({ error: "Unauthorized" }, 401);
       }
-      callerUserId = authData.user.id;
     }
 
     const { data: contract, error: fetchError } = await adminClient
@@ -84,8 +78,11 @@ serve(async (req) => {
       return json({ error: "Contract not found" }, 404);
     }
 
-    if (!isServiceRole && contract.user_id !== callerUserId) {
-      return json({ error: "Forbidden" }, 403);
+    if (!isServiceRole) {
+      const { data: authData } = await userClient.auth.getUser(token);
+      if (contract.user_id !== authData.user?.id) {
+        return json({ error: "Forbidden" }, 403);
+      }
     }
 
     if (eventType === "resolved" && !contract.resolved_snapshot) {
@@ -110,63 +107,19 @@ serve(async (req) => {
       return json({ error: "User email not found" }, 400);
     }
 
-    const snapshot = contract.placed_snapshot ?? {};
-    const marketQuestion = snapshot.market?.question ?? "Market";
-    const stakeAmount = Number(snapshot.position?.amount ?? 0);
-    const currency = snapshot.wallet?.currency ?? "USD";
-    const stakeLabel = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(stakeAmount);
-
-    const resolution = contract.resolved_snapshot ?? null;
-    const contractUrl = `${appUrl.replace(/\/$/, "")}/contract/${contract.bet_id}`;
-    const subject = buildBetContractSubject({
+    const sendResult = await sendBetContractEmail({
+      contract,
       eventType,
-      marketQuestion,
-      outcome: resolution?.outcome ?? null,
+      toEmail: userRow.email,
+      fromEmail,
+      appUrl,
+      resendApiKey,
+      forceResend,
     });
 
-    const payoutLabel =
-      resolution?.payoutAmount != null
-        ? new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency,
-          }).format(Number(resolution.payoutAmount))
-        : null;
-
-    const html = buildBetContractEmailHtml({
-      contractNumber: contract.contract_number,
-      marketQuestion,
-      stakeLabel,
-      eventType,
-      contractUrl,
-      outcome: resolution?.outcome ?? null,
-      payoutLabel,
-    });
-
-    const idempotencyKey = buildBetContractIdempotencyKey(contractId, eventType, forceResend);
-
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [userRow.email],
-        subject,
-        html,
-        text: `${subject}\n${contractUrl}`,
-      }),
-    });
-
-    const resendBody = await resendResponse.json();
-    if (!resendResponse.ok) {
-      log.error("Resend API error", { contractId, eventType, resendBody });
-      return json({ error: resendBody?.message ?? "Failed to send email", requestId: log.requestId }, 502);
+    if (!sendResult.ok) {
+      log.error("Resend failed", { contractId, eventType, message: sendResult.message });
+      return json({ error: sendResult.message, requestId: log.requestId }, 502);
     }
 
     const { error: markError } = await adminClient.rpc("mark_bet_contract_email_sent", {
@@ -186,13 +139,14 @@ serve(async (req) => {
       contractId,
       betId: contract.bet_id,
       eventType,
-      emailId: resendBody.id,
+      hasAttachment: sendResult.hasAttachment,
     });
 
     return json({
       ok: true,
-      emailId: resendBody.id,
+      emailId: sendResult.id,
       sentAt: new Date().toISOString(),
+      hasAttachment: sendResult.hasAttachment,
       requestId: log.requestId,
     });
   } catch (error) {

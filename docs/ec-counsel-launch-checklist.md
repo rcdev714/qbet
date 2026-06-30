@@ -35,7 +35,7 @@ Engineering **can** operate private beta while counsel review continues:
 | Beta gate | `EXPO_PUBLIC_BETA_REQUIRED=true` |
 | Access paths | `/request-access` → admin approve **or** `beta_invites` allowlist |
 | Launch jurisdiction | `EXPO_PUBLIC_LAUNCH_JURISDICTION=EC` |
-| Public web | https://anymarket.expo.app |
+| Public web | https://anymarkt.com |
 | Real money | Stripe test mode until counsel + ops sign-off |
 
 Admins (`users.is_admin`) and invited emails auto-sync via `sync_beta_access_on_user()`.
@@ -51,7 +51,7 @@ Admins (`users.is_admin`) and invited emails auto-sync via `sync_beta_access_on_
 - [ ] **LOPDP:** Privacy notice, DPD appointment if required
 - [ ] **Stripe Ecuador:** Connect Express + Identity for `country=EC` in production Stripe account
 - [ ] **Local entity:** Ecuadorian subsidiary, branch, or representative (see local presence doc)
-- [ ] **Beta comms:** Approval email copy and `@camella.app` sender reviewed for regulatory accuracy
+- [ ] **Beta comms:** Approval email copy and `@anymarkt.com` sender reviewed for regulatory accuracy
 
 ---
 
@@ -87,6 +87,6 @@ Before expanding beta beyond invite-only:
 
 | Channel | Address |
 |---------|---------|
-| Platform support | support@anymarket.app |
-| Transactional email (beta approval) | onboarding@camella.app (Resend) |
+| Platform support | support@anymarkt.com |
+| Transactional email (beta approval) | onboarding@anymarkt.com (Resend) |
 | WhatsApp (public CTA) | See `lib/contact.ts` |

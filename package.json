@@ -26,6 +26,8 @@
     "test:beta-approval-email": "deno test --no-config supabase/functions/_shared/beta-approval-email.test.ts",
     "test:bet-contract-email": "deno test --no-config supabase/functions/_shared/bet-contract-email.test.ts",
     "test:notification-email": "deno test --no-config supabase/functions/_shared/email/notification-email.test.ts",
+    "test:feed-suggestions": "deno test --no-config supabase/functions/_shared/gemini-feed-suggestions.test.ts",
+    "test:feed-suggestions-flow": "bash scripts/test-feed-suggestions-flow.sh",
     "test:notification-sql": "bash scripts/test-notification-sql.sh",
     "test:social-stack": "npm run test:notification-sql && npm run test:notification-email",
     "test:bet-contract-sql": "bash scripts/test-bet-contract-sql.sh",

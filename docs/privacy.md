@@ -4,7 +4,7 @@
 
 ## 1. INTRODUCTION
 
-AnyMarket ("we," "our," or "us") is committed to protecting your privacy. This
+Anymarkt ("we," "our," or "us") is committed to protecting your privacy. This
 Privacy Policy explains how we collect, use, disclose, and safeguard your
 information when you use our mobile application (the "App"). Please read this
 privacy policy carefully. If you do not agree with the terms of this privacy
@@ -111,4 +111,4 @@ requirements.
 If you have questions or comments about this Privacy Policy, please contact us
 at:
 
-**AnyMarket Support** Email: support@anymarket.app
+**Anymarkt Support** Email: support@anymarkt.com

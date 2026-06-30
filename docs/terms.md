@@ -9,8 +9,8 @@ REQUIRED BY APPLE FOR USER-GENERATED CONTENT APPS.**
 ## 1. ACCEPTANCE OF TERMS
 
 This Terms of Service and End User License Agreement ("Agreement") is a legal
-agreement between you ("User", "you") and AnyMarket ("Company", "we", "us"),
-governing your use of the AnyMarket mobile application (the "App"). By accessing
+agreement between you ("User", "you") and Anymarkt ("Company", "we", "us"),
+governing your use of the Anymarkt mobile application (the "App"). By accessing
 or using the App, you agree to these terms.
 
 ## 2. NATURE OF THE SERVICE (PLAY MODE & SIMULATION)
@@ -22,7 +22,7 @@ entertainment purposes, allowing users to track prediction accuracy.
 
 - **NO MONETARY VALUE:** "Play Mode" tokens are virtual points with **no cash
   value**. They cannot be redeemed for real money, goods, or services.
-- **No Gambling:** AnyMarket is **not a gambling platform**. You do not lose
+- **No Gambling:** Anymarkt is **not a gambling platform**. You do not lose
   real money based on predictions in Play Mode.
 - **Apple Non-Affiliation:** Apple Inc. is **not a sponsor** of, nor involved in
   any way with, any contests, sweepstakes, or prediction challenges within this
@@ -75,7 +75,7 @@ INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING FROM YOUR USE OF THE APP.
 
 ## 8. INDEMNIFICATION
 
-You agree to indemnify and hold harmless AnyMarket and its officers from any
+You agree to indemnify and hold harmless Anymarkt and its officers from any
 claims arising out of your User Content or violation of this Agreement.
 
 ## 9. DISPUTE RESOLUTION
@@ -86,4 +86,4 @@ capacity.
 
 ## 10. CONTACT
 
-**Support:** support@anymarket.app **Developer:** AnyMarket Inc.
+**Support:** support@anymarkt.com **Developer:** Anymarkt Inc.

@@ -77,7 +77,7 @@ begin
       v_user_id,
       'beta_approved',
       'Beta access approved',
-      'Your AnyMarket beta request was approved. Continue onboarding to start using the app.',
+      'Your Anymarkt beta request was approved. Continue onboarding to start using the app.',
       jsonb_build_object(
         'request_id', v_request.id,
         'approval_token', v_request.approval_token

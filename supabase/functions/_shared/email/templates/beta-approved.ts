@@ -10,19 +10,19 @@ export function buildBetaApprovedEmail(params: {
   const greeting = params.fullName ? `Hi ${params.fullName},` : "Hi there,";
 
   const bodyHtml = `<p>${greeting}</p>
-<p>Your request to join the AnyMarket private beta has been <strong>approved</strong>.</p>
+<p>Your request to join the Anymarkt private beta has been <strong>approved</strong>.</p>
 <p style="color:#64748b;font-size:14px;">Use the same email address you submitted when you sign up.</p>`;
 
   const html = buildEmailLayout({
-    title: "Your AnyMarket beta access is approved",
+    title: "Your Anymarkt beta access is approved",
     bodyHtml,
-    ctaLabel: "Continue to AnyMarket",
+    ctaLabel: "Continue to Anymarkt",
     ctaUrl: params.welcomeUrl,
     appUrl: params.appUrl,
   });
 
   const text = buildPlainTextLayout({
-    body: `${greeting}\n\nYour AnyMarket beta access is approved. Continue here:`,
+    body: `${greeting}\n\nYour Anymarkt beta access is approved. Continue here:`,
     ctaUrl: params.welcomeUrl,
     appUrl: params.appUrl,
   });
@@ -32,7 +32,7 @@ export function buildBetaApprovedEmail(params: {
     : `beta-approval/${params.requestId}`;
 
   return {
-    subject: "Your AnyMarket beta access is approved",
+    subject: "Your Anymarkt beta access is approved",
     html,
     text,
     idempotencyKey,

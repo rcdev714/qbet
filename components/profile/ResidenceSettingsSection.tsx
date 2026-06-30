@@ -110,7 +110,7 @@ export function ResidenceSettingsSection({ theme, style }: ResidenceSettingsSect
         </View>
         <Text style={[styles.helper, { color: theme.textSecondary }]}>
           Country of residence is set during onboarding and tied to your payment profile. Contact
-          support@anymarket.app to request a change.
+          support@anymarkt.com to request a change.
         </Text>
 
         <View style={styles.phoneBlock}>

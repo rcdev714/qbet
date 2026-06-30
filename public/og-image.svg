@@ -1,18 +1,12 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="630" fill="#F5F7FB"/>
-  <circle cx="1020" cy="70" r="260" fill="#2A5BFF" fill-opacity="0.16"/>
-  <circle cx="95" cy="560" r="280" fill="#1A2F5C" fill-opacity="0.10"/>
-  <rect x="86" y="76" width="1028" height="478" rx="48" fill="white" stroke="#D8E2EF"/>
-  <text x="138" y="154" fill="#1A2F5C" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="600">AnyMarket</text>
-  <rect x="138" y="194" width="350" height="42" rx="21" fill="#EEF4FF"/>
-  <text x="162" y="222" fill="#2A5BFF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="600" letter-spacing="2">SOCIAL PREDICTION MARKET</text>
-  <text x="138" y="324" fill="#1A2F5C" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="300">Predict the Future</text>
-  <text x="138" y="408" fill="#1A2F5C" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="300">with friends</text>
-  <text x="142" y="476" fill="#4F5F72" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400">Create private markets, back predictions, and get rewarded for seeing what comes next.</text>
-  <rect x="782" y="170" width="260" height="292" rx="32" fill="#F8FAFF" stroke="#D8E2EF"/>
-  <text x="814" y="224" fill="#718096" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600">LIVE MARKET</text>
-  <text x="814" y="280" fill="#1A2F5C" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600">Who called it?</text>
-  <rect x="814" y="326" width="196" height="34" rx="17" fill="#EAF8EF"/>
-  <rect x="814" y="382" width="150" height="34" rx="17" fill="#EEF4FF"/>
-  <rect x="814" y="438" width="102" height="34" rx="17" fill="#EEF4FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#010053" />
+  <g transform="translate(420, 165) scale(0.28)">
+    <rect width="1020" height="1020" fill="#010053" />
+    <line x1="235" y1="785" x2="785" y2="235" stroke="white" stroke-width="30" stroke-linecap="butt" />
+    <rect x="150" y="700" width="170" height="170" rx="6" fill="white" />
+    <rect x="425" y="425" width="170" height="170" rx="6" fill="white" />
+    <rect x="700" y="150" width="170" height="170" rx="6" fill="white" />
+  </g>
+  <text x="600" y="360" fill="white" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="72" font-weight="700" text-anchor="middle" letter-spacing="-1">Anymarkt</text>
+  <text x="600" y="430" fill="#B8C4FF" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="34" text-anchor="middle">Predict the Future with friends</text>
 </svg>

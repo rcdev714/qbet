@@ -2,15 +2,22 @@ import { ScrollViewStyleReset } from "expo-router/html";
 import { type PropsWithChildren } from "react";
 
 import { Colors } from "@/constants/theme";
+import {
+  APP_URL as BRAND_APP_URL,
+  BRAND_NAME,
+  DEFAULT_SEO_DESCRIPTION,
+  DEFAULT_SEO_TITLE,
+} from "@/lib/brand";
 import { THEME_MODE_KEY } from "@/lib/theme-preference";
 
 const lightBackground = Colors.light.background;
 const darkBackground = Colors.dark.background;
-const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || "https://anymarket.expo.app")
-  .replace(/\/$/, "");
-const DEFAULT_TITLE = "AnyMarket | Predict the Future with friends";
-const DEFAULT_DESCRIPTION =
-  "AnyMarket is a social prediction market platform where friends create private markets, back predictions, and get rewarded for seeing what comes next.";
+const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || BRAND_APP_URL).replace(
+  /\/$/,
+  "",
+);
+const DEFAULT_TITLE = DEFAULT_SEO_TITLE;
+const DEFAULT_DESCRIPTION = DEFAULT_SEO_DESCRIPTION;
 const DEFAULT_IMAGE = `${APP_URL}/og-image.png`;
 
 const themeBootstrapScript = `
@@ -70,7 +77,10 @@ export default function Root({ children }: PropsWithChildren) {
         <title>{DEFAULT_TITLE}</title>
         <meta name="description" content={DEFAULT_DESCRIPTION} />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="AnyMarket" />
+        <meta property="og:site_name" content={BRAND_NAME} />
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <link rel="icon" type="image/png" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <meta property="og:locale" content="en_US" />
         <meta property="og:url" content={APP_URL} />
         <meta property="og:title" content={DEFAULT_TITLE} />

@@ -38,7 +38,7 @@ export default function ResetPasswordScreen() {
       <View style={styles.content}>
         <Text style={[styles.title, { color: theme.text }]}>Set a new password</Text>
         <Text style={[styles.helper, { color: theme.textSecondary }]}>
-          Choose a strong password for your AnyMarket account.
+          Choose a strong password for your Anymarkt account.
         </Text>
 
         <TextInput

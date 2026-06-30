@@ -4,7 +4,7 @@
 
 ## Resumen Ejecutivo
 
-Este documento describe una aplicación estratégica de **AnyMarket** diseñada
+Este documento describe una aplicación estratégica de **Anymarkt** diseñada
 específicamente para equipos de ventas de alto rendimiento. Aprovechando la
 funcionalidad de grupos privados y mercados de apuestas internos, transformamos
 las métricas de rendimiento estándar en competiciones atractivas y de alta
@@ -14,7 +14,7 @@ energía.
 
 Los agentes de ventas prosperan con la competencia. Las tablas de clasificación
 tradicionales son estáticas y a menudo pierden su poder de motivación a mitad de
-mes. **AnyMarket** introduce una capa financiera dinámica y en tiempo real al
+mes. **Anymarkt** introduce una capa financiera dinámica y en tiempo real al
 seguimiento del rendimiento.
 
 ### 1. El Mecanismo: Pools Mensuales Activos
@@ -107,4 +107,4 @@ graph TD
 
 ---
 
-_Impulsado por AnyMarket – Convirtiendo Métricas en Mercados._
+_Impulsado por Anymarkt – Convirtiendo Métricas en Mercados._

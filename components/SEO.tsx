@@ -1,4 +1,12 @@
 import { Colors } from '@/constants/theme';
+import {
+  BRAND_NAME,
+  DEFAULT_OG_IMAGE_ALT,
+  DEFAULT_SEO_DESCRIPTION,
+  DEFAULT_SEO_KEYWORDS,
+  DEFAULT_SEO_TITLE,
+  APP_URL as BRAND_APP_URL,
+} from '@/lib/brand';
 import Head from 'expo-router/head';
 import React from 'react';
 
@@ -14,15 +22,15 @@ interface SEOProps {
   locale?: string;
 }
 
-const SITE_NAME = 'AnyMarket';
+const SITE_NAME = BRAND_NAME;
 const LIGHT_THEME_COLOR = Colors.light.background;
 const DARK_THEME_COLOR = '#141A22';
-const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || 'https://anymarket.expo.app').replace(/\/$/, '');
-const DEFAULT_TITLE = 'AnyMarket | Predict the Future with friends';
-const DEFAULT_DESCRIPTION = 'AnyMarket is a social prediction market platform where friends create private markets, back predictions, and get rewarded for seeing what comes next.';
+const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || BRAND_APP_URL).replace(/\/$/, '');
+const DEFAULT_TITLE = DEFAULT_SEO_TITLE;
+const DEFAULT_DESCRIPTION = DEFAULT_SEO_DESCRIPTION;
 const DEFAULT_IMAGE = '/og-image.png';
-const DEFAULT_IMAGE_ALT = 'AnyMarket social prediction market preview';
-const DEFAULT_KEYWORDS = 'AnyMarket, social prediction market, predict with friends, private prediction markets, future predictions, prediction rewards, group predictions';
+const DEFAULT_IMAGE_ALT = DEFAULT_OG_IMAGE_ALT;
+const DEFAULT_KEYWORDS = DEFAULT_SEO_KEYWORDS;
 
 function absoluteUrl(value: string) {
   if (/^https?:\/\//i.test(value)) return value;
@@ -56,7 +64,7 @@ export function SEO({
   noindex = false,
   locale = 'en_US',
 }: SEOProps) {
-  const fullTitle = title === DEFAULT_TITLE ? title : `${title} | AnyMarket`;
+  const fullTitle = title === DEFAULT_TITLE ? title : `${title} | ${BRAND_NAME}`;
   const canonicalUrl = absoluteUrl(url);
   const imageUrl = absoluteUrl(image);
   const imageType = imageMimeType(imageUrl);
@@ -109,8 +117,9 @@ export function SEO({
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       
       {/* Favicon - Ensure these paths match your actual assets */}
-      <link rel="icon" type="image/svg+xml" href="/og-image.svg" />
-      <link rel="apple-touch-icon" href="/og-image.png" />
+      <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+      <link rel="icon" type="image/png" href="/logo.png" />
+      <link rel="apple-touch-icon" href="/logo.png" />
     </Head>
   );
 }

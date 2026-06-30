@@ -35,7 +35,7 @@ Deno.test("buildBetContractEmailHtml includes contract link", () => {
     marketQuestion: "Will the demo ship?",
     stakeLabel: "$25.00",
     eventType: "placed",
-    contractUrl: "https://anymarket.expo.app/contract/123",
+    contractUrl: "https://anymarkt.com/contract/123",
   });
   assertEquals(html.includes("View Wager Agreement"), true);
   assertEquals(html.includes("QBET-20260627-ABC"), true);

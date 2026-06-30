@@ -18,10 +18,10 @@ export const LEGAL_COLORS = {
 
 /** Closing sections rendered with the same divider treatment on every policy page. */
 export const LEGAL_FORMAL_SECTION_HEADINGS = new Set([
-  "Related AnyMarket Policies",
+  "Related Anymarkt Policies",
   "Legal and Regulatory Frameworks",
   "Contact",
-  "Políticas Relacionadas de AnyMarket",
+  "Políticas Relacionadas de Anymarkt",
   "Marcos Legales y Regulatorios",
   "Contacto",
 ]);

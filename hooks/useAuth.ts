@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { setSentryUser } from "../lib/sentry";
 import { supabase } from "../lib/supabase";
 import { authService } from "../services/auth.service";
+import { notificationPreferencesService } from "../services/notificationPreferences.service";
 import type { User } from "../types/user";
 
 export function useAuth() {
@@ -116,6 +117,7 @@ export function useAuth() {
                 // Keep the authenticated session even if profile hydration fails.
                 if (currentUser) {
                   setUser(currentUser);
+                  void notificationPreferencesService.touchLastActive();
                 }
               }
             } catch (err) {

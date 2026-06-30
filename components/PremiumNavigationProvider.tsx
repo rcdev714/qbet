@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useRef, useState
 import { useTranslation } from "react-i18next";
 import { AccessibilityInfo } from "react-native";
 
-import { ANYMARKET_LOADER_OVERLAY_FILL_MS, AnyMarketLoader } from "@/components/AnyMarketLoader";
+import { ANYMARKET_LOADER_OVERLAY_FILL_MS, AnymarktLoader } from "@/components/AnymarktLoader";
 
 type PremiumNavigateOptions = {
   message?: string;
@@ -92,7 +92,7 @@ export function PremiumNavigationProvider({ children }: { children: React.ReactN
   return (
     <PremiumNavigationContext.Provider value={value}>
       {children}
-      {isNavigating ? <AnyMarketLoader variant="overlay" message={message} /> : null}
+      {isNavigating ? <AnymarktLoader variant="overlay" message={message} /> : null}
     </PremiumNavigationContext.Provider>
   );
 }

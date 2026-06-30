@@ -10,18 +10,18 @@ import {
 
 export const US_POLICY_VERSION_ES = "2026-06-24-es-us";
 export const US_POLICY_LAST_UPDATED = "24 de junio de 2026";
-const SUPPORT_EMAIL = "support@anymarket.app";
+const SUPPORT_EMAIL = "support@anymarkt.com";
 
 const US_COPY_ES = {
   frameworkName: "marco de cumplimiento de Estados Unidos",
   regulatoryPosition:
-    "AnyMarket opera como plataforma social de mercados de predicción de eventos futuros bajo un marco de lanzamiento en Estados Unidos. La disponibilidad de funciones de billetera Live puede variar según estado, estatus del usuario, tipo de mercado, rail de pago y aprobación del proveedor.",
+    "Anymarkt opera como plataforma social de mercados de predicción de eventos futuros bajo un marco de lanzamiento en Estados Unidos. La disponibilidad de funciones de billetera Live puede variar según estado, estatus del usuario, tipo de mercado, rail de pago y aprobación del proveedor.",
   sportsPosition:
     "Los mercados deportivos pueden estar sujetos a revisión adicional, restricciones estatales, limitaciones del feed público o eliminación cuando la Compañía determine que la disponibilidad crearía riesgos legales, de integridad o para consumidores.",
   privacyRights:
     "Según donde viva, puede tener derechos de acceso, corrección, eliminación, portabilidad u oposición a cierto procesamiento de información personal. Atendemos solicitudes legalmente requeridas y podemos conservar registros necesarios para fraude, seguridad, pagos, impuestos, disputas y cumplimiento.",
   amlPosture:
-    "Para usuarios en Estados Unidos, AnyMarket mantiene un programa basado en riesgo de AML, sanciones, fraude y cumplimiento de pagos usando verificación de identidad, monitoreo de transacciones, revisiones de actividad restringida, controles de proveedores y retención de registros.",
+    "Para usuarios en Estados Unidos, Anymarkt mantiene un programa basado en riesgo de AML, sanciones, fraude y cumplimiento de pagos usando verificación de identidad, monitoreo de transacciones, revisiones de actividad restringida, controles de proveedores y retención de registros.",
   disputeForum:
     "Para usuarios en Estados Unidos, las disputas están sujetas a arbitraje vinculante individual, renuncia a juicio con jurado y renuncia a acciones colectivas en la máxima medida permitida por la ley aplicable.",
 };
@@ -87,7 +87,7 @@ const US_TERMS_ES = createPolicyDocument({
   jurisdiction: "US",
   title: "Términos de Servicio",
   route: "/terms",
-  seoDescription: "Términos de Servicio de AnyMarket bajo el marco de cumplimiento de Estados Unidos (traducción al español).",
+  seoDescription: "Términos de Servicio de Anymarkt bajo el marco de cumplimiento de Estados Unidos (traducción al español).",
   sections: [
     {
       heading: "Aviso",
@@ -108,7 +108,7 @@ const US_PRIVACY_ES = createPolicyDocument({
   jurisdiction: "US",
   title: "Política de Privacidad",
   route: "/privacy",
-  seoDescription: "Política de Privacidad de AnyMarket para el marco de Estados Unidos (español).",
+  seoDescription: "Política de Privacidad de Anymarkt para el marco de Estados Unidos (español).",
   sections: [
     { heading: "Alcance", paragraphs: [US_COPY_ES.privacyRights] },
     relatedPoliciesSection("privacy"),
@@ -156,7 +156,7 @@ const US_AML_ES = createPolicyDocument({
   jurisdiction: "US",
   title: "Política AML y KYC",
   route: "/aml-kyc",
-  seoDescription: "Programa AML/KYC de AnyMarket para usuarios del marco de EE. UU.",
+  seoDescription: "Programa AML/KYC de Anymarkt para usuarios del marco de EE. UU.",
   sections: [
     { heading: "Programa", paragraphs: [US_COPY_ES.amlPosture] },
     relatedPoliciesSection("aml_kyc"),

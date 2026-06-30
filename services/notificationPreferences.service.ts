@@ -1,5 +1,7 @@
 import { supabase } from "../lib/supabase";
 
+export type EmailFrequency = "immediate" | "daily_digest" | "weekly_digest";
+
 export interface NotificationPreferences {
   user_id: string;
   email_enabled: boolean;
@@ -12,6 +14,9 @@ export interface NotificationPreferences {
   push_social: boolean;
   in_app_market_results: boolean;
   in_app_social: boolean;
+  email_frequency: EmailFrequency;
+  email_skip_if_read: boolean;
+  email_digest_hour_utc: number;
   updated_at: string;
 }
 
@@ -81,6 +86,14 @@ export const notificationPreferencesService = {
       return { error: null };
     } catch (error) {
       return { error: error as Error };
+    }
+  },
+
+  async touchLastActive(): Promise<void> {
+    try {
+      await (supabase as any).rpc("touch_user_last_active");
+    } catch {
+      // non-critical
     }
   },
 };

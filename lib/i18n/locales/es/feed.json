@@ -11,5 +11,16 @@
   "daysHoursLeft": "{{days}}d {{hours}}h restantes",
   "chatNoMessages": "Aún no hay mensajes. ¡Sé el primero en comentar!",
   "chatPlaceholder": "Di algo...",
-  "chatReport": "Reportar"
+  "chatReport": "Reportar",
+  "tabMarkets": "Mercados",
+  "tabFollowing": "Siguiendo",
+  "adminEmptyTitle": "No hay mercados en el feed",
+  "adminEmptyDescription": "Crea o promociona mercados para llenar el tablero.",
+  "openFeedManager": "Abrir Feed Manager",
+  "createMarket": "Crear mercado",
+  "feedManager": "Feed Manager",
+  "emptyUserDescription": "Cuando aparezca uno, ábrelo para practicar antes de usar fondos reales.",
+  "emptyFilteredDescription": "Prueba otra categoría o actualiza el tablero.",
+  "loadErrorTitle": "No se pudieron cargar los mercados",
+  "tryAgain": "Reintentar"
 }

@@ -1,5 +1,7 @@
 import Constants from "expo-constants";
 
+import { APP_URL as BRAND_APP_URL } from "./brand";
+
 type PublicEnvExtra = {
   appUrl?: string;
   supabaseUrl?: string;
@@ -23,7 +25,7 @@ export function getPublicEnv() {
       extra.appUrl ||
       process.env.EXPO_PUBLIC_APP_URL ||
       process.env.APP_URL ||
-      "https://anymarket.expo.app"
+      BRAND_APP_URL
     ).replace(/\/$/, ""),
     supabaseUrl:
       extra.supabaseUrl ||

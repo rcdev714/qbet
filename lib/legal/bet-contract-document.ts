@@ -105,7 +105,7 @@ export function buildBetContractHtml(params: {
   <p style="margin-top:32px;">
     <a href="${escapeHtml(contractUrl)}" style="display:inline-block;background:#3B82F6;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600;">View Contract</a>
   </p>
-  <p style="color:#64748b;font-size:13px;">AnyMarket parimutuel prediction markets. Not investment advice. Live wallet funds involve loss risk.</p>
+  <p style="color:#64748b;font-size:13px;">Anymarkt parimutuel prediction markets. Not investment advice. Live wallet funds involve loss risk.</p>
 </body>
 </html>`;
 }

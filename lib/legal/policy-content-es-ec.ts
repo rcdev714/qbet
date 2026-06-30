@@ -12,7 +12,7 @@ import {
 
 export const EC_POLICY_VERSION = "2026-06-22-es-ec";
 export const EC_POLICY_LAST_UPDATED = "22 de junio de 2026";
-const SUPPORT_EMAIL = "support@anymarket.app";
+const SUPPORT_EMAIL = "support@anymarkt.com";
 
 export const EC_POLICY_KIND_LABELS_ES: Record<PolicyKind, string> = {
   terms: "Términos de Servicio",
@@ -26,13 +26,13 @@ export const EC_POLICY_KIND_LABELS_ES: Record<PolicyKind, string> = {
 const EC_COPY_ES = {
   frameworkName: "marco de cumplimiento de Ecuador",
   regulatoryPosition:
-    "AnyMarket opera en Ecuador bajo un marco cauteloso de eventos futuros no deportivos. El producto está diseñado como una plataforma de mercados de predicción generados por usuarios y no como un operador público de apuestas deportivas durante la fase de lanzamiento en Ecuador.",
+    "Anymarkt opera en Ecuador bajo un marco cauteloso de eventos futuros no deportivos. El producto está diseñado como una plataforma de mercados de predicción generados por usuarios y no como un operador público de apuestas deportivas durante la fase de lanzamiento en Ecuador.",
   sportsPosition:
     "Los mercados deportivos están excluidos del descubrimiento público y pueden ser bloqueados, congelados, anulados o retenidos para revisión legal en Ecuador. Las categorías sensibles también requieren revisión manual antes de cualquier disponibilidad pública.",
   privacyRights:
-    "Para usuarios en Ecuador, AnyMarket aplica principios alineados con la Ley Orgánica de Protección de Datos Personales, incluyendo transparencia, limitación de finalidad, minimización de datos, seguridad, disciplina de retención y el ejercicio de los derechos legalmente disponibles de acceso, rectificación, eliminación, oposición, suspensión y portabilidad.",
+    "Para usuarios en Ecuador, Anymarkt aplica principios alineados con la Ley Orgánica de Protección de Datos Personales, incluyendo transparencia, limitación de finalidad, minimización de datos, seguridad, disciplina de retención y el ejercicio de los derechos legalmente disponibles de acceso, rectificación, eliminación, oposición, suspensión y portabilidad.",
   amlPosture:
-    "Para usuarios en Ecuador, AnyMarket mantiene una postura operativa preparada para la UAFE, incluyendo verificación de identidad, screening de sanciones, monitoreo de transacciones, exportaciones de libro mayor, activadores de revisión reforzada y preservación de evidencia para asesores legales, socios de pago y autoridades competentes cuando sea requerido.",
+    "Para usuarios en Ecuador, Anymarkt mantiene una postura operativa preparada para la UAFE, incluyendo verificación de identidad, screening de sanciones, monitoreo de transacciones, exportaciones de libro mayor, activadores de revisión reforzada y preservación de evidencia para asesores legales, socios de pago y autoridades competentes cuando sea requerido.",
   disputeForum:
     "Para usuarios en Ecuador, las disputas se resolverán mediante los procedimientos y foros disponibles bajo la ley ecuatoriana aplicable, salvo que se presente y el usuario acepte otro proceso lícito de resolución de disputas.",
 };
@@ -58,7 +58,7 @@ function relatedPoliciesSection(currentKind: PolicyKind): PolicySection {
     "prohibited_markets",
   ];
   return {
-    heading: "Políticas Relacionadas de AnyMarket",
+    heading: "Políticas Relacionadas de Anymarkt",
     paragraphs: [
       "Las siguientes políticas obligatorias forman parte del mismo marco de cumplimiento y deben leerse conjuntamente:",
     ],
@@ -73,7 +73,7 @@ function frameworksSection(focus: "privacy" | "aml" | "terms" | "general"): Poli
     heading: "Marcos Legales y Regulatorios",
     paragraphs: [
       joinNodes(
-        txt("AnyMarket está diseñado para alinearse con los marcos legales, regulatorios y de proveedores aplicables bajo el "),
+        txt("Anymarkt está diseñado para alinearse con los marcos legales, regulatorios y de proveedores aplicables bajo el "),
         txt(EC_COPY_ES.frameworkName),
         txt(". Los siguientes recursos oficiales y de proveedores contextualizan nuestra postura de cumplimiento:"),
       ),
@@ -102,16 +102,16 @@ const EC_TERMS_ES = createPolicyDocument({
   title: "Términos de Servicio",
   route: "/terms",
   seoDescription:
-    "Términos de Servicio de AnyMarket para usuarios bajo el marco de cumplimiento de Ecuador.",
+    "Términos de Servicio de Anymarkt para usuarios bajo el marco de cumplimiento de Ecuador.",
   sections: [
     {
       heading: "Aviso Importante",
       paragraphs: [
         joinNodes(
-          txt("Estos Términos de Servicio rigen su uso de AnyMarket bajo el "),
+          txt("Estos Términos de Servicio rigen su uso de Anymarkt bajo el "),
           txt(EC_COPY_ES.frameworkName),
           txt(
-            ". Constituyen un acuerdo legal entre usted y AnyMarket, incluyendo reglas para el Modo Juego, funciones de billetera Live, contenido generado por usuarios, creación de mercados, prevención de fraude, verificación de identidad, moderación y restricciones de cuenta.",
+            ". Constituyen un acuerdo legal entre usted y Anymarkt, incluyendo reglas para el Modo Juego, funciones de billetera Live, contenido generado por usuarios, creación de mercados, prevención de fraude, verificación de identidad, moderación y restricciones de cuenta.",
           ),
         ),
         EC_COPY_ES.disputeForum,
@@ -136,7 +136,7 @@ const EC_TERMS_ES = createPolicyDocument({
       clauses: [
         {
           label: "2.1 Plataforma social de predicción.",
-          text: "AnyMarket permite crear, discutir y participar en mercados de eventos futuros con criterios objetivos de resolución. Los mercados son herramientas sociales e informativas, no asesoramiento financiero, legal, tributario o de inversión personalizado.",
+          text: "Anymarkt permite crear, discutir y participar en mercados de eventos futuros con criterios objetivos de resolución. Los mercados son herramientas sociales e informativas, no asesoramiento financiero, legal, tributario o de inversión personalizado.",
         },
         {
           label: "2.2 Modo Juego.",
@@ -168,7 +168,7 @@ const EC_TERMS_ES = createPolicyDocument({
     {
       heading: "4. Prevención de Fraude y Conducta Ilegal",
       paragraphs: [
-        "AnyMarket opera un programa de confianza y seguridad para detectar, prevenir, investigar y responder a fraude, manipulación, actividad ilegal, contenido abusivo y daño a usuarios.",
+        "Anymarkt opera un programa de confianza y seguridad para detectar, prevenir, investigar y responder a fraude, manipulación, actividad ilegal, contenido abusivo y daño a usuarios.",
       ],
     },
     {
@@ -204,7 +204,7 @@ const EC_TERMS_ES = createPolicyDocument({
     {
       heading: "7. Limitación de Responsabilidad",
       paragraphs: [
-        "En la máxima medida permitida por la ley, AnyMarket no es responsable por daños indirectos, incidentales, especiales, consecuentes, pérdida de beneficios, pérdida de datos, pérdidas de mercado, fallas de proveedores o actividad no autorizada que no pudiera prevenirse razonablemente.",
+        "En la máxima medida permitida por la ley, Anymarkt no es responsable por daños indirectos, incidentales, especiales, consecuentes, pérdida de beneficios, pérdida de datos, pérdidas de mercado, fallas de proveedores o actividad no autorizada que no pudiera prevenirse razonablemente.",
       ],
     },
     relatedPoliciesSection("terms"),
@@ -218,13 +218,13 @@ const EC_PRIVACY_ES = createPolicyDocument({
   jurisdiction: "EC",
   title: "Política de Privacidad",
   route: "/privacy",
-  seoDescription: "Política de Privacidad de AnyMarket para usuarios en Ecuador.",
+  seoDescription: "Política de Privacidad de Anymarkt para usuarios en Ecuador.",
   sections: [
     {
       heading: "1. Alcance",
       paragraphs: [
         joinNodes(
-          txt("Esta Política de Privacidad explica cómo AnyMarket recopila, usa, divulga, retiene y protege información bajo el "),
+          txt("Esta Política de Privacidad explica cómo Anymarkt recopila, usa, divulga, retiene y protege información bajo el "),
           txt(EC_COPY_ES.frameworkName),
           txt("."),
         ),
@@ -279,7 +279,7 @@ const EC_RISK_ES = createPolicyDocument({
     {
       heading: "2. No es Asesoramiento",
       paragraphs: [
-        "AnyMarket no proporciona asesoramiento financiero, legal, tributario o de inversión. Usted es responsable de evaluar mercados, fuentes de resolución y riesgos antes de participar.",
+        "Anymarkt no proporciona asesoramiento financiero, legal, tributario o de inversión. Usted es responsable de evaluar mercados, fuentes de resolución y riesgos antes de participar.",
       ],
     },
     {
@@ -289,7 +289,7 @@ const EC_RISK_ES = createPolicyDocument({
     {
       heading: "4. Proveedores de Pago",
       paragraphs: [
-        "Depósitos, retiros e identidad pueden ser procesados por terceros como Stripe. Los proveedores tienen sus propias reglas y pueden restringir actividad independientemente de AnyMarket.",
+        "Depósitos, retiros e identidad pueden ser procesados por terceros como Stripe. Los proveedores tienen sus propias reglas y pueden restringir actividad independientemente de Anymarkt.",
       ],
     },
     {
@@ -352,13 +352,13 @@ const EC_AML_ES = createPolicyDocument({
   jurisdiction: "EC",
   title: "Política AML y KYC",
   route: "/aml-kyc",
-  seoDescription: "Postura AML/KYC de AnyMarket para billetera Live en Ecuador.",
+  seoDescription: "Postura AML/KYC de Anymarkt para billetera Live en Ecuador.",
   sections: [
     {
       heading: "1. Propósito",
       paragraphs: [
         joinNodes(
-          txt("Esta política describe el programa basado en riesgo de AnyMarket para verificación de identidad, screening de sanciones, monitoreo de transacciones y escalamiento bajo el "),
+          txt("Esta política describe el programa basado en riesgo de Anymarkt para verificación de identidad, screening de sanciones, monitoreo de transacciones y escalamiento bajo el "),
           txt(EC_COPY_ES.frameworkName),
           txt("."),
         ),
@@ -388,7 +388,7 @@ const EC_AML_ES = createPolicyDocument({
       heading: "4. Escalamiento",
       paragraphs: [
         joinNodes(
-          txt("Cuando sea requerido o apropiado, AnyMarket puede preservar evidencia y escalar actividad sospechosa a asesores legales, auditores, reguladores o autoridades competentes, incluyendo la "),
+          txt("Cuando sea requerido o apropiado, Anymarkt puede preservar evidencia y escalar actividad sospechosa a asesores legales, auditores, reguladores o autoridades competentes, incluyendo la "),
           externalLink("UAFE", OFFICIAL_URLS.ecuadorUafe),
           txt(" cuando corresponda."),
         ),

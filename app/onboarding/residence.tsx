@@ -86,7 +86,7 @@ export default function ResidenceOnboardingScreen() {
     <View style={styles.container}>
       <SEO
         title="Country of Residence"
-        description="Set your country of residence for AnyMarket compliance and payments."
+        description="Set your country of residence for Anymarkt compliance and payments."
         url="/onboarding/residence"
         noindex
       />
@@ -97,7 +97,7 @@ export default function ResidenceOnboardingScreen() {
 
           <View style={styles.notice}>
             <Text style={styles.noticeText}>
-              Need a change later? Contact support@anymarket.app — country updates require a new
+              Need a change later? Contact support@anymarkt.com — country updates require a new
               payment setup.
             </Text>
           </View>

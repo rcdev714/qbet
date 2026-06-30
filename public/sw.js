@@ -1,5 +1,5 @@
 self.addEventListener("push", (event) => {
-  let data = { title: "AnyMarket", body: "", url: "/" };
+  let data = { title: "Anymarkt", body: "", url: "/" };
   try {
     if (event.data) {
       data = { ...data, ...event.data.json() };
@@ -11,7 +11,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/assets/images/icon.png",
+      icon: "/logo.png",
       data: { url: data.url },
     }),
   );

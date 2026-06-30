@@ -13,7 +13,7 @@ export function buildEmailLayout(params: {
 </p>`
       : "";
 
-  const settingsUrl = `${params.appUrl.replace(/\/$/, "")}/settings#notifications`;
+  const settingsUrl = `${params.appUrl.replace(/\/$/, "")}/settings/notifications`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -25,11 +25,11 @@ export function buildEmailLayout(params: {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e2e8f0;padding:32px;">
           <tr>
             <td>
-              <p style="margin:0 0 24px;font-size:20px;font-weight:700;color:#0f172a;">AnyMarket</p>
+              <p style="margin:0 0 24px;font-size:20px;font-weight:700;color:#0f172a;">Anymarkt</p>
               ${params.bodyHtml}
               ${ctaBlock}
               <p style="color:#64748b;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px;">
-                ${params.footerNote ?? "AnyMarket — social prediction infrastructure."}
+                ${params.footerNote ?? "Anymarkt — social prediction infrastructure."}
                 <br><a href="${settingsUrl}" style="color:#64748b;">Manage notification preferences</a>
               </p>
             </td>
@@ -47,7 +47,7 @@ export function buildPlainTextLayout(params: {
   ctaUrl?: string;
   appUrl: string;
 }): string {
-  const settingsUrl = `${params.appUrl.replace(/\/$/, "")}/settings#notifications`;
+  const settingsUrl = `${params.appUrl.replace(/\/$/, "")}/settings/notifications`;
   const cta = params.ctaUrl ? `\n\n${params.ctaUrl}` : "";
-  return `${params.body}${cta}\n\n---\nAnyMarket\nManage preferences: ${settingsUrl}`;
+  return `${params.body}${cta}\n\n---\nAnymarkt\nManage preferences: ${settingsUrl}`;
 }

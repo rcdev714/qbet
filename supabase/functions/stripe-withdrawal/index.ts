@@ -59,7 +59,7 @@ serve(async (req) => {
 
   try {
     const appUrl = Deno.env.get("EXPO_PUBLIC_APP_URL") ||
-      Deno.env.get("APP_URL") || "https://anymarket.expo.app";
+      Deno.env.get("APP_URL") || "https://anymarkt.com";
     const authHeader = req.headers.get("authorization") ??
       req.headers.get("Authorization");
     if (!authHeader) {

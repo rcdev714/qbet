@@ -1,6 +1,6 @@
 {
   "consentCheckbox": "He leído y acepto el conjunto completo de políticas obligatorias del marco de cumplimiento {{jurisdiction}}, incluidos riesgos de billetera Live, KYC, monitoreo de fraude, moderación de contenido y cumplimiento de mercados prohibidos.",
-  "ecDisclaimer": "AnyMarket no es un operador de apuestas deportivas con licencia. Los mercados deportivos y el contenido relacionado con deportes están bloqueados para usuarios de Ecuador.",
+  "ecDisclaimer": "Anymarkt no es un operador de apuestas deportivas con licencia. Los mercados deportivos y el contenido relacionado con deportes están bloqueados para usuarios de Ecuador.",
   "relatedPolicies": "Políticas relacionadas",
   "sportsMarketBlockedTitle": "Contenido deportivo no disponible",
   "sportsMarketBlockedBody": "Este mercado incluye contenido relacionado con deportes que no está permitido para usuarios de Ecuador. Las apuestas Live están deshabilitadas.",
@@ -27,8 +27,8 @@
   "reportReasonSpam": "Spam",
   "reportReasonOther": "Otro",
   "policyReturn": "← Volver a la página anterior",
-  "policyOrgLine": "Legal y cumplimiento de AnyMarket",
+  "policyOrgLine": "Legal y cumplimiento de Anymarkt",
   "policyVersionMeta": "Versión del documento {{version}} · Última actualización {{date}}",
-  "policyFooterNote": "Este documento se proporciona con fines informativos. La versión autoritativa es la presentada en la aplicación AnyMarket al momento de aceptarla.",
-  "policyFooterFramework": "Este documento forma parte del conjunto obligatorio de políticas de AnyMarket para el marco de cumplimiento {{framework}}."
+  "policyFooterNote": "Este documento se proporciona con fines informativos. La versión autoritativa es la presentada en la aplicación Anymarkt al momento de aceptarla.",
+  "policyFooterFramework": "Este documento forma parte del conjunto obligatorio de políticas de Anymarkt para el marco de cumplimiento {{framework}}."
 }

@@ -3,6 +3,7 @@ import { scanMarketTextForSports } from "@/lib/compliance/sports-content";
 import { createPostgresChannel } from "@/lib/supabase-realtime";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import type { Json } from "../types/database";
 import type {
     Market,
     MarketWithStats,
@@ -12,14 +13,88 @@ import type {
  * Feed categories (display labels; mapped to compliance taxonomy on create).
  * Canonical mapping also lives in `market_category_mappings` (see get_compliance_config RPC).
  */
-export const FEED_CATEGORIES = ["Politics", "Tech", "Entertainment"] as const;
+export const FEED_CATEGORIES = ["Politics", "Tech", "Entertainment", "Economy"] as const;
 export type FeedCategory = (typeof FEED_CATEGORIES)[number];
 
 const FEED_TO_COMPLIANCE_CATEGORY: Record<FeedCategory, string> = {
   Politics: "politics",
   Tech: "general_event",
   Entertainment: "general_event",
+  Economy: "general_event",
 };
+
+export type FeedSuggestionHorizon = "near_term" | "long_term";
+export type FeedSuggestionStatus = "pending" | "dismissed" | "created";
+export type FeedSuggestionAutopilotStatus =
+    | "needs_review"
+    | "eligible"
+    | "auto_created"
+    | "blocked";
+
+export interface FeedSuggestionEvidenceSource {
+    url: string;
+    title: string;
+    publisher: string;
+    published_at?: string | null;
+    source_type: "official" | "regulatory_filing" | "credible_media" | "social" | "other";
+    supports: string;
+}
+
+export interface FeedMarketSuggestion {
+    id: string;
+    batch_id: string;
+    category: FeedCategory;
+    subject: string;
+    horizon: FeedSuggestionHorizon;
+    question: string;
+    description: string | null;
+    options: string[];
+    suggested_closes_at: string;
+    source_urls: string[];
+    search_queries: string[];
+    rationale: string | null;
+    status: FeedSuggestionStatus;
+    evidence_sources: FeedSuggestionEvidenceSource[];
+    resolution_source_url: string | null;
+    resolution_criteria: string | null;
+    event_start_at: string | null;
+    expected_resolution_at: string | null;
+    close_date_reason: string | null;
+    resolution_date_source_url: string | null;
+    source_quality_score: number;
+    source_count: number;
+    has_official_source: boolean;
+    engagement_score: number;
+    resolution_quality_score: number;
+    compliance_risk_score: number;
+    duplicate_score: number;
+    autopilot_score: number;
+    autopilot_status: FeedSuggestionAutopilotStatus;
+    autopilot_reasons: string[];
+    admin_feedback_reason: string | null;
+    created_market_id: string | null;
+    reviewed_by: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+    batch?: {
+        cron_slot: string;
+        run_date: string;
+        status: string;
+    } | null;
+}
+
+export interface FeedSuggestionBatch {
+    id: string;
+    cron_slot: string;
+    run_date: string;
+    status: string;
+    triggered_by: string;
+    suggestion_count: number;
+    error_message: string | null;
+    gemini_model: string | null;
+    started_at: string;
+    completed_at: string | null;
+}
 
 function normalizeMarketOptionLabels(options: string[]): string[] | Error {
   const labels = options.map((label) => label.trim()).filter(Boolean);
@@ -639,6 +714,103 @@ export const feedService = {
             });
         } catch (error) {
             console.warn("dispatch-notification failed for public market", error);
+        }
+    },
+
+    async getFeedSuggestions(params?: {
+        status?: FeedSuggestionStatus;
+        limit?: number;
+    }): Promise<{ suggestions: FeedMarketSuggestion[]; error: Error | null }> {
+        try {
+            let query = supabase
+                .from("feed_market_suggestions")
+                .select(`
+                    *,
+                    batch:feed_suggestion_batches(cron_slot, run_date, status)
+                `)
+                .order("created_at", { ascending: false })
+                .limit(params?.limit ?? 100);
+
+            if (params?.status) {
+                query = query.eq("status", params.status);
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                return { suggestions: [], error };
+            }
+
+            const suggestions = (data ?? []).map((row) => ({
+                ...row,
+                options: Array.isArray(row.options) ? row.options.map(String) : [],
+                source_urls: Array.isArray(row.source_urls) ? row.source_urls.map(String) : [],
+                search_queries: Array.isArray(row.search_queries)
+                    ? row.search_queries.map(String)
+                    : [],
+                evidence_sources: Array.isArray(row.evidence_sources)
+                    ? row.evidence_sources
+                    : [],
+                autopilot_reasons: Array.isArray(row.autopilot_reasons)
+                    ? row.autopilot_reasons.map(String)
+                    : [],
+            })) as unknown as FeedMarketSuggestion[];
+
+            return { suggestions, error: null };
+        } catch (error) {
+            return { suggestions: [], error: error as Error };
+        }
+    },
+
+    async getFeedSuggestionBatches(limit = 20): Promise<{
+        batches: FeedSuggestionBatch[];
+        error: Error | null;
+    }> {
+        try {
+            const { data, error } = await supabase
+                .from("feed_suggestion_batches")
+                .select("*")
+                .order("started_at", { ascending: false })
+                .limit(limit);
+
+            if (error) {
+                return { batches: [], error };
+            }
+
+            return { batches: (data ?? []) as FeedSuggestionBatch[], error: null };
+        } catch (error) {
+            return { batches: [], error: error as Error };
+        }
+    },
+
+    async dismissFeedSuggestion(
+        id: string,
+        feedbackReason?: string,
+    ): Promise<Error | null> {
+        try {
+            const { error } = await supabase.rpc("admin_dismiss_feed_suggestion", {
+                p_id: id,
+                p_feedback_reason: feedbackReason || null,
+            });
+            return error;
+        } catch (error) {
+            return error as Error;
+        }
+    },
+
+    async markSuggestionCreated(
+        id: string,
+        marketId: string,
+        editSnapshot?: Record<string, unknown>,
+    ): Promise<Error | null> {
+        try {
+            const { error } = await supabase.rpc("admin_mark_suggestion_created", {
+                p_id: id,
+                p_market_id: marketId,
+                p_admin_edit_snapshot: (editSnapshot ?? null) as Json | null,
+            });
+            return error;
+        } catch (error) {
+            return error as Error;
         }
     },
 };

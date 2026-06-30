@@ -1,4 +1,4 @@
-# AnyMarket UI System
+# Anymarkt UI System
 
 Design contract for platform-wide UI/UX. All feature code in `screens/` and `components/` must follow these rules.
 
@@ -20,7 +20,7 @@ Design contract for platform-wide UI/UX. All feature code in `screens/` and `com
 | Card | `AppCard` + subcomponents |
 | Empty | `EmptyState` |
 | Error (inline) | `ErrorBanner` |
-| Loading | `AppSkeleton`, `AnyMarketLoader` (bootstrap only) |
+| Loading | `AppSkeleton`, `AnymarktLoader` (bootstrap only) |
 | Header | `ScreenHeader`, `GlobalHeader` |
 | Stagger entrance | `StaggerGroup`, `AppReveal` |
 | Success moment | `SuccessPulse` |

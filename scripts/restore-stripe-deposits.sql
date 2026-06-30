@@ -1,6 +1,6 @@
 -- Restore wallet credits from verified live Stripe wallet_topup payments.
 -- Idempotent: apply_wallet_topup uses reference_id (payment_intent id) for dedup.
--- Source: AnyMarket live Stripe account reconciled 2026-06-23.
+-- Source: Anymarkt live Stripe account reconciled 2026-06-23.
 
 begin;
 

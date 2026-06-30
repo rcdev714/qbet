@@ -8,7 +8,7 @@ export function buildNewFollowerEmail(params: {
 }) {
   const subject = `@${params.followerUsername} started following you`;
 
-  const bodyHtml = `<p><strong>@${params.followerUsername}</strong> is now following you on AnyMarket.</p>
+  const bodyHtml = `<p><strong>@${params.followerUsername}</strong> is now following you on Anymarkt.</p>
 <p>Check out their profile and see what they're predicting.</p>`;
 
   const html = buildEmailLayout({
@@ -20,7 +20,7 @@ export function buildNewFollowerEmail(params: {
   });
 
   const text = buildPlainTextLayout({
-    body: `${subject}. View their profile on AnyMarket.`,
+    body: `${subject}. View their profile on Anymarkt.`,
     ctaUrl: params.profileUrl,
     appUrl: params.appUrl,
   });

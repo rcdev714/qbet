@@ -51,33 +51,48 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
   const isTransactions = currentPath.includes("admin/transactions");
   const isReports = currentPath.includes("admin/reports");
 
-  const navItems = [
+  const navItems: Array<{
+    key: string;
+    label: string;
+    href: string;
+    icon: "chart.bar" | "arrow.left.arrow.right" | "doc.text" | "person.2" | "house";
+    active: boolean;
+    params?: Record<string, string>;
+  }> = [
     {
       key: "overview",
       label: t("overview"),
       href: "/admin-dashboard",
-      icon: "chart.bar" as const,
+      icon: "chart.bar",
       active: isOverview,
+    },
+    {
+      key: "feed",
+      label: t("feedManager"),
+      href: "/(tabs)/feed",
+      icon: "house",
+      active: false,
+      params: { adminFeed: "open" },
     },
     {
       key: "transactions",
       label: t("transactions"),
       href: "/admin/transactions",
-      icon: "arrow.left.arrow.right" as const,
+      icon: "arrow.left.arrow.right",
       active: isTransactions,
     },
     {
       key: "reports",
       label: t("reports"),
       href: "/admin/reports",
-      icon: "doc.text" as const,
+      icon: "doc.text",
       active: isReports,
     },
     {
       key: "users",
       label: t("users"),
       href: "/admin/users",
-      icon: "person.2" as const,
+      icon: "person.2",
       active: isUsers,
     },
   ];
@@ -115,10 +130,18 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
       </View>
     ) : null;
 
+  const navigateAdminItem = (item: (typeof navItems)[number]) => {
+    if (item.params) {
+      router.push({ pathname: item.href, params: item.params } as any);
+      return;
+    }
+    router.push(item.href as any);
+  };
+
   const navItem = (item: (typeof navItems)[number]) => (
     <TouchableOpacity
       key={item.key}
-      onPress={() => router.push(item.href as any)}
+      onPress={() => navigateAdminItem(item)}
       style={[
         styles.sidebarItem,
         item.active && { backgroundColor: theme.primarySoft, borderColor: theme.primary },
@@ -149,7 +172,7 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
             >
               <View style={styles.sidebarTop}>
                 <Text style={[styles.sidebarBrand, { color: theme.text }]}>Admin</Text>
-                <Text style={[styles.sidebarSubtext, { color: theme.textSecondary }]}>AnyMarket</Text>
+                <Text style={[styles.sidebarSubtext, { color: theme.textSecondary }]}>Anymarkt</Text>
               </View>
               <View style={styles.sidebarSection}>{navItems.map(navItem)}</View>
               <View style={styles.sidebarFooter}>{backButton}</View>
@@ -170,7 +193,7 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
                 {navItems.map((item) => (
                   <TouchableOpacity
                     key={item.key}
-                    onPress={() => router.push(item.href as any)}
+                    onPress={() => navigateAdminItem(item)}
                     style={[
                       styles.mobileNavItem,
                       item.active && { backgroundColor: theme.primarySoft, borderColor: theme.primary },

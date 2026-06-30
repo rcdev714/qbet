@@ -53,5 +53,14 @@ export default defineConfig({
         storageState: runtimePath("user-storage.json"),
       },
     },
+    {
+      name: "feed-suggestions",
+      testMatch: /feed-suggestions\.spec\.ts/,
+      dependencies: ["admin-setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: runtimePath("admin-storage.json"),
+      },
+    },
   ],
 });

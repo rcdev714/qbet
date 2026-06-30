@@ -21,11 +21,11 @@ export function buildApprovalEmailHtml(params: {
   const greeting = params.fullName ? `Hi ${params.fullName},` : "Hi there,";
 
   return buildEmailLayout({
-    title: "Your AnyMarket beta access is approved",
+    title: "Your Anymarkt beta access is approved",
     bodyHtml: `<p>${greeting}</p>
-<p>Your request to join the AnyMarket private beta has been <strong>approved</strong>.</p>
+<p>Your request to join the Anymarkt private beta has been <strong>approved</strong>.</p>
 <p style="color:#64748b;font-size:14px;">Use the same email address you submitted when you sign up.</p>`,
-    ctaLabel: "Continue to AnyMarket",
+    ctaLabel: "Continue to Anymarkt",
     ctaUrl: params.welcomeUrl,
     appUrl,
   });
@@ -40,7 +40,7 @@ export function buildApprovalEmailText(params: {
   const greeting = params.fullName ? `Hi ${params.fullName},` : "Hi there,";
 
   return buildPlainTextLayout({
-    body: `${greeting}\n\nYour AnyMarket beta access is approved.`,
+    body: `${greeting}\n\nYour Anymarkt beta access is approved.`,
     ctaUrl: params.welcomeUrl,
     appUrl,
   });

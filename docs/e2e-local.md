@@ -43,6 +43,11 @@ This runs [`scripts/run-local-e2e.sh`](../scripts/run-local-e2e.sh):
 | `npm run test:e2e:env` | Env + migration + tooling check only |
 | `npm run test:e2e:api` | Backend RPC flow (beta + bet contract), no browser |
 | `npm run test:e2e:ui` | Playwright only (services must already be running) |
+| `npm run test:feed-suggestions` | Unit tests (Gemini normalizer, ET slots) — no keys |
+| `npm run test:feed-suggestions-flow` | API E2E: schema, RLS, admin dismiss RPC |
+| `RUN_FEED_SUGGESTIONS_GEMINI_TEST=1 npm run test:feed-suggestions-flow` | Above + live Gemini invoke (needs `functions serve`) |
+
+See [feed-suggestions-runbook.md](./feed-suggestions-runbook.md) for env vars and deploy steps.
 
 ### API-only bet contract (fast)
 
@@ -94,6 +99,7 @@ tests/e2e/
   beta-flow.spec.ts         # request-access + admin approve
   user-setup.spec.ts        # signup, onboard, API wallet seed, user storageState
   live-bet-contract.spec.ts # critical: live bet → contract → resolve
+  feed-suggestions.spec.ts  # admin Suggestions tab (optional; project feed-suggestions)
   stripe-flow.spec.ts       # optional (E2E_STRIPE_UI=1): Identity + Checkout
   helpers/
     auth.ts

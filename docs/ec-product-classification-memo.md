@@ -2,7 +2,7 @@
 
 **Status:** Engineering draft for Ecuador counsel review — **not legal advice or a regulatory determination.**
 
-**Product:** AnyMarket — user-generated future-event prediction markets with Play Mode (virtual) and Live wallet (real funds).
+**Product:** Anymarkt — user-generated future-event prediction markets with Play Mode (virtual) and Live wallet (real funds).
 
 **Primary licensing jurisdiction:** Republic of Ecuador (services offered to Ecuador-resident users).
 
@@ -12,7 +12,7 @@
 
 ### Product position (confirmed — pending counsel sign-off)
 
-AnyMarket is **not** an *operador de pronósticos deportivos* and is **not pursuing** a **LOPD** licence from Ministerio del Deporte. The product is designed and enforced as a **non-sports, user-generated future-event prediction market platform** for Ecuador-resident users.
+Anymarkt is **not** an *operador de pronósticos deportivos* and is **not pursuing** a **LOPD** licence from Ministerio del Deporte. The product is designed and enforced as a **non-sports, user-generated future-event prediction market platform** for Ecuador-resident users.
 
 **Engineering evidence of this posture:**
 - No sports category in public feed for EC users
@@ -24,11 +24,11 @@ Counsel must still confirm this classification in writing before public real-mon
 
 | Question | Product / engineering position | Counsel determination | Notes |
 |----------|-------------------------------|----------------------|-------|
-| Is AnyMarket an *operador de pronósticos deportivos* under Ecuador law? | **No — out of scope by design** | _Pending sign-off_ | Non-sports UGC markets only; sports content blocked for EC |
+| Is Anymarkt an *operador de pronósticos deportivos* under Ecuador law? | **No — out of scope by design** | _Pending sign-off_ | Non-sports UGC markets only; sports content blocked for EC |
 | Is a **LOPD** licence required before real-money EC launch? | **No — not pursuing LOPD** | _Pending sign-off_ | See Section 3 |
 | Are wallet / parimutuel flows **payment services** or **stored value** requiring separate authorization? | _Pending_ | — | See Section 4 |
 | Is activity **gaming/luck-based** under Ecuador gaming law? | _Pending_ | — | See Section 5 |
-| Can AnyMarket launch with **no sector licence** subject to conditions? | _Pending_ | — | Requires written opinion + monitoring triggers |
+| Can Anymarkt launch with **no sector licence** subject to conditions? | _Pending_ | — | Requires written opinion + monitoring triggers |
 
 **Recommended product posture (engineering):** Non-sports, user-generated future-event markets; no public sports discovery; server-side EC sports blocks; UAFE-ready AML; full ledger exports.
 
@@ -60,7 +60,7 @@ Reference implementation gates: `assert_compliance_gate`, `upsert_market_complia
 - **Scope (typical):** Predictions on **sporting events or facts linked to sporting events**.
 - **Parallel obligations for licensed operators:** UAFE registration, platform certification, prize withholding (~15%), high annual licence cost (~655 SBU).
 
-### 3.2 AnyMarket differentiation arguments (counsel to validate)
+### 3.2 Anymarkt differentiation arguments (counsel to validate)
 
 | Argument | Engineering support | Counter-risk |
 |----------|---------------------|--------------|
@@ -81,7 +81,7 @@ Does the platform accept predictions on sporting events (any channel)?
 
 ### 3.4 Sign-off
 
-- [ ] Written opinion: AnyMarket EC launch **does / does not** require LOPD
+- [ ] Written opinion: Anymarkt EC launch **does / does not** require LOPD
 - [ ] If not LOPD: list **conditions** (categories, channels, volume caps, copy restrictions)
 - [ ] **Monitoring triggers** that would re-open classification (e.g., sports leakage, regulatory inquiry)
 

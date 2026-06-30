@@ -10,8 +10,8 @@ import {
 
 Deno.test("buildWelcomeUrl strips trailing slash", () => {
   assertEquals(
-    buildWelcomeUrl("https://anymarket.expo.app/", "69091d60-a3ec-485d-994c-a51073f4b624"),
-    "https://anymarket.expo.app/beta/welcome?token=69091d60-a3ec-485d-994c-a51073f4b624",
+    buildWelcomeUrl("https://anymarkt.com/", "69091d60-a3ec-485d-994c-a51073f4b624"),
+    "https://anymarkt.com/beta/welcome?token=69091d60-a3ec-485d-994c-a51073f4b624",
   );
 });
 
@@ -30,17 +30,17 @@ Deno.test("buildApprovalIdempotencyKey varies on forceResend", () => {
 Deno.test("buildApprovalEmailHtml includes greeting and welcome link", () => {
   const html = buildApprovalEmailHtml({
     fullName: "Sebastian",
-    welcomeUrl: "https://anymarket.expo.app/beta/welcome?token=abc",
+    welcomeUrl: "https://anymarkt.com/beta/welcome?token=abc",
   });
   assertMatch(html, /Hi Sebastian,/);
-  assertMatch(html, /https:\/\/anymarket\.expo\.app\/beta\/welcome\?token=abc/);
-  assertMatch(html, /Continue to AnyMarket/);
+  assertMatch(html, /https:\/\/anymarkt\.com\/beta\/welcome\?token=abc/);
+  assertMatch(html, /Continue to Anymarkt/);
 });
 
 Deno.test("buildApprovalEmailHtml uses generic greeting when name missing", () => {
   const html = buildApprovalEmailHtml({
     fullName: null,
-    welcomeUrl: "https://anymarket.expo.app/beta/welcome?token=abc",
+    welcomeUrl: "https://anymarkt.com/beta/welcome?token=abc",
   });
   assertMatch(html, /Hi there,/);
 });

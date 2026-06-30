@@ -16,7 +16,7 @@ else
   echo "EAS not logged in — exporting with EXPO_NO_DOTENV and hosted Supabase defaults."
   EXPO_NO_DOTENV=1 \
     EXPO_PUBLIC_SUPABASE_URL="${EXPO_PUBLIC_SUPABASE_URL:-https://jweyqlcvvmdyyqgqcsjd.supabase.co}" \
-    EXPO_PUBLIC_APP_URL="${EXPO_PUBLIC_APP_URL:-https://anymarket.expo.app}" \
+    EXPO_PUBLIC_APP_URL="${EXPO_PUBLIC_APP_URL:-https://anymarkt.com}" \
     EXPO_PUBLIC_LAUNCH_JURISDICTION="${EXPO_PUBLIC_LAUNCH_JURISDICTION:-EC}" \
     EXPO_PUBLIC_BETA_REQUIRED="${EXPO_PUBLIC_BETA_REQUIRED:-true}" \
     run_export "$@"

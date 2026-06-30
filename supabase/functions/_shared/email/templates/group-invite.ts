@@ -9,7 +9,7 @@ export function buildGroupInviteEmail(params: {
 }) {
   const subject = `@${params.inviterUsername} invited you to ${params.groupName}`;
 
-  const bodyHtml = `<p><strong>@${params.inviterUsername}</strong> invited you to join <strong>${params.groupName}</strong> on AnyMarket.</p>
+  const bodyHtml = `<p><strong>@${params.inviterUsername}</strong> invited you to join <strong>${params.groupName}</strong> on Anymarkt.</p>
 <p>Join the group to bet together, chat, and compete on the leaderboard.</p>`;
 
   const html = buildEmailLayout({

@@ -15,7 +15,7 @@ warn() { echo -e "${YELLOW}!${NC} $1"; }
 fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
 WARNINGS=0
-PROD_APP_URL="https://anymarket.expo.app"
+PROD_APP_URL="https://anymarkt.com"
 
 echo "Pre-deploy production gate"
 echo "=========================="
@@ -61,17 +61,17 @@ for name in RESEND_API_KEY RESEND_FROM_EMAIL EXPO_PUBLIC_APP_URL; do
 done
 
 echo ""
-echo "── Resend domain (camella.app) ──"
+echo "── Resend domain (anymarkt.com) ──"
 FN_ENV="supabase/functions/.env"
 if [[ -f "$FN_ENV" ]] && grep -qE '^RESEND_API_KEY=re_' "$FN_ENV"; then
   RESEND_API_KEY="$(grep '^RESEND_API_KEY=' "$FN_ENV" | cut -d= -f2-)"
   DOMAIN_STATUS="$(curl -s https://api.resend.com/domains \
     -H "Authorization: Bearer $RESEND_API_KEY" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((x['status'] for x in d.get('data',[]) if x['name']=='camella.app'), 'missing'))" 2>/dev/null || echo "unknown")"
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((x['status'] for x in d.get('data',[]) if x['name']=='anymarkt.com'), 'missing'))" 2>/dev/null || echo "unknown")"
   if [[ "$DOMAIN_STATUS" == "verified" ]]; then
-    pass "camella.app verified in Resend"
+    pass "anymarkt.com verified in Resend"
   else
-    warn "camella.app Resend status: $DOMAIN_STATUS"
+    warn "anymarkt.com Resend status: $DOMAIN_STATUS"
     WARNINGS=$((WARNINGS + 1))
   fi
 else
@@ -82,7 +82,7 @@ fi
 echo ""
 echo "── Prod welcome link base ──"
 echo "    Expected EXPO_PUBLIC_APP_URL secret → $PROD_APP_URL"
-echo "    Email from address may remain @camella.app (Resend verified domain)"
+echo "    Email from address may remain @anymarkt.com (Resend verified domain)"
 warn "Confirm EXPO_PUBLIC_APP_URL Supabase secret matches $PROD_APP_URL before sending prod emails"
 
 echo ""

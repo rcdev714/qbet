@@ -8,7 +8,7 @@ import 'react-native-reanimated';
 
 import '@/lib/sentry-init';
 
-import { AnyMarketLoader } from '@/components/AnyMarketLoader';
+import { AnymarktLoader } from '@/components/AnymarktLoader';
 import { PremiumNavigationProvider } from '@/components/PremiumNavigationProvider';
 import { SEO } from '@/components/SEO';
 import { SignupBanner } from '@/components/SignupBanner';
@@ -628,7 +628,7 @@ function RootLayoutNav() {
         <StatusBar style={isDark ? 'light' : 'dark'} />
         {showBootstrapLoader ? (
           <View style={[styles.bootstrapLoaderOverlay, { pointerEvents: 'auto' }]}>
-            <AnyMarketLoader message="Preparing AnyMarket..." />
+            <AnymarktLoader message="Preparing Anymarkt..." />
           </View>
         ) : null}
       </PremiumNavigationProvider>

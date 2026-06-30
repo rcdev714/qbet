@@ -25,7 +25,7 @@ const SCREEN_WIDTH = Platform.OS === 'web' ? Math.min(windowWidth, MAX_WEB_WIDTH
 
 const PAGES = [
   {
-    title: "AnyMarket",
+    title: "Anymarkt",
     icon: "✨",
     content: (theme: any, isDark: boolean) => (
       <View>
@@ -44,7 +44,7 @@ const PAGES = [
              <Text style={styles.featureIcon}>🤝</Text>
              <View>
                <Text style={[styles.featureTitle, { color: theme.text }]}>Parimutuel pools</Text>
-               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Winners share the pool—AnyMarket is facilitator, not counterparty.</Text>
+               <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Winners share the pool—Anymarkt is facilitator, not counterparty.</Text>
              </View>
           </View>
         </View>
@@ -68,7 +68,7 @@ const PAGES = [
           <Text style={[styles.cardTag, { color: '#9B59B6' }]}>GLOBAL FEED</Text>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Curated Markets</Text>
           <Text style={[styles.cardBody, { color: theme.textSecondary }]}>
-            For now, only official <Text style={{fontWeight: '400', color: '#0090ff'}}>AnyMarket</Text> hosts can publish to the global feed to ensure quality and fair resolution.
+            For now, only official <Text style={{fontWeight: '400', color: '#0090ff'}}>Anymarkt</Text> hosts can publish to the global feed to ensure quality and fair resolution.
           </Text>
         </View>
       </View>
@@ -178,7 +178,7 @@ export function RulesModal({ visible, onClose, initialPage = 0 }: RulesModalProp
           {PAGES.map((page, index) => (
             <View key={index} style={[styles.pageContent, { width: SCREEN_WIDTH }]}>
               <Text style={styles.emojiIcon}>{page.icon}</Text>
-              <Text style={[styles.title, { color: page.title === 'AnyMarket' ? '#0090ff' : theme.text }]}>{page.title}</Text>
+              <Text style={[styles.title, { color: page.title === 'Anymarkt' ? '#0090ff' : theme.text }]}>{page.title}</Text>
               {page.content(theme, isDark)}
             </View>
           ))}

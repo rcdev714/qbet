@@ -63,7 +63,7 @@ if [[ -f "$FN_ENV" ]]; then
     && ok "RESEND_API_KEY set" \
     || note_issue "Add RESEND_API_KEY=re_... (use delivered@resend.dev recipients)"
   grep -q 'RESEND_FROM_EMAIL' "$FN_ENV" && ok "RESEND_FROM_EMAIL present" \
-    || note_issue "Add RESEND_FROM_EMAIL=AnyMarket <onboarding@resend.dev>"
+    || note_issue "Add RESEND_FROM_EMAIL=Anymarkt <onboarding@resend.dev>"
   grep -q 'EXPO_PUBLIC_APP_URL=http://localhost:8081' "$FN_ENV" \
     && ok "Functions EXPO_PUBLIC_APP_URL set" \
     || note_issue "Add EXPO_PUBLIC_APP_URL=http://localhost:8081 to $FN_ENV"
@@ -80,6 +80,16 @@ if [[ -f "$FN_ENV" ]]; then
     ok "STRIPE_IDENTITY_WEBHOOK_SECRET present"
   else
     note_issue "STRIPE_IDENTITY_WEBHOOK_SECRET missing — run scripts/stripe-e2e-listen.sh first"
+  fi
+  if grep -qE '^GEMINI_API_KEY=AIza' "$FN_ENV"; then
+    ok "GEMINI_API_KEY set (feed suggestions + image gen)"
+  else
+    warn "GEMINI_API_KEY not set — optional unless RUN_FEED_SUGGESTIONS_GEMINI_TEST=1"
+  fi
+  if grep -qE '^CRON_INVOKER_SECRET=' "$FN_ENV"; then
+    ok "CRON_INVOKER_SECRET set"
+  else
+    warn "CRON_INVOKER_SECRET not set — generate with: openssl rand -hex 32"
   fi
 else
   fail "$FN_ENV missing — copy from supabase/functions/.env.example"
@@ -109,6 +119,8 @@ REQUIRED_MIGRATIONS=(
   20260628150000
   20260628160000
   20260628170000
+  20260702000000
+  20260702000002
 )
 for version in "${REQUIRED_MIGRATIONS[@]}"; do
   if psql "$DB_URL" -tAc \

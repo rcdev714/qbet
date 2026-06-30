@@ -1,4 +1,4 @@
-import { AnyMarketLoader } from "@/components/AnyMarketLoader";
+import { AnymarktLoader } from "@/components/AnymarktLoader";
 import { Redirect } from "expo-router";
 import { useAuthContext } from "../contexts/AuthContext";
 import { isAppAdmin } from "../lib/admin";
@@ -8,7 +8,7 @@ export default function AdminDashboardRoute() {
   const { user, hasSession, loading } = useAuthContext();
 
   if (loading || (hasSession && !user)) {
-    return <AnyMarketLoader />;
+    return <AnymarktLoader />;
   }
 
   if (!user || !isAppAdmin(user)) {

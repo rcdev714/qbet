@@ -1,6 +1,6 @@
 # Multi-Jurisdiction Compliance
 
-AnyMarket routes users through a **country of residence** → **compliance jurisdiction** → **policy pack** flow. Product mechanics (parimutuel engine, wallet model, markets) stay the same; only compliance gates, legal copy, and payment country alignment change by jurisdiction.
+Anymarkt routes users through a **country of residence** → **compliance jurisdiction** → **policy pack** flow. Product mechanics (parimutuel engine, wallet model, markets) stay the same; only compliance gates, legal copy, and payment country alignment change by jurisdiction.
 
 ## Current jurisdictions
 
@@ -71,7 +71,7 @@ See migration: `supabase/migrations/20260622130000_country_jurisdiction_complian
 ## Admin / support
 
 - `admin_update_user_residence(p_user_id, p_country)` — rare manual correction; clears jurisdiction-scoped policy acceptances. Does **not** migrate Stripe Connect country; requires support workflow for new Connect onboarding.
-- Users contact support@anymarket.app for country changes.
+- Users contact support@anymarkt.com for country changes.
 
 ## Related docs
 

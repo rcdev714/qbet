@@ -18,8 +18,8 @@ export const SignupBanner: React.FC = () => {
         <View style={styles.content}>
           <Text style={styles.text}>
             {isPrivateBeta
-              ? 'AnyMarket is in a private invite-only beta.'
-              : 'Social prediction markets with friends on AnyMarket.'}
+              ? 'Anymarkt is in a private invite-only beta.'
+              : 'Social prediction markets with friends on Anymarkt.'}
           </Text>
           <View style={styles.actions}>
             <TouchableOpacity

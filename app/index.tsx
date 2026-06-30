@@ -142,16 +142,16 @@ export default function LandingPage() {
         }
         description={
           isPrivateBeta
-            ? `AnyMarket is in a private invite-only beta for ${residentLabel} residents. Turn movies, office competitions, games, and real-life moments into private prediction markets.`
-            : 'AnyMarket helps private groups turn movies, office competitions, games, and real-life moments into prediction markets.'
+            ? `Anymarkt is in a private invite-only beta for ${residentLabel} residents. Turn movies, office competitions, games, and real-life moments into private prediction markets.`
+            : 'Anymarkt helps private groups turn movies, office competitions, games, and real-life moments into prediction markets.'
         }
         image="/og-image.svg"
-        imageAlt="AnyMarket future prediction infrastructure for private groups"
+        imageAlt="Anymarkt future prediction infrastructure for private groups"
         url="/"
         keywords={
           isPrivateBeta
-            ? 'AnyMarket, private beta, invite-only, Ecuador, prediction infrastructure, future-event markets, Play Mode'
-            : 'AnyMarket, prediction infrastructure, future-event markets, private prediction markets, Play Mode, group predictions'
+            ? 'Anymarkt, private beta, invite-only, Ecuador, prediction infrastructure, future-event markets, Play Mode'
+            : 'Anymarkt, prediction infrastructure, future-event markets, private prediction markets, Play Mode, group predictions'
         }
       />
       <View style={styles.glowOne} />
@@ -166,7 +166,7 @@ export default function LandingPage() {
                 style={[styles.brandLogo, isCompact && styles.brandLogoCompact]}
                 contentFit="contain"
               />
-              <Text style={[styles.brand, isCompact && styles.brandCompact]}>AnyMarket</Text>
+              <Text style={[styles.brand, isCompact && styles.brandCompact]}>Anymarkt</Text>
             </View>
             <TouchableOpacity
               style={[styles.navButton, Platform.OS === 'web' && ({ cursor: 'pointer' } as any)]}
@@ -353,7 +353,7 @@ export default function LandingPage() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerBrand}>AnyMarket</Text>
+            <Text style={styles.footerBrand}>Anymarkt</Text>
             <Text style={styles.footerCopy}>© {new Date().getFullYear()} · 17+</Text>
             <WhatsAppContactLink style={styles.footerWhatsApp} />
             <View style={styles.footerLinks}>

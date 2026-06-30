@@ -20,7 +20,7 @@ export function getJurisdictionLabel(jurisdiction: ComplianceJurisdiction): stri
 export function getJurisdictionDisclaimer(jurisdiction: ComplianceJurisdiction): string {
   switch (jurisdiction) {
     case "EC":
-      return "Applies Ecuador-specific market rules, KYC posture, and legal disclosures. AnyMarket is not a licensed sportsbook operator.";
+      return "Applies Ecuador-specific market rules, KYC posture, and legal disclosures. Anymarkt is not a licensed sportsbook operator.";
     case "US":
       return "Applies United States legal disclosures and market rules. State and local laws may impose additional restrictions.";
     default:

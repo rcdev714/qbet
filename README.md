@@ -1,8 +1,8 @@
-# AnyMarket (qbet)
+# Anymarkt (qbet)
 
 Social prediction infrastructure for private groups — **web** (Expo Router) + **Supabase** backend + **Stripe** payments.
 
-**Production:** https://anymarket.expo.app  
+**Production:** https://anymarkt.com  
 **Repo:** https://github.com/rcdev714/qbet
 
 ---
@@ -59,7 +59,7 @@ npm run deploy:web:prod     # manual production web deploy
 | Backend | Supabase (Postgres, Auth, RLS, Edge Functions) |
 | Payments | Stripe (Identity, Connect, deposits) |
 | Email (beta approval) | Resend via `send-beta-approval-email` edge function |
-| Web hosting | EAS Hosting → `anymarket.expo.app` |
+| Web hosting | EAS Hosting → `anymarkt.com` |
 | i18n | English + Spanish (`lib/i18n/`) |
 
 ---
@@ -99,11 +99,11 @@ EXPO_PUBLIC_ADMIN_EMAIL=admin@example.com
 
 ```bash
 RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=AnyMarket <onboarding@camella.app>
-EXPO_PUBLIC_APP_URL=http://localhost:8081   # or https://anymarket.expo.app for real email links
+RESEND_FROM_EMAIL=Anymarkt <onboarding@anymarkt.com>
+EXPO_PUBLIC_APP_URL=http://localhost:8081   # or https://anymarkt.com for real email links
 ```
 
-**Production Supabase secrets:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app`
+**Production Supabase secrets:** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `EXPO_PUBLIC_APP_URL=https://anymarkt.com`
 
 Full matrix: [docs/deploy-beta-approval-notify.md](./docs/deploy-beta-approval-notify.md)
 

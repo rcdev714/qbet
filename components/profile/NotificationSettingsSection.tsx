@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import {
+    EmailFrequency,
     NotificationPreferences,
     notificationPreferencesService,
     NotificationPreferencesUpdate,
@@ -118,6 +119,11 @@ export function NotificationSettingsSection({ theme }: NotificationSettingsSecti
         {t("notificationsHelper")}
       </Text>
 
+      <View style={[styles.infoBlock, { backgroundColor: theme.background, borderColor: theme.border }]}>
+        <Text style={[styles.infoTitle, { color: theme.text }]}>{t("requiredReceiptsTitle")}</Text>
+        <Text style={[styles.infoHelper, { color: theme.textSecondary }]}>{t("requiredReceiptsHelper")}</Text>
+      </View>
+
       {pushSupported ? (
         <ChannelSection theme={theme} title={t("channelPush")} helper={t("channelPushHelper")}>
           <ToggleRow
@@ -177,9 +183,26 @@ export function NotificationSettingsSection({ theme }: NotificationSettingsSecti
           <ToggleRow
             theme={theme}
             label={t("emailGroupInvites")}
+            helper={t("emailGroupInvitesHelper")}
             value={prefs.email_group_invites}
             disabled={saving || !prefs.email_enabled}
             onValueChange={(v) => update({ email_group_invites: v })}
+          />
+          <FrequencyRow
+            theme={theme}
+            label={t("emailFrequency")}
+            helper={t("emailFrequencyHelper")}
+            value={prefs.email_frequency ?? "immediate"}
+            disabled={saving || !prefs.email_enabled}
+            onChange={(v) => update({ email_frequency: v })}
+          />
+          <ToggleRow
+            theme={theme}
+            label={t("emailSkipIfRead")}
+            helper={t("emailSkipIfReadHelper")}
+            value={prefs.email_skip_if_read ?? true}
+            disabled={saving || !prefs.email_enabled}
+            onValueChange={(v) => update({ email_skip_if_read: v })}
           />
         </View>
       </ChannelSection>
@@ -232,6 +255,56 @@ function ChannelSection({
         <Text style={[styles.channelHelper, { color: theme.textSecondary }]}>{helper}</Text>
       ) : null}
       {children}
+    </View>
+  );
+}
+
+function FrequencyRow({
+  theme,
+  label,
+  helper,
+  value,
+  disabled,
+  onChange,
+}: {
+  theme: ThemeColors;
+  label: string;
+  helper?: string;
+  value: EmailFrequency;
+  disabled?: boolean;
+  onChange: (v: EmailFrequency) => void;
+}) {
+  const { t } = useTranslation("settings");
+  const options: EmailFrequency[] = ["immediate", "daily_digest", "weekly_digest"];
+
+  return (
+    <View style={[styles.row, { borderBottomColor: theme.border, flexDirection: "column", alignItems: "stretch" }]}>
+      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+      {helper ? (
+        <Text style={[styles.rowHelper, { color: theme.textSecondary, marginBottom: 8 }]}>{helper}</Text>
+      ) : null}
+      <View style={styles.frequencyRow}>
+        {options.map((opt) => {
+          const selected = value === opt;
+          return (
+            <Pressable
+              key={opt}
+              disabled={disabled}
+              onPress={() => onChange(opt)}
+              style={[
+                styles.frequencyChip,
+                {
+                  borderColor: selected ? theme.primary : theme.border,
+                  backgroundColor: selected ? theme.primary + "18" : "transparent",
+                },
+              ]}>
+              <Text style={{ color: selected ? theme.primary : theme.textSecondary, fontSize: 13 }}>
+                {t(`emailFrequency_${opt}`)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -340,5 +413,33 @@ const styles = StyleSheet.create({
   rowHelper: {
     fontSize: 12,
     marginTop: 2,
+  },
+  infoBlock: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  infoHelper: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  frequencyRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  frequencyChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
   },
 });

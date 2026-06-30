@@ -44,14 +44,14 @@ Copy from [`supabase/functions/.env.example`](../supabase/functions/.env.example
 
 ```bash
 RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=AnyMarket <onboarding@camella.app>
+RESEND_FROM_EMAIL=Anymarkt <onboarding@anymarkt.com>
 EXPO_PUBLIC_APP_URL=http://localhost:8081
 ```
 
 | Tip | Detail |
 |-----|--------|
 | Local welcome links in email | Keep `EXPO_PUBLIC_APP_URL=http://localhost:8081` |
-| Real recipients during local dev | Set `EXPO_PUBLIC_APP_URL=https://anymarket.expo.app` so email links open prod/staging web |
+| Real recipients during local dev | Set `EXPO_PUBLIC_APP_URL=https://anymarkt.com` so email links open prod/staging web |
 | Resend test mode | Use `delivered@resend.dev` as recipient when domain unverified |
 
 Supabase auto-injects into functions (do not set manually): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
@@ -278,7 +278,7 @@ Automated full-stack E2E (Playwright + Stripe test mode): [e2e-local.md](./e2e-l
 | Approve button does nothing (web) | Hard refresh; confirm dialog should appear (fixed vs `Alert.alert`) |
 | `Could not find the function` | Run migrations |
 | `RESEND_API_KEY is not configured` | Add to `supabase/functions/.env`; restart `functions serve` |
-| Email failed after approve | Check Resend logs; verify `@camella.app` domain |
+| Email failed after approve | Check Resend logs; verify `@anymarkt.com` domain |
 | Welcome link wrong host | Match `EXPO_PUBLIC_APP_URL` in functions env |
 | Realtime `subscribe()` error | Use `createPostgresChannel` pattern in [`lib/supabase-realtime.ts`](../lib/supabase-realtime.ts) |
 

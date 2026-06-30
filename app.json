@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AnyMarket",
-    "slug": "anymarket",
+    "name": "Anymarkt",
+    "slug": "anymarkt",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,7 +14,8 @@
       "buildNumber": "2",
       "associatedDomains": [
         "applinks:jweyqlcvvmdyyqgqcsjd.supabase.co",
-        "applinks:anymarket.expo.app"
+        "applinks:anymarket.expo.app",
+        "applinks:anymarkt.com"
       ],
       "infoPlist": {
         "NSCameraUsageDescription": "Used to scan QR codes and capture profile photos",
@@ -69,6 +70,21 @@
             {
               "scheme": "https",
               "host": "anymarket.expo.app",
+              "pathPrefix": "/share"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "anymarkt.com",
               "pathPrefix": "/share"
             }
           ],

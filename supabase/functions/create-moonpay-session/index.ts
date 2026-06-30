@@ -27,7 +27,7 @@ function normalizeCurrency(value: unknown, fallback: string) {
 function appUrl() {
   return Deno.env.get("EXPO_PUBLIC_APP_URL") ||
     Deno.env.get("APP_URL") ||
-    "https://anymarket.expo.app";
+    "https://anymarkt.com";
 }
 
 async function signMoonPayUrl(url: URL) {

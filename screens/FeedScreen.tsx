@@ -1,5 +1,5 @@
-import { AdminFeedManager } from "@/components/AdminFeedManager";
-import { AnyMarketLoader } from "@/components/AnyMarketLoader";
+import { AdminFeedManager, type AdminFeedManagerTab } from "@/components/AdminFeedManager";
+import { AnymarktLoader } from "@/components/AnymarktLoader";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { WebContentColumn } from "@/components/layout/WebContentColumn";
 import { MarketBoardCard } from "@/components/markets/MarketBoardCard";
@@ -18,7 +18,7 @@ import { isAppAdmin } from "@/lib/admin";
 import { teardownChannel } from "@/lib/supabase-realtime";
 import { feedService } from "@/services/feed.service";
 import type { Market } from "@/types/market";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
@@ -49,6 +49,7 @@ export default function FeedScreen() {
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
   const router = useRouter();
+  const params = useLocalSearchParams<{ adminFeed?: string | string[] }>();
   const { t } = useTranslation("feed");
   const { t: tSocial } = useTranslation("social");
   const { lastBetTime, isPlayMode } = useWalletContext();
@@ -57,6 +58,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [adminModalVisible, setAdminModalVisible] = useState(false);
+  const [adminInitialTab, setAdminInitialTab] = useState<AdminFeedManagerTab>("promote");
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList<Market>>(null);
   const [showSharePreview, setShowSharePreview] = useState(false);
@@ -85,6 +87,12 @@ export default function FeedScreen() {
   }, [user, markets.length]);
 
   const isAdmin = isAppAdmin(user);
+
+  const openFeedManager = useCallback((tab: AdminFeedManagerTab = "promote") => {
+    setAdminInitialTab(tab);
+    setAdminModalVisible(true);
+  }, []);
+
   const categories = useMemo(() => {
     const unique = Array.from(new Set(markets.map((market) => market.category || "General")));
     return ["All", ...unique.slice(0, 8)];
@@ -130,6 +138,91 @@ export default function FeedScreen() {
       setRefreshing(false);
     }
   }, [applyMarkets, user?.id]);
+
+  const adminFeedParam = Array.isArray(params.adminFeed) ? params.adminFeed[0] : params.adminFeed;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAdmin || !adminFeedParam) return;
+
+      const tabMap: Record<string, AdminFeedManagerTab> = {
+        open: "suggestions",
+        suggestions: "suggestions",
+        promote: "promote",
+        create: "create",
+        manage: "manage",
+        resolve: "resolve",
+      };
+      const tab = tabMap[adminFeedParam];
+      if (tab) {
+        openFeedManager(tab);
+        router.replace("/(tabs)/feed" as any);
+      }
+    }, [adminFeedParam, isAdmin, openFeedManager, router]),
+  );
+
+  const renderFeedEmptyState = useCallback(
+    (context: "desktop" | "mobile") => {
+      const isFilteredEmpty = markets.length > 0 && visibleMarkets.length === 0;
+
+      if (isAdmin && markets.length === 0) {
+        return (
+          <EmptyState
+            icon="layers-outline"
+            title={t("adminEmptyTitle")}
+            description={t("adminEmptyDescription")}
+            actionLabel={t("openFeedManager")}
+            onAction={() => openFeedManager("promote")}
+            secondaryActionLabel={t("createMarket")}
+            onSecondaryAction={() => openFeedManager("create")}
+          />
+        );
+      }
+
+      return (
+        <EmptyState
+          icon={context === "desktop" ? "search-outline" : "layers-outline"}
+          title={t("empty")}
+          description={
+            context === "desktop" || isFilteredEmpty
+              ? t("emptyFilteredDescription")
+              : t("emptyUserDescription")
+          }
+        />
+      );
+    },
+    [isAdmin, markets.length, openFeedManager, t, visibleMarkets.length],
+  );
+
+  const renderMarketsContentState = useCallback(() => {
+    if (loading && markets.length === 0) {
+      return (
+        <View style={styles.inlineLoader}>
+          <AnymarktLoader message="Loading live markets..." />
+        </View>
+      );
+    }
+
+    if (feedError && markets.length === 0) {
+      return (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t("loadErrorTitle")}
+          description={feedError}
+          actionLabel={t("tryAgain")}
+          onAction={() => {
+            setLoading(true);
+            fetchFeed();
+          }}
+          secondaryActionLabel={isAdmin ? t("openFeedManager") : undefined}
+          onSecondaryAction={isAdmin ? () => openFeedManager("promote") : undefined}
+          variant="destructive"
+        />
+      );
+    }
+
+    return null;
+  }, [feedError, fetchFeed, isAdmin, loading, markets.length, openFeedManager, t]);
 
   // Track visible items for engagement
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -197,28 +290,6 @@ export default function FeedScreen() {
     }, 100);
   }, []);
 
-  if (loading && markets.length === 0) {
-    return <AnyMarketLoader message="Loading live markets..." />;
-  }
-
-  if (feedError && markets.length === 0) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingHorizontal: 24 }]}>
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="Markets could not load"
-          description={feedError}
-          actionLabel="Try again"
-          onAction={() => {
-            setLoading(true);
-            fetchFeed();
-          }}
-          variant="destructive"
-        />
-      </View>
-    );
-  }
-
   const feedTabSegments = [
     { value: "markets" as const, label: t("tabMarkets") },
     { value: "following" as const, label: t("tabFollowing") },
@@ -242,7 +313,7 @@ export default function FeedScreen() {
       {isAdmin ? (
         <TouchableOpacity
           style={[styles.adminButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }]}
-          onPress={() => setAdminModalVisible(true)}
+          onPress={() => openFeedManager("promote")}
         >
           <IconSymbol name="gearshape" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -255,9 +326,9 @@ export default function FeedScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SEO
           title="Live Social Prediction Markets"
-          description="Browse live AnyMarket predictions, discover what people are forecasting, and back future outcomes with friends."
+          description="Browse live Anymarkt predictions, discover what people are forecasting, and back future outcomes with friends."
           url="/feed"
-          imageAlt="AnyMarket live social prediction market feed"
+          imageAlt="Anymarkt live social prediction market feed"
         />
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
@@ -287,69 +358,76 @@ export default function FeedScreen() {
             {
               <>
                 <View style={styles.webToolbar}>
-                  <Text style={[styles.webPageTitle, { color: theme.text }]}>Markets</Text>
-                  <Text style={[styles.webPageSubtitle, { color: theme.textSecondary }]}>
-                    {visibleMarkets.length} open
-                  </Text>
-                </View>
-
-                {feedError && (
-                  <ErrorBanner message={feedError} onRetry={() => fetchFeed()} retryLabel="Try again" />
-                )}
-
-                {pendingMarkets && (
-                  <AppButton
-                    title="Show new markets"
-                    onPress={applyPendingMarkets}
-                    style={styles.webNewMarkets}
-                  />
-                )}
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.webCategoryScroll}
-                  contentContainerStyle={styles.webCategoryRow}
-                >
-                  {categories.map((category) => {
-                    const active = selectedCategory === category;
-                    return (
-                      <TouchableOpacity
-                        key={category}
-                        style={[
-                          styles.webCategoryChip,
-                          {
-                            backgroundColor: active ? theme.primarySoft : theme.surface,
-                            borderColor: active ? theme.primary : theme.border,
-                          },
-                        ]}
-                        onPress={() => setSelectedCategory(category)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.webCategoryText, { color: active ? theme.primary : theme.text }]}>
-                          {category}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-
-                <View style={styles.webGrid}>
-                  {visibleMarkets.map((market) => (
-                    <MarketBoardCard
-                      key={market.id}
-                      market={market}
-                      columnWidth={gridColumnWidth}
+                  <View style={styles.webToolbarLeft}>
+                    <Text style={[styles.webPageTitle, { color: theme.text }]}>Markets</Text>
+                    <Text style={[styles.webPageSubtitle, { color: theme.textSecondary }]}>
+                      {visibleMarkets.length} open
+                    </Text>
+                  </View>
+                  {isAdmin ? (
+                    <AppButton
+                      title={t("feedManager")}
+                      onPress={() => openFeedManager("promote")}
+                      style={styles.webAdminButton}
                     />
-                  ))}
+                  ) : null}
                 </View>
 
-                {visibleMarkets.length === 0 && (
-                  <EmptyState
-                    icon="search-outline"
-                    title={t("empty")}
-                    description="Try another category or refresh the board."
-                  />
+                {renderMarketsContentState() ?? (
+                  <>
+                    {feedError && markets.length > 0 && (
+                      <ErrorBanner message={feedError} onRetry={() => fetchFeed()} retryLabel={t("tryAgain")} />
+                    )}
+
+                    {pendingMarkets && (
+                      <AppButton
+                        title="Show new markets"
+                        onPress={applyPendingMarkets}
+                        style={styles.webNewMarkets}
+                      />
+                    )}
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.webCategoryScroll}
+                      contentContainerStyle={styles.webCategoryRow}
+                    >
+                      {categories.map((category) => {
+                        const active = selectedCategory === category;
+                        return (
+                          <TouchableOpacity
+                            key={category}
+                            style={[
+                              styles.webCategoryChip,
+                              {
+                                backgroundColor: active ? theme.primarySoft : theme.surface,
+                                borderColor: active ? theme.primary : theme.border,
+                              },
+                            ]}
+                            onPress={() => setSelectedCategory(category)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[styles.webCategoryText, { color: active ? theme.primary : theme.text }]}>
+                              {category}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+
+                    <View style={styles.webGrid}>
+                      {visibleMarkets.map((market) => (
+                        <MarketBoardCard
+                          key={market.id}
+                          market={market}
+                          columnWidth={gridColumnWidth}
+                        />
+                      ))}
+                    </View>
+
+                    {visibleMarkets.length === 0 && renderFeedEmptyState("desktop")}
+                  </>
                 )}
               </>
             }
@@ -359,6 +437,7 @@ export default function FeedScreen() {
 
         <AdminFeedManager
           visible={adminModalVisible}
+          initialTab={adminInitialTab}
           onClose={() => {
             setAdminModalVisible(false);
             fetchFeed();
@@ -372,9 +451,9 @@ export default function FeedScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO 
         title="Live Social Prediction Feed"
-        description="See the latest AnyMarket predictions and join friends backing future outcomes in live social markets."
+        description="See the latest Anymarkt predictions and join friends backing future outcomes in live social markets."
         url="/feed"
-        imageAlt="AnyMarket live social prediction feed"
+        imageAlt="Anymarkt live social prediction feed"
       />
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       
@@ -405,6 +484,10 @@ export default function FeedScreen() {
         ) : (
           <ActivityFeed scrollEnabled />
         )
+      ) : loading && markets.length === 0 ? (
+        <View style={styles.mobileContentState}>{renderMarketsContentState()}</View>
+      ) : feedError && markets.length === 0 ? (
+        <View style={styles.mobileContentState}>{renderMarketsContentState()}</View>
       ) : (
       <FlatList
         ref={flatListRef}
@@ -452,7 +535,13 @@ export default function FeedScreen() {
         contentOffset={{ x: 0, y: 0 }}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
-        contentContainerStyle={IS_WEB ? { paddingVertical: 20, alignItems: 'center' } : undefined}
+        contentContainerStyle={
+          markets.length === 0
+            ? { flexGrow: 1, minHeight: CARD_HEIGHT, ...(IS_WEB ? { paddingVertical: 20, alignItems: "center" } : {}) }
+            : IS_WEB
+              ? { paddingVertical: 20, alignItems: "center" }
+              : undefined
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -460,21 +549,16 @@ export default function FeedScreen() {
             tintColor={theme.text}
           />
         }
-        ListEmptyComponent={
-          <EmptyState
-            icon="layers-outline"
-            title={t("empty")}
-            description="When one appears, open it to practice before using live funds."
-          />
-        }
+        ListEmptyComponent={renderFeedEmptyState("mobile")}
       />
       )}
       
       <AdminFeedManager 
-        visible={adminModalVisible} 
+        visible={adminModalVisible}
+        initialTab={adminInitialTab}
         onClose={() => {
             setAdminModalVisible(false);
-            fetchFeed(); // Refresh feed after admin potential changes
+            fetchFeed();
         }} 
       />
 
@@ -625,9 +709,32 @@ const styles = StyleSheet.create({
   },
   webToolbar: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  webToolbarLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 12,
+    flex: 1,
+  },
+  webAdminButton: {
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignSelf: "flex-start",
+  },
+  inlineLoader: {
+    minHeight: 280,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 48,
+  },
+  mobileContentState: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
   },
   webPageTitle: {
     fontSize: 22,

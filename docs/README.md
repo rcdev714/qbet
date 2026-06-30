@@ -1,4 +1,4 @@
-# AnyMarket (qbet) documentation
+# Anymarkt (qbet) documentation
 
 Central index for engineering, deploy, compliance, and product docs.
 
@@ -6,7 +6,7 @@ Central index for engineering, deploy, compliance, and product docs.
 
 | Surface | URL |
 |---------|-----|
-| Web app | https://anymarket.expo.app |
+| Web app | https://anymarkt.com |
 | Supabase project | `jweyqlcvvmdyyqgqcsjd` |
 | GitHub | https://github.com/rcdev714/qbet |
 | Expo hosting | https://expo.dev/projects/5f9fbca3-cb6b-4b24-8918-2717c150019b |
@@ -19,6 +19,7 @@ Central index for engineering, deploy, compliance, and product docs.
 |-----|----------|---------|
 | [local-dev-verification.md](./local-dev-verification.md) | Engineers | Local setup, env vars, migrations, health checks, beta flow testing |
 | [deploy-web-production.md](./deploy-web-production.md) | Engineers / release | EAS web deploy, GitHub auto-deploy, rollback |
+| [anymarkt-domain-setup.md](./anymarkt-domain-setup.md) | Engineers / release | Cloudflare DNS, EAS custom domain, Supabase auth, Resend |
 | [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) | Engineers / release | Resend email, Supabase secrets, approval flow end-to-end |
 | [policy-security-framework.md](./policy-security-framework.md) | Engineers / compliance | Actor/context/action/evidence model, gates, ontology |
 | [deploy-bet-contract-email.md](./deploy-bet-contract-email.md) | Engineers / release | Wager agreement emails via Resend |
@@ -37,7 +38,7 @@ flowchart TD
   predeploy --> dbpush[supabase db push]
   predeploy --> fnDeploy[supabase functions deploy]
   push[git push master] --> easWorkflow[EAS Workflow deploy-web-production.yml]
-  easWorkflow --> anymarket[anymarket.expo.app]
+  easWorkflow --> anymarket[anymarkt.com]
   manual[npm run deploy:web:prod] --> anymarket
   approve[Admin approve request] --> resend[send-beta-approval-email]
   resend --> welcome["/beta/welcome?token=..."]
@@ -72,11 +73,11 @@ Full matrix: [deploy-beta-approval-notify.md § env matrix](./deploy-beta-approv
 |----------|------------------|---------------------------|------------------|
 | `EXPO_PUBLIC_SUPABASE_URL` | ✅ | auto | auto |
 | `EXPO_PUBLIC_SUPABASE_KEY` | ✅ | auto | auto |
-| `EXPO_PUBLIC_APP_URL` | ✅ | ✅ local | ✅ prod (`https://anymarket.expo.app`) |
+| `EXPO_PUBLIC_APP_URL` | ✅ | ✅ local | ✅ prod (`https://anymarkt.com`) |
 | `EXPO_PUBLIC_BETA_REQUIRED` | ✅ | ❌ | ❌ |
 | `EXPO_PUBLIC_ADMIN_EMAIL` | ✅ | ❌ | optional |
 | `RESEND_API_KEY` | ❌ never | ✅ local | ✅ prod |
-| `RESEND_FROM_EMAIL` | ❌ never | ✅ local | ✅ prod (`@camella.app`) |
+| `RESEND_FROM_EMAIL` | ❌ never | ✅ local | ✅ prod (`@anymarkt.com`) |
 
 ---
 

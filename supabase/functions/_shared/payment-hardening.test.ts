@@ -27,31 +27,31 @@ Deno.test("parsePositiveIntegerCents rejects non-positive or fractional amounts"
 
 Deno.test("resolveAllowedUrl accepts configured origins and falls back safely", () => {
   const origins = buildAllowedOrigins([
-    "https://anymarket.expo.app",
+    "https://anymarkt.com",
     "https://app.example.com/wallet",
   ]);
 
   assertEquals(
     resolveAllowedUrl(
       "https://app.example.com/topup?success=true",
-      "https://anymarket.expo.app/topup",
+      "https://anymarkt.com/topup",
       origins,
     ),
     "https://app.example.com/topup?success=true",
   );
   assertEquals(
-    resolveAllowedUrl(null, "https://anymarket.expo.app/topup", origins),
-    "https://anymarket.expo.app/topup",
+    resolveAllowedUrl(null, "https://anymarkt.com/topup", origins),
+    "https://anymarkt.com/topup",
   );
 });
 
 Deno.test("resolveAllowedUrl rejects unconfigured origins", () => {
-  const origins = buildAllowedOrigins(["https://anymarket.expo.app"]);
+  const origins = buildAllowedOrigins(["https://anymarkt.com"]);
 
   assertThrows(() =>
     resolveAllowedUrl(
       "https://evil.example/topup",
-      "https://anymarket.expo.app/topup",
+      "https://anymarkt.com/topup",
       origins,
     )
   );

@@ -17,7 +17,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { AnyMarketLoader } from "../components/AnyMarketLoader";
+import { AnymarktLoader } from "../components/AnymarktLoader";
 import { CreateGroupModal } from "../components/CreateGroupModal";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { WebContentColumn } from "../components/layout/WebContentColumn";
@@ -398,7 +398,7 @@ export function DirectMessagesScreen() {
   };
 
   if (groupsLoading) {
-    return <AnyMarketLoader message="Opening your groups..." />;
+    return <AnymarktLoader message="Opening your groups..." />;
   }
 
   return (

@@ -1,10 +1,10 @@
-# AnyMarket Policy, Ontology & Security Framework
+# Anymarkt Policy, Ontology & Security Framework
 
 Engineering reference for the four-primitive model: **Actor**, **Context**, **Action**, **Evidence**.
 
 ## North star
 
-AnyMarket is **social prediction infrastructure**:
+Anymarkt is **social prediction infrastructure**:
 
 - **Practice first** — trial credits, no real money
 - **Live when verified** — residence, policy pack, age attestation, KYC, backend gates

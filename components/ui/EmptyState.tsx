@@ -13,6 +13,8 @@ export interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
   variant?: "default" | "destructive";
 }
 
@@ -22,6 +24,8 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
   variant = "default",
 }: EmptyStateProps) {
   const { theme } = useTheme();
@@ -53,6 +57,14 @@ export function EmptyState({
           variant={variant === "destructive" ? "destructive" : "primary"}
           onPress={onAction}
           style={{ marginTop: 8, minWidth: 160 }}
+        />
+      ) : null}
+      {secondaryActionLabel && onSecondaryAction ? (
+        <AppButton
+          title={secondaryActionLabel}
+          variant="secondary"
+          onPress={onSecondaryAction}
+          style={{ minWidth: 160 }}
         />
       ) : null}
     </View>

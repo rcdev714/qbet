@@ -31,7 +31,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "AnyMarket <onboarding@camella.app>";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "Anymarkt <onboarding@anymarkt.com>";
     const appUrl = Deno.env.get("EXPO_PUBLIC_APP_URL") ?? "http://localhost:8081";
 
     if (!resendApiKey) {
@@ -137,13 +137,29 @@ serve(async (req) => {
       .maybeSingle();
 
     if (invitee?.id) {
-      await adminClient.rpc("notify_user", {
-        p_user_id: invitee.id,
-        p_type: "group_invite",
-        p_title: `Invited to ${group.name ?? "a group"}`,
-        p_body: `${inviter?.username ?? "Someone"} invited you to join ${group.name ?? "their group"}.`,
-        p_data: { group_id: groupId },
-      });
+      const { data: inviteePrefs } = await adminClient
+        .from("user_notification_preferences")
+        .select("email_group_invites, in_app_enabled, in_app_social")
+        .eq("user_id", invitee.id)
+        .maybeSingle();
+
+      const allowInApp =
+        inviteePrefs?.in_app_enabled !== false &&
+        inviteePrefs?.in_app_social !== false;
+
+      if (allowInApp || inviteePrefs?.email_group_invites !== false) {
+        await adminClient.rpc("notify_user", {
+          p_user_id: invitee.id,
+          p_type: "group_invite",
+          p_title: `Invited to ${group.name ?? "a group"}`,
+          p_body: `${inviter?.username ?? "Someone"} invited you to join ${group.name ?? "their group"}.`,
+          p_data: {
+            group_id: groupId,
+            group_name: group.name ?? "Group",
+            inviter_username: inviter?.username ?? "Someone",
+          },
+        });
+      }
     }
 
     return json({ ok: true, inviteId: invite.id, emailId: sendResult.id });

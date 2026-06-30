@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-This document outlines a strategic application of **AnyMarket** designed
+This document outlines a strategic application of **Anymarkt** designed
 specifically for high-performance sales teams. By leveraging private group
 functionality and internal betting markets, we transform standard performance
 metrics into engaging, high-energy competitions.
@@ -12,7 +12,7 @@ metrics into engaging, high-energy competitions.
 ## The Core Concept: "Skin in the Game"
 
 Sales agents thrive on competition. Traditional leaderboards are static and
-often lose their motivational power mid-month. **AnyMarket** introduces a
+often lose their motivational power mid-month. **Anymarkt** introduces a
 dynamic, real-time financial layer to performance tracking.
 
 ### 1. The Mechanism: Monthly Active Pools
@@ -98,4 +98,4 @@ graph TD
 
 ---
 
-_Powered by AnyMarket – Turning Metrics into Markets._
+_Powered by Anymarkt – Turning Metrics into Markets._

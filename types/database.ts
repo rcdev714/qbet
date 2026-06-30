@@ -636,6 +636,187 @@ export type Database = {
           },
         ]
       }
+      feed_market_suggestions: {
+        Row: {
+          admin_edit_snapshot: Json | null
+          admin_feedback_reason: string | null
+          autopilot_reasons: Json
+          autopilot_score: number
+          autopilot_status: string
+          batch_id: string
+          category: string
+          close_date_reason: string | null
+          compliance_risk_score: number
+          created_at: string
+          created_market_id: string | null
+          description: string | null
+          duplicate_score: number
+          engagement_score: number
+          event_start_at: string | null
+          evidence_sources: Json
+          expected_resolution_at: string | null
+          has_official_source: boolean
+          horizon: string
+          id: string
+          market_engagement_snapshot: Json | null
+          options: Json
+          question: string
+          rationale: string | null
+          resolution_criteria: string | null
+          resolution_date_source_url: string | null
+          resolution_quality_score: number
+          resolution_source_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          search_queries: Json
+          source_count: number
+          source_quality_score: number
+          source_urls: Json
+          status: string
+          subject: string
+          suggested_closes_at: string
+        }
+        Insert: {
+          admin_edit_snapshot?: Json | null
+          admin_feedback_reason?: string | null
+          autopilot_reasons?: Json
+          autopilot_score?: number
+          autopilot_status?: string
+          batch_id: string
+          category: string
+          close_date_reason?: string | null
+          compliance_risk_score?: number
+          created_at?: string
+          created_market_id?: string | null
+          description?: string | null
+          duplicate_score?: number
+          engagement_score?: number
+          event_start_at?: string | null
+          evidence_sources?: Json
+          expected_resolution_at?: string | null
+          has_official_source?: boolean
+          horizon: string
+          id?: string
+          market_engagement_snapshot?: Json | null
+          options: Json
+          question: string
+          rationale?: string | null
+          resolution_criteria?: string | null
+          resolution_date_source_url?: string | null
+          resolution_quality_score?: number
+          resolution_source_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          search_queries?: Json
+          source_count?: number
+          source_quality_score?: number
+          source_urls?: Json
+          status?: string
+          subject: string
+          suggested_closes_at: string
+        }
+        Update: {
+          admin_edit_snapshot?: Json | null
+          admin_feedback_reason?: string | null
+          autopilot_reasons?: Json
+          autopilot_score?: number
+          autopilot_status?: string
+          batch_id?: string
+          category?: string
+          close_date_reason?: string | null
+          compliance_risk_score?: number
+          created_at?: string
+          created_market_id?: string | null
+          description?: string | null
+          duplicate_score?: number
+          engagement_score?: number
+          event_start_at?: string | null
+          evidence_sources?: Json
+          expected_resolution_at?: string | null
+          has_official_source?: boolean
+          horizon?: string
+          id?: string
+          market_engagement_snapshot?: Json | null
+          options?: Json
+          question?: string
+          rationale?: string | null
+          resolution_criteria?: string | null
+          resolution_date_source_url?: string | null
+          resolution_quality_score?: number
+          resolution_source_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          search_queries?: Json
+          source_count?: number
+          source_quality_score?: number
+          source_urls?: Json
+          status?: string
+          subject?: string
+          suggested_closes_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_market_suggestions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "feed_suggestion_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_market_suggestions_created_market_id_fkey"
+            columns: ["created_market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_market_suggestions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_suggestion_batches: {
+        Row: {
+          completed_at: string | null
+          cron_slot: string
+          error_message: string | null
+          gemini_model: string | null
+          id: string
+          run_date: string
+          started_at: string
+          status: string
+          suggestion_count: number
+          triggered_by: string
+        }
+        Insert: {
+          completed_at?: string | null
+          cron_slot: string
+          error_message?: string | null
+          gemini_model?: string | null
+          id?: string
+          run_date: string
+          started_at?: string
+          status: string
+          suggestion_count?: number
+          triggered_by: string
+        }
+        Update: {
+          completed_at?: string | null
+          cron_slot?: string
+          error_message?: string | null
+          gemini_model?: string | null
+          id?: string
+          run_date?: string
+          started_at?: string
+          status?: string
+          suggestion_count?: number
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
@@ -2190,6 +2371,18 @@ export type Database = {
       admin_approve_market_for_feed: {
         Args: { p_market_id: string }
         Returns: Database["public"]["Tables"]["markets"]["Row"]
+      }
+      admin_dismiss_feed_suggestion: {
+        Args: { p_id: string; p_feedback_reason?: string | null }
+        Returns: Database["public"]["Tables"]["feed_market_suggestions"]["Row"]
+      }
+      admin_mark_suggestion_created: {
+        Args: {
+          p_id: string
+          p_market_id: string
+          p_admin_edit_snapshot?: Json | null
+        }
+        Returns: Database["public"]["Tables"]["feed_market_suggestions"]["Row"]
       }
       admin_promote_market_to_feed: {
         Args: { p_market_id: string }

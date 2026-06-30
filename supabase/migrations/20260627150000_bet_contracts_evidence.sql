@@ -184,7 +184,7 @@ begin
         'policyRoutes', jsonb_build_array('/terms', '/privacy', '/risk', '/market-rules', '/aml-kyc', '/prohibited-markets'),
         'disclaimers', jsonb_build_array(
           'Parimutuel wager: stake debited from your wallet and pooled with other participants.',
-          'AnyMarket is a platform facilitator, not a counterparty to individual wagers.',
+          'Anymarkt is a platform facilitator, not a counterparty to individual wagers.',
           'Live wallet participation involves real-fund loss risk.',
           'Markets must resolve using published objective criteria.'
         )

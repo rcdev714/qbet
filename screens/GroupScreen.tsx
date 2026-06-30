@@ -32,7 +32,7 @@ import { mentionService } from "@/services/mention.service";
 import { shareService } from "@/services/share.service";
 import type { MentionEmbedPayload } from "@/types/mention";
 import { useTranslation } from "react-i18next";
-import { AnyMarketLoader } from "../components/AnyMarketLoader";
+import { AnymarktLoader } from "../components/AnymarktLoader";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { ActiveBetsTab } from "../components/group-chat/ActiveBetsTab";
 import { ChatTab } from "../components/group-chat/ChatTab";
@@ -573,7 +573,7 @@ export function GroupScreen() {
 
   // ─── Loading state ───────────────────────────────────────────────────────
   if (groupLoading) {
-    return <AnyMarketLoader message="Opening your group..." />;
+    return <AnymarktLoader message="Opening your group..." />;
   }
 
   if (!groupId || !group) {

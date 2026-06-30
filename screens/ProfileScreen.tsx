@@ -286,10 +286,10 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO 
-        title={viewedUser?.username ? `${viewedUser.username} on AnyMarket` : "AnyMarket Profile"}
-        description={viewedUser?.username ? `See ${viewedUser.username}'s prediction track record on AnyMarket: ${stats.totalBets} predictions with a ${Math.round(stats.winRate * 100)}% win rate.` : "View an AnyMarket profile and prediction track record."}
+        title={viewedUser?.username ? `${viewedUser.username} on Anymarkt` : "Anymarkt Profile"}
+        description={viewedUser?.username ? `See ${viewedUser.username}'s prediction track record on Anymarkt: ${stats.totalBets} predictions with a ${Math.round(stats.winRate * 100)}% win rate.` : "View an Anymarkt profile and prediction track record."}
         image={viewedUser?.avatar_url || undefined}
-        imageAlt={viewedUser?.username ? `${viewedUser.username}'s AnyMarket profile` : "AnyMarket profile preview"}
+        imageAlt={viewedUser?.username ? `${viewedUser.username}'s Anymarkt profile` : "Anymarkt profile preview"}
         url={`/profile/${targetUserId}`}
         type="profile"
       />

@@ -38,7 +38,7 @@ if [[ -f "$FN_ENV" ]]; then
     echo "    RESEND_API_KEY=re_..."
     echo "    Then restart: npx supabase functions serve send-beta-approval-email --env-file supabase/functions/.env"
   fi
-  grep -q 'RESEND_FROM_EMAIL' "$FN_ENV" && ok "RESEND_FROM_EMAIL present" || warn "Add RESEND_FROM_EMAIL=AnyMarket <onboarding@resend.dev>"
+  grep -q 'RESEND_FROM_EMAIL' "$FN_ENV" && ok "RESEND_FROM_EMAIL present" || warn "Add RESEND_FROM_EMAIL=Anymarkt <onboarding@resend.dev>"
   grep -q 'EXPO_PUBLIC_APP_URL=http://localhost:8081' "$FN_ENV" && ok "Functions EXPO_PUBLIC_APP_URL set" || warn "Add EXPO_PUBLIC_APP_URL=http://localhost:8081 to $FN_ENV"
 else
   fail "$FN_ENV missing — copy from supabase/functions/.env.example"

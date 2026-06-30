@@ -372,6 +372,21 @@ verify_jwt = true
 [functions.send-welcome-email]
 verify_jwt = true
 
+[functions.generate-feed-suggestions]
+verify_jwt = false
+
+[functions.process-feed-suggestion-autopilot]
+verify_jwt = false
+
+[functions.process-email-digest]
+verify_jwt = false
+
+[functions.email-unsubscribe]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

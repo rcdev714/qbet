@@ -1,8 +1,8 @@
-# AnyMarket Support
+# Anymarkt Support
 
 Need help? We're here for you.
 
-**Web app:** https://anymarket.expo.app
+**Web app:** https://anymarkt.com
 
 ---
 
@@ -10,7 +10,7 @@ Need help? We're here for you.
 
 For account support, bug reports, or general inquiries:
 
-**support@anymarket.app**
+**support@anymarkt.com**
 
 WhatsApp contact (from the app landing page and waitlist screens) is configured in the product — see in-app link.
 
@@ -20,7 +20,7 @@ WhatsApp contact (from the app landing page and waitlist screens) is configured 
 
 ### How do I get beta access?
 
-AnyMarket is currently in a **private beta** for Ecuador (`EC` launch jurisdiction).
+Anymarkt is currently in a **private beta** for Ecuador (`EC` launch jurisdiction).
 
 1. Visit **Request access** on the landing page or go to `/request-access`
 2. Submit your email and confirm Ecuador residence
@@ -32,10 +32,10 @@ If you were directly invited, use the email address that received the invite.
 
 ### I submitted a request but haven't heard back
 
-- Check spam for mail from `@camella.app`
+- Check spam for mail from `@anymarkt.com`
 - Ensure you signed up with the **same email** as your access request
 - If already signed in, the app may show the beta waitlist — it refreshes automatically when approved
-- Contact **support@anymarket.app** with the email you used
+- Contact **support@anymarkt.com** with the email you used
 
 ### What is Play Mode?
 
@@ -59,7 +59,7 @@ During the EC beta launch, **Ecuador** is the primary supported residence countr
 
 ### I need to change my country of residence
 
-Country of residence is locked after onboarding because payment accounts bind to the country supplied at signup. Email **support@anymarket.app** for manual review.
+Country of residence is locked after onboarding because payment accounts bind to the country supplied at signup. Email **support@anymarkt.com** for manual review.
 
 ---
 

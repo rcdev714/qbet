@@ -42,7 +42,7 @@ export type PolicyDocument = {
 export const POLICY_VERSION = "2026-06-22-legal-references";
 
 const LAST_UPDATED = "June 22, 2026";
-const SUPPORT_EMAIL = "support@anymarket.app";
+const SUPPORT_EMAIL = "support@anymarkt.com";
 
 export const POLICY_KIND_LABELS: Record<PolicyKind, string> = {
   terms: "Terms of Service",
@@ -67,13 +67,13 @@ const US_COPY: JurisdictionCopy = {
   jurisdiction: "US",
   frameworkName: "United States compliance framework",
   regulatoryPosition:
-    "AnyMarket operates as a social future-event prediction market platform under a United States launch posture. Availability of Live wallet features may vary by state, user status, market type, payment rail, and provider approval.",
+    "Anymarkt operates as a social future-event prediction market platform under a United States launch posture. Availability of Live wallet features may vary by state, user status, market type, payment rail, and provider approval.",
   sportsPosition:
     "Sports markets may be subject to additional review, state restrictions, public-feed limitations, or removal where the Company determines that availability would create legal, integrity, or consumer-risk concerns.",
   privacyRights:
     "Depending on where you live, you may have rights to access, correct, delete, port, or opt out of certain processing of personal information. We honor legally required requests and may retain records needed for fraud prevention, security, payments, tax, disputes, and compliance.",
   amlPosture:
-    "For United States users, AnyMarket maintains a risk-based AML, sanctions, fraud, and payments compliance program using identity verification, transaction monitoring, restricted activity reviews, provider controls, and record retention.",
+    "For United States users, Anymarkt maintains a risk-based AML, sanctions, fraud, and payments compliance program using identity verification, transaction monitoring, restricted activity reviews, provider controls, and record retention.",
   disputeForum:
     "For United States users, disputes are subject to individual binding arbitration, jury-trial waiver, and class-action waiver to the maximum extent permitted by applicable law.",
 };
@@ -82,13 +82,13 @@ const EC_COPY: JurisdictionCopy = {
   jurisdiction: "EC",
   frameworkName: "Ecuador compliance framework",
   regulatoryPosition:
-    "AnyMarket operates in Ecuador under a cautious non-sports future-event framework. The product is designed as a user-generated prediction market platform and not as a public sports betting operator during the Ecuador launch posture.",
+    "Anymarkt operates in Ecuador under a cautious non-sports future-event framework. The product is designed as a user-generated prediction market platform and not as a public sports betting operator during the Ecuador launch posture.",
   sportsPosition:
     "Sports markets are excluded from public discovery and may be blocked, frozen, voided, or held for legal review in Ecuador. Sensitive categories also require manual review before any public availability.",
   privacyRights:
-    "For Ecuador users, AnyMarket applies principles aligned with Ecuador's Organic Law on Personal Data Protection, including transparency, purpose limitation, data minimization, security, retention discipline, and the exercise of legally available access, correction, deletion, opposition, suspension, and portability rights.",
+    "For Ecuador users, Anymarkt applies principles aligned with Ecuador's Organic Law on Personal Data Protection, including transparency, purpose limitation, data minimization, security, retention discipline, and the exercise of legally available access, correction, deletion, opposition, suspension, and portability rights.",
   amlPosture:
-    "For Ecuador users, AnyMarket maintains a UAFE-ready operating posture, including identity verification, sanctions screening, transaction monitoring, ledger exports, enhanced review triggers, and evidence preservation for counsel, payment partners, and competent authorities where required.",
+    "For Ecuador users, Anymarkt maintains a UAFE-ready operating posture, including identity verification, sanctions screening, transaction monitoring, ledger exports, enhanced review triggers, and evidence preservation for counsel, payment partners, and competent authorities where required.",
   disputeForum:
     "For Ecuador users, disputes will be handled through the procedures and forums available under applicable Ecuador law, unless another lawful dispute process is presented and accepted by the user.",
 };
@@ -108,7 +108,7 @@ function relatedPoliciesSection(
   jurisdiction: ComplianceJurisdiction,
 ): PolicySection {
   return {
-    heading: "Related AnyMarket Policies",
+    heading: "Related Anymarkt Policies",
     paragraphs: [
       "The following required policies form part of the same compliance framework and should be read together:",
     ],
@@ -127,7 +127,7 @@ function frameworksSection(
     paragraphs: [
       joinNodes(
         txt(
-          "AnyMarket is designed to align with applicable legal, regulatory, and provider frameworks under the ",
+          "Anymarkt is designed to align with applicable legal, regulatory, and provider frameworks under the ",
         ),
         txt(copy.frameworkName),
         txt(
@@ -159,10 +159,10 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "Important Notice",
       paragraphs: [
         joinNodes(
-          txt("These Terms of Service govern your use of AnyMarket under the "),
+          txt("These Terms of Service govern your use of Anymarkt under the "),
           txt(copy.frameworkName),
           txt(
-            ". They form a legal agreement between you and AnyMarket, including the rules for Play Mode, Live wallet features, user-generated content, market creation, fraud prevention, identity verification, moderation, and account restrictions.",
+            ". They form a legal agreement between you and Anymarkt, including the rules for Play Mode, Live wallet features, user-generated content, market creation, fraud prevention, identity verification, moderation, and account restrictions.",
           ),
         ),
         copy.disputeForum,
@@ -174,7 +174,7 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
         {
           label: "1.1 Agreement.",
           text: joinNodes(
-            txt("By creating an account, accessing the app, viewing markets, posting content, placing a prediction, using a wallet feature, or otherwise using AnyMarket, you agree to these Terms and to the required legal policies linked in the app, including the "),
+            txt("By creating an account, accessing the app, viewing markets, posting content, placing a prediction, using a wallet feature, or otherwise using Anymarkt, you agree to these Terms and to the required legal policies linked in the app, including the "),
             policyLink("privacy", "Privacy Policy"),
             txt(", "),
             policyLink("risk_disclosure", "Risk Disclosure"),
@@ -217,7 +217,7 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
       clauses: [
         {
           label: "2.1 Social prediction platform.",
-          text: "AnyMarket lets users create, discuss, and participate in future-event markets with objective resolution criteria. Markets are intended to be social, informational, and entertainment-oriented tools, not personalized financial, legal, tax, or investment advice.",
+          text: "Anymarkt lets users create, discuss, and participate in future-event markets with objective resolution criteria. Markets are intended to be social, informational, and entertainment-oriented tools, not personalized financial, legal, tax, or investment advice.",
         },
         {
           label: "2.2 Play Mode.",
@@ -263,7 +263,7 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "4. Fraud, Harm, and Illegal Behavior Prevention",
       paragraphs: [
-        "AnyMarket operates a layered trust and safety program designed to detect, prevent, investigate, and respond to fraud, platform manipulation, illegal activity, abusive content, and user harm.",
+        "Anymarkt operates a layered trust and safety program designed to detect, prevent, investigate, and respond to fraud, platform manipulation, illegal activity, abusive content, and user harm.",
       ],
       bullets: [
         "Identity verification, age attestation, sanctions and restricted-person screening, payment-provider checks, and residence-based compliance gates.",
@@ -361,7 +361,7 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "9. Disclaimers and Limits",
       paragraphs: [
         'The app is provided "as is" and "as available" to the maximum extent permitted by law. We do not guarantee uninterrupted service, market availability, particular outcomes, profits, liquidity, data accuracy from third-party sources, or that all abuse can be prevented.',
-        "To the maximum extent permitted by law, AnyMarket is not liable for indirect, incidental, special, consequential, exemplary, or punitive damages, lost profits, lost data, market losses, provider failures, or unauthorized activity that could not reasonably be prevented.",
+        "To the maximum extent permitted by law, Anymarkt is not liable for indirect, incidental, special, consequential, exemplary, or punitive damages, lost profits, lost data, market losses, provider failures, or unauthorized activity that could not reasonably be prevented.",
       ],
     },
     relatedPoliciesSection("terms", copy.jurisdiction),
@@ -374,7 +374,7 @@ function privacySections(copy: JurisdictionCopy): PolicySection[] {
   const privacyFrameworkParagraph: PolicyRichText =
     copy.jurisdiction === "EC"
       ? joinNodes(
-          txt("For Ecuador users, AnyMarket applies principles aligned with the "),
+          txt("For Ecuador users, Anymarkt applies principles aligned with the "),
           externalLink(
             "Superintendencia de Protección de Datos Personales (LOPDP)",
             OFFICIAL_URLS.ecuadorLopdp,
@@ -396,7 +396,7 @@ function privacySections(copy: JurisdictionCopy): PolicySection[] {
       heading: "1. Overview",
       paragraphs: [
         joinNodes(
-          txt("This Privacy Policy explains how AnyMarket collects, uses, discloses, retains, and protects information under the "),
+          txt("This Privacy Policy explains how Anymarkt collects, uses, discloses, retains, and protects information under the "),
           txt(copy.frameworkName),
           txt(". It should be read together with our "),
           policyLink("terms", "Terms of Service"),
@@ -487,7 +487,7 @@ function privacySections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "9. Children and Age Restrictions",
       paragraphs: [
-        "AnyMarket is not intended for children under 17. We do not knowingly solicit personal information from children under 13. If you believe a child has provided information to us, contact support so we can review and respond.",
+        "Anymarkt is not intended for children under 17. We do not knowingly solicit personal information from children under 13. If you believe a child has provided information to us, contact support so we can review and respond.",
       ],
     },
     relatedPoliciesSection("privacy", copy.jurisdiction),
@@ -502,7 +502,7 @@ function riskSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "1. Read Before Using Live Wallet Features",
       paragraphs: [
         joinNodes(
-          txt("Live wallet participation involves real funds. You can lose the funds you use in markets. Do not participate with funds you cannot afford to lose, and do not treat AnyMarket as a savings, investment, lending, insurance, gambling, sportsbook, or financial-advice product. Read this disclosure together with our "),
+          txt("Live wallet participation involves real funds. You can lose the funds you use in markets. Do not participate with funds you cannot afford to lose, and do not treat Anymarkt as a savings, investment, lending, insurance, gambling, sportsbook, or financial-advice product. Read this disclosure together with our "),
           policyLink("terms", "Terms of Service"),
           txt(" and "),
           policyLink("market_rules", "Market Creation and Resolution Rules"),
@@ -534,7 +534,7 @@ function riskSections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "4. No Advice",
       paragraphs: [
-        "AnyMarket does not provide investment, legal, tax, accounting, gambling, financial, or other professional advice. Content on the app, including markets, odds, chats, rankings, comments, and resolution sources, is not a recommendation.",
+        "Anymarkt does not provide investment, legal, tax, accounting, gambling, financial, or other professional advice. Content on the app, including markets, odds, chats, rankings, comments, and resolution sources, is not a recommendation.",
         "You are responsible for your own decisions and for understanding laws, taxes, and restrictions that apply to you.",
       ],
     },
@@ -542,7 +542,7 @@ function riskSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "5. Fraud, Manipulation, and Integrity Risk",
       paragraphs: [
         joinNodes(
-          txt("AnyMarket operates fraud, harm, and illegal behavior prevention systems described in our "),
+          txt("Anymarkt operates fraud, harm, and illegal behavior prevention systems described in our "),
           policyLink("terms", "Terms of Service"),
           txt(" and "),
           policyLink("aml_kyc", "AML and KYC Policy"),
@@ -617,7 +617,7 @@ function marketRuleSections(copy: JurisdictionCopy): PolicySection[] {
         },
         {
           label: "3.2 Resolution source.",
-          text: "Creators should choose sources that are public, stable, independent, and specific. Where a source is ambiguous or unavailable, AnyMarket may use a reasonable substitute, manual review, or voiding process.",
+          text: "Creators should choose sources that are public, stable, independent, and specific. Where a source is ambiguous or unavailable, Anymarkt may use a reasonable substitute, manual review, or voiding process.",
         },
         {
           label: "3.3 Category accuracy.",
@@ -643,11 +643,11 @@ function marketRuleSections(copy: JurisdictionCopy): PolicySection[] {
         },
         {
           label: "5.2 Disputes.",
-          text: "Users may raise disputes where supported. AnyMarket may review evidence, source materials, market language, trading patterns, and policy requirements before confirming, correcting, delaying, or voiding settlement.",
+          text: "Users may raise disputes where supported. Anymarkt may review evidence, source materials, market language, trading patterns, and policy requirements before confirming, correcting, delaying, or voiding settlement.",
         },
         {
           label: "5.3 Corrections.",
-          text: "AnyMarket may correct obvious mistakes, technical errors, duplicate settlements, manipulated outcomes, source errors, or settlements inconsistent with the policy set.",
+          text: "Anymarkt may correct obvious mistakes, technical errors, duplicate settlements, manipulated outcomes, source errors, or settlements inconsistent with the policy set.",
         },
       ],
     },
@@ -657,7 +657,7 @@ function marketRuleSections(copy: JurisdictionCopy): PolicySection[] {
         "No collusion, wash activity, coordinated manipulation, false rumors, spoofing, bot abuse, multi-accounting, self-dealing, insider misuse, or artificial activity.",
         "No threatening, bribing, harassing, doxxing, coercing, or encouraging anyone to affect a real-world outcome.",
         "No attempts to overload, scrape, reverse engineer, bypass, or interfere with market, wallet, or moderation systems.",
-        "AnyMarket may use detection systems, risk limits, review queues, transaction holds, market freezes, settlement delays, and evidence preservation to protect integrity.",
+        "Anymarkt may use detection systems, risk limits, review queues, transaction holds, market freezes, settlement delays, and evidence preservation to protect integrity.",
       ],
     },
     {
@@ -682,12 +682,12 @@ function amlSections(copy: JurisdictionCopy): PolicySection[] {
   const amlFrameworkParagraph: PolicyRichText =
     copy.jurisdiction === "EC"
       ? joinNodes(
-          txt("For Ecuador users, AnyMarket maintains a "),
+          txt("For Ecuador users, Anymarkt maintains a "),
           externalLink("UAFE", OFFICIAL_URLS.ecuadorUafe),
           txt("-ready operating posture, including identity verification, sanctions screening, transaction monitoring, ledger exports, enhanced review triggers, and evidence preservation for counsel, payment partners, and competent authorities where required."),
         )
       : joinNodes(
-          txt("For United States users, AnyMarket maintains a risk-based program aligned with the "),
+          txt("For United States users, Anymarkt maintains a risk-based program aligned with the "),
           externalLink("FinCEN Bank Secrecy Act", OFFICIAL_URLS.fincenBsa),
           txt(" framework and "),
           externalLink("OFAC sanctions programs", OFFICIAL_URLS.ofacSanctions),
@@ -699,7 +699,7 @@ function amlSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "1. Policy Purpose",
       paragraphs: [
         joinNodes(
-          txt("This AML and KYC Policy describes AnyMarket's risk-based program for identity verification, sanctions screening, transaction monitoring, fraud prevention, recordkeeping, and escalation under the "),
+          txt("This AML and KYC Policy describes Anymarkt's risk-based program for identity verification, sanctions screening, transaction monitoring, fraud prevention, recordkeeping, and escalation under the "),
           txt(copy.frameworkName),
           txt(". It should be read with our "),
           policyLink("privacy", "Privacy Policy"),
@@ -728,7 +728,7 @@ function amlSections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "3. Sanctions, Restricted Persons, and Eligibility",
       paragraphs: [
-        "AnyMarket may screen users, counterparties, payment instruments, and activity against sanctions, restricted-person, fraud, chargeback, and provider-risk signals. We may block, freeze, reject, or report activity involving sanctioned, restricted, ineligible, or high-risk persons.",
+        "Anymarkt may screen users, counterparties, payment instruments, and activity against sanctions, restricted-person, fraud, chargeback, and provider-risk signals. We may block, freeze, reject, or report activity involving sanctioned, restricted, ineligible, or high-risk persons.",
       ],
     },
     {
@@ -750,7 +750,7 @@ function amlSections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "6. Reporting, Escalation, and Cooperation",
       paragraphs: [
-        "Where required or appropriate, AnyMarket may preserve evidence, prepare internal reports, cooperate with payment providers, respond to lawful requests, and escalate suspicious activity to counsel, auditors, regulators, law enforcement, or competent authorities.",
+        "Where required or appropriate, Anymarkt may preserve evidence, prepare internal reports, cooperate with payment providers, respond to lawful requests, and escalate suspicious activity to counsel, auditors, regulators, law enforcement, or competent authorities.",
       ],
     },
     {
@@ -780,7 +780,7 @@ function prohibitedSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "1. Purpose",
       paragraphs: [
         joinNodes(
-          txt("This policy identifies markets, content, conduct, and activity that are prohibited or restricted on AnyMarket. It should be read with our "),
+          txt("This policy identifies markets, content, conduct, and activity that are prohibited or restricted on Anymarkt. It should be read with our "),
           policyLink("market_rules", "Market Creation and Resolution Rules"),
           txt(", "),
           policyLink("terms", "Terms of Service"),
@@ -807,7 +807,7 @@ function prohibitedSections(copy: JurisdictionCopy): PolicySection[] {
         "Individual health, personal safety, death, violence, hospitalization, arrest, divorce, employment termination, immigration enforcement, or private legal outcomes involving identifiable people.",
         "Active crimes, active court cases, active investigations, national security events, war operations, terrorism, kidnappings, or public safety incidents without explicit legal and safety approval.",
         "Events where resolution would require private data, non-public information, surveillance, doxxing, harassment, or unlawful access.",
-        "Markets designed to manipulate public opinion, elections, prices, payment systems, app rankings, promotions, or the AnyMarket platform.",
+        "Markets designed to manipulate public opinion, elections, prices, payment systems, app rankings, promotions, or the Anymarkt platform.",
       ],
     },
     {
@@ -825,13 +825,13 @@ function prohibitedSections(copy: JurisdictionCopy): PolicySection[] {
         "Manipulating markets, coordinating abusive trades, using bots without approval, multi-accounting, wash activity, self-dealing, or creating false signals.",
         "Harassing, threatening, bribing, coercing, impersonating, or doxxing users, creators, resolvers, moderators, public figures, or third parties.",
         "Submitting false reports, abusing reporting tools, interfering with investigations, or retaliating against reporters.",
-        "Using AnyMarket to solicit illegal acts, evade law enforcement, bypass provider rules, or test stolen payment methods or compromised accounts.",
+        "Using Anymarkt to solicit illegal acts, evade law enforcement, bypass provider rules, or test stolen payment methods or compromised accounts.",
       ],
     },
     {
       heading: "6. Detection and Enforcement",
       paragraphs: [
-        "AnyMarket uses automated signals, manual moderation, user reports, administrator review, market category rules, payment and identity provider controls, and compliance events to detect and respond to prohibited activity.",
+        "Anymarkt uses automated signals, manual moderation, user reports, administrator review, market category rules, payment and identity provider controls, and compliance events to detect and respond to prohibited activity.",
         "Enforcement may include market rejection, public-feed exclusion, content removal, report escalation, account warning, account freeze, Live wallet restriction, withdrawal hold, market voiding, settlement correction, termination, evidence preservation, and referral to providers or authorities where appropriate.",
       ],
     },
@@ -852,7 +852,7 @@ const US_TERMS = createPolicyDocument({
   jurisdiction: "US",
   title: "Terms of Service",
   route: "/terms",
-  seoDescription: "AnyMarket Terms of Service governing use of the app in the United States framework.",
+  seoDescription: "Anymarkt Terms of Service governing use of the app in the United States framework.",
   sections: termsSections(US_COPY),
 });
 
@@ -861,7 +861,7 @@ const EC_TERMS = createPolicyDocument({
   jurisdiction: "EC",
   title: "Terms of Service",
   route: "/terms",
-  seoDescription: "AnyMarket Terms of Service governing use of the app under the Ecuador compliance framework.",
+  seoDescription: "Anymarkt Terms of Service governing use of the app under the Ecuador compliance framework.",
   sections: termsSections(EC_COPY),
 });
 
@@ -870,7 +870,7 @@ const US_PRIVACY = createPolicyDocument({
   jurisdiction: "US",
   title: "Privacy Policy",
   route: "/privacy",
-  seoDescription: "AnyMarket Privacy Policy for the United States framework.",
+  seoDescription: "Anymarkt Privacy Policy for the United States framework.",
   sections: privacySections(US_COPY),
 });
 
@@ -879,7 +879,7 @@ const EC_PRIVACY = createPolicyDocument({
   jurisdiction: "EC",
   title: "Privacy Policy",
   route: "/privacy",
-  seoDescription: "AnyMarket Privacy Policy for users under the Ecuador compliance framework.",
+  seoDescription: "Anymarkt Privacy Policy for users under the Ecuador compliance framework.",
   sections: privacySections(EC_COPY),
 });
 

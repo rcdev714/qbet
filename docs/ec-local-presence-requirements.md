@@ -1,6 +1,6 @@
 # Ecuador Local Presence & Entity Requirements
 
-**Status:** Counsel checklist derived from public regulatory sources and AnyMarket launch posture — **not legal advice.**
+**Status:** Counsel checklist derived from public regulatory sources and Anymarkt launch posture — **not legal advice.**
 
 **Purpose:** Determine whether a foreign operator must establish Ecuadorian legal presence to serve EC-resident users with Live wallet features.
 
@@ -17,7 +17,7 @@ The June 2026 **Reglamento General** for *pronósticos deportivos* emphasizes, f
 - domain / platform control;
 - technical certification.
 
-Even if counsel concludes AnyMarket is **outside LOPD**, Ecuador may still require local presence for:
+Even if counsel concludes Anymarkt is **outside LOPD**, Ecuador may still require local presence for:
 
 - tax registration and withholding;
 - UAFE reporting entity enrollment;
@@ -40,7 +40,7 @@ Even if counsel concludes AnyMarket is **outside LOPD**, Ecuador may still requi
 
 ## 3. Entity options (typical — counsel to advise)
 
-| Structure | Pros | Cons | AnyMarket notes |
+| Structure | Pros | Cons | Anymarkt notes |
 |-----------|------|------|-----------------|
 | **Ecuadorian subsidiary** (S.A. / Ltda.) | Clear local contracting, tax, employment | Setup cost, ongoing compliance | Preferred if counsel requires local operator of record |
 | **Branch of foreign company** | Single group entity | Registration burden, liability exposure | Verify if permitted for digital services |

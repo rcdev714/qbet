@@ -2,7 +2,7 @@
 
 End-to-end guide for the beta approval notification system: database schema, Resend email, Supabase edge function, welcome link, and admin approve UX.
 
-**Production status (June 2026):** deployed to Supabase `jweyqlcvvmdyyqgqcsjd`, web at https://anymarket.expo.app, sender domain `camella.app` verified in Resend.
+**Production status (June 2026):** deployed to Supabase `jweyqlcvvmdyyqgqcsjd`, web at https://anymarkt.com, sender domain `anymarkt.com` verified in Resend.
 
 **Related:** [docs/README.md](./README.md) · [local-dev-verification.md](./local-dev-verification.md) · [deploy-web-production.md](./deploy-web-production.md) · [ec-beta-e2e-checklist.md](./ec-beta-e2e-checklist.md)
 
@@ -13,7 +13,7 @@ End-to-end guide for the beta approval notification system: database schema, Res
 ```mermaid
 sequenceDiagram
   participant User
-  participant Web as anymarket.expo.app
+  participant Web as anymarkt.com
   participant DB as Supabase Postgres
   participant Admin
   participant Fn as send-beta-approval-email
@@ -56,8 +56,8 @@ sequenceDiagram
 |--------|--------------|------------|
 | Expo app (`EXPO_PUBLIC_*`) | `.env` | EAS **production** environment |
 | Resend API key | `supabase/functions/.env` | `npx supabase secrets set` |
-| Email “from” address | `RESEND_FROM_EMAIL` in functions env | Verified domain in Resend (`camella.app`) |
-| Welcome link base URL | `EXPO_PUBLIC_APP_URL` in app `.env` **and** functions env | `https://anymarket.expo.app` in Supabase secrets |
+| Email “from” address | `RESEND_FROM_EMAIL` in functions env | Verified domain in Resend (`anymarkt.com`) |
+| Welcome link base URL | `EXPO_PUBLIC_APP_URL` in app `.env` **and** functions env | `https://anymarkt.com` in Supabase secrets |
 | DB schema | `npx supabase migration up --local` | `npx supabase db push` |
 | Edge function | `supabase functions serve` (optional) | `supabase functions deploy send-beta-approval-email` |
 
@@ -81,12 +81,12 @@ Supabase injects automatically into deployed functions:
 |----------|:----------:|:--------------:|:-------------------------:|:----------------:|-------|
 | `EXPO_PUBLIC_SUPABASE_URL` | ✅ | ✅ | auto | auto | Local: `http://127.0.0.1:54321` |
 | `EXPO_PUBLIC_SUPABASE_KEY` | ✅ | ✅ | auto | auto | Anon / publishable key |
-| `EXPO_PUBLIC_APP_URL` | ✅ | ✅ | ✅ | ✅ | **Must match** URL users open; prod: `https://anymarket.expo.app` |
+| `EXPO_PUBLIC_APP_URL` | ✅ | ✅ | ✅ | ✅ | **Must match** URL users open; prod: `https://anymarkt.com` |
 | `EXPO_PUBLIC_BETA_REQUIRED` | ✅ | ✅ | ❌ | ❌ | `true` for EC private beta |
 | `EXPO_PUBLIC_LAUNCH_JURISDICTION` | ✅ | ✅ | ❌ | ❌ | `EC` |
 | `EXPO_PUBLIC_ADMIN_EMAIL` | ✅ | ✅ | ❌ | optional | Comma-separated admin emails |
 | `RESEND_API_KEY` | ❌ never | ❌ never | ✅ | ✅ | `re_...` |
-| `RESEND_FROM_EMAIL` | ❌ never | ❌ never | ✅ | ✅ | Prod: `AnyMarket <onboarding@camella.app>` |
+| `RESEND_FROM_EMAIL` | ❌ never | ❌ never | ✅ | ✅ | Prod: `Anymarkt <onboarding@anymarkt.com>` |
 | `SUPABASE_SERVICE_ROLE_KEY` | ❌ | ✅ server routes | auto | auto | Never in client bundle |
 
 ### Production values (current)
@@ -94,11 +94,11 @@ Supabase injects automatically into deployed functions:
 ```bash
 # Supabase secrets (project jweyqlcvvmdyyqgqcsjd)
 npx supabase secrets set RESEND_API_KEY=re_...
-npx supabase secrets set RESEND_FROM_EMAIL="AnyMarket <onboarding@camella.app>"
-npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+npx supabase secrets set RESEND_FROM_EMAIL="Anymarkt <onboarding@anymarkt.com>"
+npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarkt.com
 
 # EAS production (expo.dev → Environment variables)
-EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+EXPO_PUBLIC_APP_URL=https://anymarkt.com
 EXPO_PUBLIC_SUPABASE_URL=https://jweyqlcvvmdyyqgqcsjd.supabase.co
 ```
 
@@ -114,18 +114,18 @@ EXPO_PUBLIC_SUPABASE_URL=https://jweyqlcvvmdyyqgqcsjd.supabase.co
    - **To:** `delivered@resend.dev` (and account email on some plans)
 3. Store key in `supabase/functions/.env` locally — never commit.
 
-### Production (camella.app)
+### Production (anymarkt.com)
 
-1. Resend → **Domains** → add `camella.app`.
+1. Resend → **Domains** → add `anymarkt.com`.
 2. Add DNS records (SPF, DKIM) until status is **Verified**.
 3. Create production API key.
 4. Set:
 
    ```bash
-   RESEND_FROM_EMAIL=AnyMarket <onboarding@camella.app>
+   RESEND_FROM_EMAIL=Anymarkt <onboarding@anymarkt.com>
    ```
 
-5. Welcome links in email use `EXPO_PUBLIC_APP_URL` from Supabase secrets (`https://anymarket.expo.app`), **not** the email domain.
+5. Welcome links in email use `EXPO_PUBLIC_APP_URL` from Supabase secrets (`https://anymarkt.com`), **not** the email domain.
 
 ---
 
@@ -175,14 +175,14 @@ Gitignored. Copy from `supabase/functions/.env.example`:
 
 ```bash
 RESEND_API_KEY=re_your_test_key
-RESEND_FROM_EMAIL=AnyMarket <onboarding@resend.dev>
+RESEND_FROM_EMAIL=Anymarkt <onboarding@resend.dev>
 EXPO_PUBLIC_APP_URL=http://localhost:8081
 ```
 
 | Scenario | `EXPO_PUBLIC_APP_URL` in functions env |
 |----------|------------------------------------------|
 | Full local loop (email → localhost welcome) | `http://localhost:8081` |
-| Send real email but open prod welcome page | `https://anymarket.expo.app` |
+| Send real email but open prod welcome page | `https://anymarkt.com` |
 
 Without Resend configured, copy `approval_token` from Studio after approve and open welcome URL manually.
 
@@ -266,8 +266,8 @@ WHERE table_name = 'beta_access_requests'
 
 ```bash
 npx supabase secrets set RESEND_API_KEY=re_your_production_key
-npx supabase secrets set RESEND_FROM_EMAIL="AnyMarket <onboarding@camella.app>"
-npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+npx supabase secrets set RESEND_FROM_EMAIL="Anymarkt <onboarding@anymarkt.com>"
+npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarkt.com
 npx supabase secrets list
 ```
 
@@ -286,7 +286,7 @@ expo.dev → project → **Environment variables** → **production**:
 
 | Variable | Value |
 |----------|-------|
-| `EXPO_PUBLIC_APP_URL` | `https://anymarket.expo.app` |
+| `EXPO_PUBLIC_APP_URL` | `https://anymarkt.com` |
 | `EXPO_PUBLIC_SUPABASE_URL` | `https://jweyqlcvvmdyyqgqcsjd.supabase.co` |
 | `EXPO_PUBLIC_SUPABASE_KEY` | anon / publishable key |
 | `EXPO_PUBLIC_ADMIN_EMAIL` | admin email(s) |
@@ -306,9 +306,9 @@ Or push to `master` for automatic EAS workflow — see [deploy-web-production.md
 
 ### 3.7 Production smoke test
 
-1. https://anymarket.expo.app/request-access — real inbox you control
-2. https://anymarket.expo.app/admin/users — approve
-3. Email from `@camella.app`; link `https://anymarket.expo.app/beta/welcome?token=...`
+1. https://anymarkt.com/request-access — real inbox you control
+2. https://anymarkt.com/admin/users — approve
+3. Email from `@anymarkt.com`; link `https://anymarkt.com/beta/welcome?token=...`
 4. Sign up / sign in with **same email**
 5. Admin **Approved** tab shows **Approval email sent**
 6. Idempotency: **Resend approval email** uses new idempotency key (`forceResend`)
@@ -320,7 +320,7 @@ Or push to `master` for automatic EAS workflow — see [deploy-web-production.md
 | 401 / 403 from function | Admin JWT; `users.is_admin` or `EXPO_PUBLIC_ADMIN_EMAIL` |
 | Email link 404 | Redeploy web; confirm `/beta/welcome` in export |
 | Email link localhost | Fix `EXPO_PUBLIC_APP_URL` secret; redeploy function |
-| Resend domain error | Verify `camella.app`; update `RESEND_FROM_EMAIL` |
+| Resend domain error | Verify `anymarkt.com`; update `RESEND_FROM_EMAIL` |
 | `mark_beta_approval_email_sent` error | Re-run `db push`; migration `20260626120000` |
 
 ---
@@ -363,8 +363,8 @@ npm run test:beta-approval-flow
 npx supabase link --project-ref jweyqlcvvmdyyqgqcsjd
 npx supabase db push
 npx supabase secrets set RESEND_API_KEY=re_...
-npx supabase secrets set RESEND_FROM_EMAIL="AnyMarket <onboarding@camella.app>"
-npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+npx supabase secrets set RESEND_FROM_EMAIL="Anymarkt <onboarding@anymarkt.com>"
+npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarkt.com
 npx supabase functions deploy send-beta-approval-email
 npm run predeploy:prod
 npm run deploy:web:prod

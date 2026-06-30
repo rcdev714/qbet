@@ -385,11 +385,11 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
             Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
           ]}}
           accessibilityRole="button"
-          accessibilityLabel="AnyMarket home">
+          accessibilityLabel="Anymarkt home">
           <BrandMark compact={sidebarCollapsed} />
           {!sidebarCollapsed ? (
             <Text style={[styles.sidebarBrand, { color: colors.text }]} numberOfLines={1}>
-              AnyMarket
+              Anymarkt
             </Text>
           ) : null}
         </Pressable>

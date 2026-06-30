@@ -1,8 +1,8 @@
 # Web production deploy (Expo / EAS Hosting)
 
-Production web: **https://anymarket.expo.app**
+Production web: **https://anymarkt.com**
 
-This project uses Expo Router **server web export** plus **EAS Hosting** for production releases. Server output is required so `https://anymarket.expo.app/share/...` can render per-link Open Graph HTML for social crawlers.
+This project uses Expo Router **server web export** plus **EAS Hosting** for production releases. Server output is required so `https://anymarkt.com/share/...` can render per-link Open Graph HTML for social crawlers.
 
 **Related:** [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) · [local-dev-verification.md](./local-dev-verification.md) · [docs/README.md](./README.md)
 
@@ -22,7 +22,7 @@ flowchart LR
     deploy[eas deploy --prod]
   end
   subgraph prod [Production]
-    site[anymarket.expo.app]
+    site[anymarkt.com]
     supabase[Supabase jweyqlcvvmdyyqgqcsjd]
   end
   code --> workflow
@@ -48,7 +48,7 @@ flowchart LR
 
    | Variable | Value |
    |----------|-------|
-   | `EXPO_PUBLIC_APP_URL` | `https://anymarket.expo.app` |
+   | `EXPO_PUBLIC_APP_URL` | `https://anymarkt.com` |
    | `EXPO_PUBLIC_SUPABASE_URL` | `https://jweyqlcvvmdyyqgqcsjd.supabase.co` |
    | `EXPO_PUBLIC_SUPABASE_KEY` | Project anon / publishable key |
    | `EXPO_PUBLIC_ADMIN_EMAIL` | Admin email(s), comma-separated |
@@ -158,19 +158,19 @@ Beta approval email secrets (Supabase, not EAS):
 
 ```bash
 npx supabase secrets set RESEND_API_KEY=re_...
-npx supabase secrets set RESEND_FROM_EMAIL="AnyMarket <onboarding@camella.app>"
-npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarket.expo.app
+npx supabase secrets set RESEND_FROM_EMAIL="Anymarkt <onboarding@anymarkt.com>"
+npx supabase secrets set EXPO_PUBLIC_APP_URL=https://anymarkt.com
 ```
 
 ---
 
 ## Post-deploy smoke test
 
-1. https://anymarket.expo.app/request-access — submit test request
-2. https://anymarket.expo.app/admin/users — approve (admin session)
-3. Email arrives from `@camella.app`; link is `https://anymarket.expo.app/beta/welcome?token=...`
+1. https://anymarkt.com/request-access — submit test request
+2. https://anymarkt.com/admin/users — approve (admin session)
+3. Email arrives from `@anymarkt.com`; link is `https://anymarkt.com/beta/welcome?token=...`
 4. Sign up with same email → residence onboarding
-5. Share route OG: `https://anymarket.expo.app/share/market/<id>`
+5. Share route OG: `https://anymarkt.com/share/market/<id>`
 
 Key static routes exported (verify in build log): `/beta/welcome`, `/request-access`, `/admin/users`, `/onboarding/beta-waitlist`.
 

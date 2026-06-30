@@ -23,6 +23,7 @@
   "loadReportsFailed": "Could not load content reports.",
   "resolveReportFailed": "Could not update this report.",
   "backToPlatform": "Back to platform",
+  "feedManager": "Feed Manager",
   "emailSent": "Approval email sent {{date}}",
   "emailNotSent": "Approval email not sent yet",
   "resendApprovalEmail": "Resend approval email",

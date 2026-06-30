@@ -13,5 +13,14 @@
   "daysHoursLeft": "{{days}}d {{hours}}h left",
   "chatNoMessages": "No messages yet. Be the first to comment!",
   "chatPlaceholder": "Say something...",
-  "chatReport": "Report"
+  "chatReport": "Report",
+  "adminEmptyTitle": "No markets on the feed",
+  "adminEmptyDescription": "Create or promote markets to populate the board.",
+  "openFeedManager": "Open Feed Manager",
+  "createMarket": "Create market",
+  "feedManager": "Feed Manager",
+  "emptyUserDescription": "When one appears, open it to practice before using live funds.",
+  "emptyFilteredDescription": "Try another category or refresh the board.",
+  "loadErrorTitle": "Markets could not load",
+  "tryAgain": "Try again"
 }

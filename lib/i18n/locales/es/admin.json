@@ -23,6 +23,7 @@
   "loadReportsFailed": "No se pudieron cargar los reportes.",
   "resolveReportFailed": "No se pudo actualizar este reporte.",
   "backToPlatform": "Volver a la plataforma",
+  "feedManager": "Feed Manager",
   "emailSent": "Correo de aprobación enviado {{date}}",
   "emailNotSent": "Correo de aprobación aún no enviado",
   "resendApprovalEmail": "Reenviar correo de aprobación",

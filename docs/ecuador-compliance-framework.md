@@ -1,10 +1,10 @@
-# AnyMarket Ecuador Compliance Framework
+# Anymarkt Ecuador Compliance Framework
 
 This document is an engineering and policy framework for counsel/regulator review. It is not legal advice.
 
 ## Platform Thesis
 
-AnyMarket is designed as a rules-based future-event market protocol:
+Anymarkt is designed as a rules-based future-event market protocol:
 
 - users create markets around future events;
 - each market declares outcomes, close time, source of truth, and resolver model;
@@ -37,7 +37,7 @@ Stripe can provide hosted fiat payment, Identity, and payout onboarding flows.
 
 MoonPay can provide hosted crypto on/off-ramp flows and provider-side KYC/transaction status evidence.
 
-AnyMarket remains responsible for:
+Anymarkt remains responsible for:
 
 - platform policy acceptance;
 - market eligibility and prohibited-content controls;

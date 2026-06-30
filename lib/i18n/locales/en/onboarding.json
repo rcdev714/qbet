@@ -22,9 +22,9 @@
   "agreementRequiredBody": "Accept all required policies to continue.",
   "savePoliciesError": "Could not save your policy acceptance.",
   "betaWaitlistTitle": "Private beta",
-  "betaWaitlistBody": "AnyMarket is in a private beta. Your account ({{email}}) is not on the invite list yet.",
+  "betaWaitlistBody": "Anymarkt is in a private beta. Your account ({{email}}) is not on the invite list yet.",
   "betaWaitlistNeedAccess": "Need access?",
   "betaWaitlistSignOut": "Sign out",
   "betaWaitlistSeoTitle": "Private Beta",
-  "betaWaitlistSeoDescription": "AnyMarket private beta access."
+  "betaWaitlistSeoDescription": "Anymarkt private beta access."
 }
