@@ -1,6 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
-import { Platform, StyleSheet, useWindowDimensions, View, ViewProps } from 'react-native';
+import { Platform, StyleSheet, View, ViewProps } from 'react-native';
 
 interface WebContainerProps extends ViewProps {
   maxWidth?: number | 'fluid';
@@ -16,9 +16,7 @@ export const WebContainer: React.FC<WebContainerProps> = ({
   ...props 
 }) => {
   const { theme } = useTheme();
-  const { width, height } = useWindowDimensions();
-  const isMobileWeb = Platform.OS === 'web' && width < 768;
-  const contentMaxWidth = isMobileWeb || maxWidth === 'fluid' ? undefined : maxWidth;
+  const contentMaxWidth = maxWidth === 'fluid' ? undefined : maxWidth;
   const backgroundColor = shellBackgroundColor ?? theme.background;
 
   if (Platform.OS !== 'web') {
@@ -31,7 +29,6 @@ export const WebContainer: React.FC<WebContainerProps> = ({
         styles.container,
         {
           backgroundColor,
-          minHeight: height,
         },
         ({ minHeight: '100dvh' } as any),
       ]}
@@ -42,11 +39,9 @@ export const WebContainer: React.FC<WebContainerProps> = ({
           {
             maxWidth: contentMaxWidth,
             backgroundColor,
-            minHeight: height,
             width: '100%',
           },
           ({ minHeight: '100dvh' } as any),
-          isMobileWeb && styles.mobileContent,
           style,
         ]}
         {...props}
@@ -74,10 +69,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 5,
-  },
-  mobileContent: {
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
   },
 });

@@ -145,10 +145,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const colorScheme = useColorScheme();
-  const [mode, setModeState] = React.useState<ThemeMode>(() => readStoredThemeMode());
+  const [mode, setModeState] = React.useState<ThemeMode>("dark");
 
   useEffect(() => {
     let mounted = true;
+
+    setModeState(readStoredThemeMode());
 
     AsyncStorage.getItem(THEME_MODE_KEY)
       .then((storedMode) => {

@@ -189,6 +189,7 @@ function RootLayoutNav() {
   const [hasPolicyAcceptances, setHasPolicyAcceptances] = useState(true);
   const [hasResidence, setHasResidence] = useState(true);
   const [hasBetaAccess, setHasBetaAccess] = useState(true);
+  const [clientMounted, setClientMounted] = useState(Platform.OS !== 'web');
   const hasPageLevelSeo =
     isLanding ||
     currentSegment === 'market' ||
@@ -204,6 +205,10 @@ function RootLayoutNav() {
     hasPolicyAcceptances: true,
     hasBetaAccess: true,
   });
+
+  useEffect(() => {
+    setClientMounted(true);
+  }, []);
 
   const refreshOnboardingStatus = useCallback(async () => {
     if (!hasSession || !user?.id) return;
@@ -578,7 +583,7 @@ function RootLayoutNav() {
   }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence, hasBetaAccess, user?.id, user]);
 
   const showBootstrapLoader =
-    loading || (hasSession && (!policyCheckDone || !user?.id));
+    clientMounted && (loading || (hasSession && (!policyCheckDone || !user?.id)));
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
@@ -666,6 +671,18 @@ function WebShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ClientOnlyWebApp({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(Platform.OS !== 'web');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return <>{children}</>;
+}
+
 export default Sentry.wrap(function RootLayout() {
   return (
     <ThemeProvider>
@@ -681,21 +698,23 @@ export default Sentry.wrap(function RootLayout() {
           />
         )}
       >
-        <WebShell>
-          <AuthProvider>
-            <LocaleProvider>
-              <PolicyFrameworkProvider>
-              <WalletProvider>
-                <NavigationLayoutProvider>
-                  <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
-                    <RootLayoutNav />
-                  </StripeProvider>
-                </NavigationLayoutProvider>
-              </WalletProvider>
-              </PolicyFrameworkProvider>
-            </LocaleProvider>
-          </AuthProvider>
-        </WebShell>
+        <ClientOnlyWebApp>
+          <WebShell>
+            <AuthProvider>
+              <LocaleProvider>
+                <PolicyFrameworkProvider>
+                <WalletProvider>
+                  <NavigationLayoutProvider>
+                    <StripeProvider publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''}>
+                      <RootLayoutNav />
+                    </StripeProvider>
+                  </NavigationLayoutProvider>
+                </WalletProvider>
+                </PolicyFrameworkProvider>
+              </LocaleProvider>
+            </AuthProvider>
+          </WebShell>
+        </ClientOnlyWebApp>
       </Sentry.ErrorBoundary>
     </ThemeProvider>
   );
