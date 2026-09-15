@@ -1,4 +1,3 @@
-import { Marketing } from '@/constants/theme';
 import React from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {

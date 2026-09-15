@@ -331,7 +331,6 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
     return count.toString();
   };
 
-  const onDarkSurface = theme.surface;
   const onDarkText = theme.onPrimary;
   const onDarkMuted = theme.textSecondary;
   const yesAccent = isPlayMode ? theme.primary : theme.success;

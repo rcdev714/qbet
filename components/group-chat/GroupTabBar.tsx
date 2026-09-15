@@ -1,11 +1,10 @@
 import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { resolveGutter } from "@/constants/layout";
 import { useIsDesktopWebNav } from "@/contexts/NavigationLayoutContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useWindowDimensions } from "react-native";
 
 export type GroupTab = "chat" | "active" | "history" | "rankings";
 

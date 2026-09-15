@@ -11,7 +11,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { groupService, ProfileGroup } from "@/services/group.service";
 import { socialService, UserProfile } from "@/services/social.service";
-import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,7 +26,6 @@ type DiscoverSegment = "people" | "groups";
 
 export default function DiscoverScreen() {
   const { theme } = useTheme();
-  const router = useRouter();
   const { openGroup } = useGroupNavigation();
   const { user } = useAuthContext();
   const { t } = useTranslation("social");
