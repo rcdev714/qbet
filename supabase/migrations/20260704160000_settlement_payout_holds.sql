@@ -642,7 +642,9 @@ exception
 end;
 $$;
 
-do $$
+-- Use tagged dollar-quotes so the cron command body can keep $$ without
+-- terminating this DO block early (nested $$ is a syntax error).
+do $schedule_settlement_payout_cron$
 begin
   perform cron.schedule(
     'release-due-settlement-payouts',
@@ -655,7 +657,7 @@ exception
   when undefined_object then
     raise notice 'pg_cron not available; schedule release-due-settlement-payouts manually';
 end;
-$$;
+$schedule_settlement_payout_cron$;
 
 grant execute on function public.release_market_payouts(uuid, boolean) to authenticated;
 grant execute on function public.release_due_settlement_payouts() to authenticated;

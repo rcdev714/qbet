@@ -198,6 +198,7 @@ Key static routes exported (verify in build log): `/beta/welcome`, `/request-acc
 | `/beta/welcome` 404 | Redeploy web; confirm route in export log |
 | Admin approve works but no email | Supabase function + Resend secrets; not an EAS issue |
 | Share OG broken | Confirm server export (not static-only); check `+api.ts` routes in `dist/` |
+| Supabase Preview / prod migration fails (`42P13` on `get_groups_administered`, or cron `$$` nest in `20260704160000`) | Migrations through `20260704130000` are on prod; `20260704140000`+ rolled back. After merging the migration fix, retry with `npx supabase db push` (or Dashboard → Database → Migrations retry). No repair needed if the failed versions were never recorded. |
 
 ---
 
