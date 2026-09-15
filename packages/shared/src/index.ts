@@ -7,4 +7,9 @@ export * from "./auth";
 export * from "./beta-access";
 export * from "./brand";
 export * from "./public-env";
-export { createBrowserSupabaseClient, getSupabase, supabase } from "./supabase";
+export {
+  createBrowserSupabaseClient,
+  getSupabase,
+  hasSupabasePublicEnv,
+  supabase,
+} from "./supabase";

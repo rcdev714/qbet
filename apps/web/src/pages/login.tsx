@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 
 export function LoginPage() {
-  const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user, loading, configured } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const signupMode = params.get("mode") === "signup";
@@ -109,6 +109,14 @@ export function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!configured ? (
+              <Alert variant="warning">
+                Supabase env is not set in this environment. Add{" "}
+                <code className="text-xs">VITE_SUPABASE_URL</code> and{" "}
+                <code className="text-xs">VITE_SUPABASE_KEY</code> (or{" "}
+                <code className="text-xs">EXPO_PUBLIC_*</code>) to sign in.
+              </Alert>
+            ) : null}
             {error ? <Alert variant="destructive">{error}</Alert> : null}
             {info ? <Alert variant="success">{info}</Alert> : null}
 

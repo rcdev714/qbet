@@ -24,6 +24,11 @@ const browserStorage = {
 
 let client: SupabaseClient | null = null;
 
+export function hasSupabasePublicEnv(): boolean {
+  const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
+  return Boolean(supabaseUrl && supabaseAnonKey);
+}
+
 export function createBrowserSupabaseClient(): SupabaseClient {
   const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
 

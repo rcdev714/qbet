@@ -32,7 +32,14 @@ flowchart LR
 
 Team: **RCDEV** (`team_XHyJjb8fwWUYqNoTj34gxY36`). Prefer attaching `rcdev714/qbet` here (Camella already linked).
 
-### Option A — Vercel dashboard
+> **Agent note (2026-03):** MCP `create_git_project` reported creating **`anymarkt-web`**
+> (`prj_TbqTzDS2hJl5uLtGOa19d01ck7SL`) on RCDEV, but the GitHub link could not be verified
+> (`Project not found` on follow-up; retry returns **409 already exists**). Tim/RC should open
+> the Vercel dashboard → **anymarkt-web** → Git settings → connect `rcdev714/qbet`, set Root
+> Directory to `apps/web`, add env vars below, and trigger a Preview deploy from this PR branch
+> (`cursor/vite-web-rewrite-618c`). Do **not** create a second project with the same name.
+
+### Option A — Vercel dashboard (required to finish preview)
 
 1. Vercel → Add New → Project → Import `rcdev714/qbet`
 2. Team: **RCDEV**

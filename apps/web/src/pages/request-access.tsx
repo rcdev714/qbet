@@ -34,7 +34,7 @@ const BETA_COUNTRIES = [
 ] as const;
 
 export function RequestAccessPage() {
-  const { user } = useAuth();
+  const { user, configured } = useAuth();
   const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -57,6 +57,12 @@ export function RequestAccessPage() {
 
     if (!email.trim() || !fullName.trim() || !countryCode) {
       setError("Please fill in email, full name, and country.");
+      return;
+    }
+    if (!configured) {
+      setError(
+        "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY first.",
+      );
       return;
     }
 
@@ -97,6 +103,13 @@ export function RequestAccessPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!configured ? (
+              <Alert variant="warning">
+                Supabase env is not set. Form UI works, but submit needs{" "}
+                <code className="text-xs">VITE_SUPABASE_URL</code> /{" "}
+                <code className="text-xs">VITE_SUPABASE_KEY</code>.
+              </Alert>
+            ) : null}
             {submitted ? (
               <Alert variant="success" className="flex gap-3">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0" />

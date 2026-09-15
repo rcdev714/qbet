@@ -1,5 +1,6 @@
 import {
   betaAccessService,
+  hasSupabasePublicEnv,
   saveApprovedIntent,
 } from "@anymarkt/shared";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -28,6 +29,14 @@ export function BetaWelcomePage() {
     const token = params.get("token");
     if (!token) {
       setError("This approval link is missing a token. Request access again or contact support.");
+      setLoading(false);
+      return;
+    }
+
+    if (!hasSupabasePublicEnv()) {
+      setError(
+        "Supabase env is not configured in this environment, so the approval token cannot be validated yet.",
+      );
       setLoading(false);
       return;
     }
