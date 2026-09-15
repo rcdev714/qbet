@@ -1,0 +1,18 @@
+{
+  "name": "Anymarkt (qbet) — Expo web + local Supabase",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "expo-web",
+      "command": "npm run web",
+      "description": "Expo Router web dev server (React Native Web) on http://localhost:8081"
+    }
+  ],
+  "ports": [
+    { "name": "Expo web", "port": 8081 },
+    { "name": "Supabase API", "port": 54321 },
+    { "name": "Supabase Studio", "port": 54323 },
+    { "name": "Mailpit", "port": 54324 }
+  ]
+}
