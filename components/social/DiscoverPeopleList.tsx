@@ -7,19 +7,23 @@ import {
     ActivityIndicator,
     FlatList,
     Pressable,
+    ScrollView,
     StyleSheet,
     View,
 } from "react-native";
 
 import { AppButton } from "@/components/ui/AppButton";
+import { AppCard } from "@/components/ui/AppCard";
 import { AppText } from "@/components/ui/AppText";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useSocialFollow } from "@/contexts/SocialFollowContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { DiscoverableUser, socialService } from "@/services/social.service";
 
 interface DiscoverPeopleListProps {
   embedded?: boolean;
+  variant?: "default" | "cards" | "sidebar";
   scrollEnabled?: boolean;
   pageSize?: number;
   showHeader?: boolean;
@@ -30,8 +34,21 @@ interface DiscoverPeopleListProps {
   users?: DiscoverableUser[];
 }
 
+const SUGGESTED_CARD_WIDTH = 148;
+const SUGGESTED_COLUMN_GAP = 10;
+const SUGGESTED_ROW_GAP = 10;
+
+function chunkIntoPairs<T>(items: T[]): T[][] {
+  const columns: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    columns.push(items.slice(i, i + 2));
+  }
+  return columns;
+}
+
 export function DiscoverPeopleList({
   embedded = false,
+  variant: variantProp,
   scrollEnabled = true,
   pageSize = 30,
   showHeader = true,
@@ -41,9 +58,12 @@ export function DiscoverPeopleList({
   suggestedFirst = false,
   users: usersOverride,
 }: DiscoverPeopleListProps) {
+  const variant =
+    variantProp ?? (embedded && suggestedFirst ? "cards" : "default");
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuthContext();
+  const { onFollowToggled } = useSocialFollow();
   const { t } = useTranslation("social");
 
   const [members, setMembers] = useState<DiscoverableUser[]>([]);
@@ -88,7 +108,7 @@ export function DiscoverPeopleList({
 
   useEffect(() => {
     if (!suggestedFirst || usersOverride) return;
-    socialService.getSuggestedUsers(8).then(setSuggested);
+    socialService.getSuggestedUsers(12).then(setSuggested);
   }, [suggestedFirst, usersOverride]);
 
   const onEndReached = useCallback(async () => {
@@ -98,13 +118,22 @@ export function DiscoverPeopleList({
   }, [hasMore, load, loading, loadingMore, members.length, usersOverride]);
 
   const toggleFollow = async (targetId: string) => {
-    setFollowingMap((prev) => ({ ...prev, [targetId]: !prev[targetId] }));
+    const wasFollowing = followingMap[targetId] ?? false;
+    const nextFollowing = !wasFollowing;
+
+    setFollowingMap((prev) => ({ ...prev, [targetId]: nextFollowing }));
+    onFollowToggled(nextFollowing);
+
     const { isFollowing, error } = await socialService.toggleFollow(targetId);
     if (error) {
-      setFollowingMap((prev) => ({ ...prev, [targetId]: !prev[targetId] }));
+      setFollowingMap((prev) => ({ ...prev, [targetId]: wasFollowing }));
+      onFollowToggled(wasFollowing);
       return;
     }
     setFollowingMap((prev) => ({ ...prev, [targetId]: isFollowing }));
+    if (isFollowing !== nextFollowing) {
+      onFollowToggled(isFollowing);
+    }
     onFollowChange?.();
   };
 
@@ -115,6 +144,81 @@ export function DiscoverPeopleList({
     return t("discoverJoined", {
       date: new Date(item.created_at).toLocaleDateString(),
     });
+  };
+
+  const renderSidebarRow = (item: DiscoverableUser) => {
+    const isFollowing = followingMap[item.user_id] ?? false;
+
+    return (
+      <View key={item.user_id} style={styles.sidebarRow}>
+        <Pressable
+          style={styles.sidebarMain}
+          onPress={() => router.push(`/profile/${item.user_id}` as any)}
+          accessibilityRole="button"
+          accessibilityLabel={t("viewProfile", { username: item.username })}
+        >
+          <UserAvatar uri={item.avatar_url} username={item.username} size={44} />
+          <View style={styles.sidebarInfo}>
+            <AppText variant="bodySm" style={styles.username} numberOfLines={1}>
+              @{item.username}
+            </AppText>
+            <AppText variant="caption" color="secondary" numberOfLines={1}>
+              {formatSubtitle(item)}
+            </AppText>
+          </View>
+        </Pressable>
+        {user && user.id !== item.user_id ? (
+          <AppButton
+            title={isFollowing ? t("following") : t("follow")}
+            variant={isFollowing ? "secondary" : "primary"}
+            size="sm"
+            onPress={() => toggleFollow(item.user_id)}
+          />
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderSuggestedCard = (item: DiscoverableUser) => {
+    const isFollowing = followingMap[item.user_id] ?? false;
+
+    return (
+      <AppCard
+        key={item.user_id}
+        style={[styles.suggestedCard, embedded && styles.suggestedCardEmbedded]}
+        padded={false}
+      >
+        <Pressable
+          style={styles.suggestedCardMain}
+          onPress={() => router.push(`/profile/${item.user_id}` as any)}
+          accessibilityRole="button"
+          accessibilityLabel={t("viewProfile", { username: item.username })}
+        >
+          <UserAvatar uri={item.avatar_url} username={item.username} size={embedded ? 40 : 44} />
+          <View style={styles.suggestedCardInfo}>
+            <View style={[styles.nameRow, styles.suggestedNameRow]}>
+              <AppText variant="bodySm" style={styles.username} numberOfLines={1}>
+                @{item.username}
+              </AppText>
+              {item.win_rate != null ? <AuraBadge winRate={item.win_rate} compact /> : null}
+            </View>
+            <AppText variant="caption" color="secondary" numberOfLines={1}>
+              {formatSubtitle(item)}
+            </AppText>
+          </View>
+        </Pressable>
+
+        {user && user.id !== item.user_id ? (
+          <AppButton
+            title={isFollowing ? t("following") : t("follow")}
+            variant={isFollowing ? "secondary" : "primary"}
+            size="sm"
+            onPress={() => toggleFollow(item.user_id)}
+            style={styles.suggestedFollowButton}
+          />
+        ) : null}
+      </AppCard>
+    );
   };
 
   const renderUser = ({ item }: { item: DiscoverableUser }) => {
@@ -161,8 +265,18 @@ export function DiscoverPeopleList({
   };
 
   const listData = usersOverride ?? members;
+  const showAsCards = variant === "cards" && suggestedFirst && !usersOverride;
+  const showAsSidebar = variant === "sidebar" && suggestedFirst && !usersOverride;
+  const cardUsers = showAsCards || showAsSidebar
+    ? embedded || showAsSidebar
+      ? suggested.length > 0
+        ? suggested
+        : members.slice(0, 12)
+      : suggested
+    : [];
+  const hideMemberList = showAsCards || showAsSidebar;
 
-  if (loading && listData.length === 0) {
+  if (loading && cardUsers.length === 0 && (hideMemberList || listData.length === 0)) {
     return (
       <View style={[styles.center, embedded && styles.centerEmbedded]} accessibilityLabel={t("loading")}>
         <ActivityIndicator color={theme.primary} />
@@ -170,7 +284,7 @@ export function DiscoverPeopleList({
     );
   }
 
-  if (listData.length === 0 && suggested.length === 0) {
+  if (listData.length === 0 && cardUsers.length === 0) {
     return (
       <EmptyState
         icon="people-outline"
@@ -181,16 +295,33 @@ export function DiscoverPeopleList({
   }
 
   return (
-    <View style={embedded ? styles.embeddedWrap : styles.fullWrap}>
-      {suggestedFirst && suggested.length > 0 && !usersOverride ? (
-        <>
-          <AppText variant="caption" color="secondary" style={styles.sectionLabel}>
-            {t("discoverSuggested")}
-          </AppText>
-          {suggested.map((item) => (
-            <View key={`suggested-${item.user_id}`}>{renderUser({ item })}</View>
-          ))}
-        </>
+    <View style={embedded || showAsSidebar ? styles.embeddedWrap : styles.fullWrap}>
+      {showAsSidebar && cardUsers.length > 0 ? (
+        <View style={styles.sidebarList}>
+          {cardUsers.map((item) => renderSidebarRow(item))}
+        </View>
+      ) : null}
+
+      {showAsCards && cardUsers.length > 0 ? (
+        <View style={styles.suggestedSection}>
+          {!embedded && suggested.length > 0 ? (
+            <AppText variant="caption" color="secondary" style={styles.sectionLabel}>
+              {t("discoverSuggested")}
+            </AppText>
+          ) : null}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.suggestedScrollContent}
+            nestedScrollEnabled
+          >
+            {chunkIntoPairs(cardUsers).map((column, columnIndex) => (
+              <View key={`suggested-col-${columnIndex}`} style={styles.suggestedColumn}>
+                {column.map((item) => renderSuggestedCard(item))}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       ) : null}
 
       {showHeader ? (
@@ -199,6 +330,7 @@ export function DiscoverPeopleList({
         </AppText>
       ) : null}
 
+      {!hideMemberList ? (
       <FlatList
         data={listData}
         keyExtractor={(item) => item.user_id}
@@ -223,18 +355,73 @@ export function DiscoverPeopleList({
           ) : null
         }
       />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   fullWrap: { flex: 1 },
-  embeddedWrap: { flex: 1, minHeight: 120 },
+  embeddedWrap: { flexGrow: 0, minHeight: 280 },
   embeddedList: { paddingBottom: 8 },
   sectionLabel: {
     marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.4,
+  },
+  suggestedSection: {
+    marginBottom: 12,
+  },
+  suggestedScrollContent: {
+    gap: SUGGESTED_COLUMN_GAP,
+    paddingRight: 4,
+  },
+  suggestedColumn: {
+    gap: SUGGESTED_ROW_GAP,
+  },
+  suggestedCard: {
+    width: SUGGESTED_CARD_WIDTH,
+    padding: 12,
+    gap: 10,
+  },
+  suggestedCardEmbedded: {
+    width: 136,
+    padding: 10,
+  },
+  suggestedCardMain: {
+    alignItems: "center",
+    gap: 8,
+  },
+  suggestedCardInfo: {
+    alignItems: "center",
+    gap: 2,
+    width: "100%",
+  },
+  suggestedFollowButton: {
+    alignSelf: "stretch",
+  },
+  suggestedNameRow: {
+    justifyContent: "center",
+  },
+  sidebarList: {
+    gap: 14,
+  },
+  sidebarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sidebarMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  },
+  sidebarInfo: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
   userRow: {
     flexDirection: "row",

@@ -62,5 +62,15 @@ export default defineConfig({
         storageState: runtimePath("admin-storage.json"),
       },
     },
+    {
+      name: "web-bootstrap-mount",
+      testMatch: /web-bootstrap-mount\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "web-login",
+      testMatch: /web-login\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 });

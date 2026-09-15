@@ -1,11 +1,22 @@
-import { DeleteAccountSection } from '@/components/legal/DeleteAccountSection';
-import { ResidenceSettingsSection } from '@/components/profile/ResidenceSettingsSection';
-import { RulesModal } from '@/components/profile/RulesModal';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useTheme } from '../../contexts/ThemeContext';
+import { DeleteAccountSection } from "@/components/legal/DeleteAccountSection";
+import { ResidenceSettingsSection } from "@/components/profile/ResidenceSettingsSection";
+import { RulesModal } from "@/components/profile/RulesModal";
+import { AppButton, AppInput, AppText, FieldGroup } from "@/components/ui";
+import { ModalHeader } from "@/components/ui/ModalHeader";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SettingsModalProps {
   visible: boolean;
@@ -16,7 +27,14 @@ interface SettingsModalProps {
   onUpdateAvatar: (asset: ImagePicker.ImagePickerAsset) => Promise<void>;
 }
 
-export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSignOut, onUpdateAvatar }: SettingsModalProps) {
+export function SettingsModal({
+  visible,
+  onClose,
+  user,
+  onUpdateUsername,
+  onSignOut,
+  onUpdateAvatar,
+}: SettingsModalProps) {
   const { theme, isDark, setMode, mode } = useTheme();
   const [newUsername, setNewUsername] = useState(user?.username || "");
   const [loading, setLoading] = useState(false);
@@ -29,15 +47,15 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
     setLoading(false);
     onClose();
   };
-  
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true, // crop to square
+        allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
-        base64: true, 
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -46,8 +64,8 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
         setAvatarLoading(false);
       }
     } catch (error: any) {
-       Alert.alert("Error picking image", error.message);
-       setAvatarLoading(false);
+      Alert.alert("Error picking image", error.message);
+      setAvatarLoading(false);
     }
   };
 
@@ -55,92 +73,120 @@ export function SettingsModal({ visible, onClose, user, onUpdateUsername, onSign
     <>
       <Modal animationType="slide" transparent={false} visible={visible} presentationStyle="pageSheet">
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
-            <TouchableOpacity onPress={onClose} style={[styles.closeButton, Platform.OS === 'web' && { cursor: 'pointer' } as any]}>
-              <Text style={[styles.closeText, { color: theme.primary }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <ModalHeader title="Settings" onClose={onClose} closeLabel="Done" />
 
           <View style={styles.content}>
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Account</Text>
-              
-              <View style={[styles.avatarRow, { backgroundColor: theme.surface }]}>
-                  <TouchableOpacity onPress={pickImage} style={[styles.avatarContainer, Platform.OS === 'web' && { cursor: 'pointer' } as any]}>
-                       {user?.avatar_url ? (
-                          <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-                       ) : (
-                          <View style={[styles.avatarPlaceholder, { backgroundColor: isDark ? theme.surface : theme.primary, borderColor: isDark ? theme.primary : 'transparent', borderWidth: isDark ? 2 : 0 }]}>
-                               <Text style={{color: '#fff', fontSize: 24, fontWeight: '400'}}>
-                                   {user?.username?.substring(0,2).toUpperCase() || "U"}
-                               </Text>
-                          </View>
-                       )}
-                       <Text style={[styles.changePhotoText, { color: theme.primary }]}>Change Photo</Text>
-                       {avatarLoading && <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary} />}
-                  </TouchableOpacity>
+              <AppText variant="label" color="secondary" style={styles.sectionTitle}>
+                Account
+              </AppText>
+
+              <View
+                style={[
+                  styles.avatarRow,
+                  { backgroundColor: theme.surface, borderRadius: theme.radius.lg },
+                ]}
+              >
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Change profile photo"
+                  onPress={pickImage}
+                  style={styles.avatarContainer}
+                >
+                  {user?.avatar_url ? (
+                    <Image
+                      source={{ uri: user.avatar_url }}
+                      style={[styles.avatar, { borderRadius: theme.radius.pill }]}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatarPlaceholder,
+                        {
+                          backgroundColor: isDark ? theme.surface : theme.primary,
+                          borderColor: isDark ? theme.primary : "transparent",
+                          borderWidth: isDark ? 2 : 0,
+                          borderRadius: theme.radius.pill,
+                        },
+                      ]}
+                    >
+                      <AppText variant="title2" color="onPrimary">
+                        {user?.username?.substring(0, 2).toUpperCase() || "U"}
+                      </AppText>
+                    </View>
+                  )}
+                  <AppText variant="body" color="primary">
+                    Change Photo
+                  </AppText>
+                  {avatarLoading ? (
+                    <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary} />
+                  ) : null}
+                </TouchableOpacity>
               </View>
 
-              <View style={[styles.inputGroup, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                 <Text style={[styles.label, { color: theme.text }]}>Username</Text>
-                 <TextInput 
-                   style={[styles.input, { color: theme.text }, Platform.OS === 'web' && { cursor: 'text' } as any]}
-                   value={newUsername}
-                   onChangeText={setNewUsername}
-                   placeholder="Username"
-                 />
-              </View>
-              <View style={[styles.infoRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                 <Text style={[styles.label, { color: theme.text }]}>Email</Text>
-                 <Text style={[styles.infoValue, { color: theme.textSecondary }]}>{user?.email}</Text>
-              </View>
+              <FieldGroup>
+                <AppInput
+                  label="Username"
+                  value={newUsername}
+                  onChangeText={setNewUsername}
+                  placeholder="Username"
+                />
+                <View
+                  style={[
+                    styles.infoRow,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderRadius: theme.radius.lg,
+                    },
+                  ]}
+                >
+                  <AppText variant="body">Email</AppText>
+                  <AppText variant="body" color="secondary">
+                    {user?.email}
+                  </AppText>
+                </View>
+              </FieldGroup>
             </View>
 
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Appearance</Text>
-              <View style={[styles.themeRow, { backgroundColor: theme.surface }]}>
-                   {(['light', 'dark', 'system'] as const).map((m) => (
-                      <TouchableOpacity
-                          key={m}
-                          style={[
-                              styles.themeOption,
-                              mode === m && { backgroundColor: isDark ? theme.surface : theme.primary, borderColor: isDark ? theme.primary : 'transparent', borderWidth: isDark ? 1 : 0 },
-                              Platform.OS === 'web' && { cursor: 'pointer' } as any
-                          ]}
-                          onPress={() => setMode(m)}
-                      >
-                          <Text style={[styles.themeText, { color: mode === m ? '#fff' : theme.text }]}>
-                              {m.charAt(0).toUpperCase() + m.slice(1)}
-                          </Text>
-                      </TouchableOpacity>
-                   ))}
-              </View>
+              <AppText variant="label" color="secondary" style={styles.sectionTitle}>
+                Appearance
+              </AppText>
+              <SegmentedControl
+                value={mode}
+                segments={[
+                  { value: "light", label: "Light" },
+                  { value: "dark", label: "Dark" },
+                  { value: "system", label: "System" },
+                ]}
+                onChange={setMode}
+              />
             </View>
 
             <ResidenceSettingsSection theme={theme} style={styles.section} />
 
-            <View style={styles.section}> 
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>About</Text>
-              <TouchableOpacity 
-                  style={[styles.menuItem, { backgroundColor: theme.surface }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} 
-                  onPress={() => setIsRulesVisible(true)}
-              >
-                  <Text style={{ fontSize: 24, marginRight: 12 }}>📖</Text>
-                  <Text style={[styles.menuItemText, { color: theme.text }]}>Rules</Text>
-                  <Text style={{ fontSize: 16, color: theme.textSecondary, marginLeft: 'auto' }}>→</Text>
-              </TouchableOpacity>
+            <View style={styles.section}>
+              <AppText variant="label" color="secondary" style={styles.sectionTitle}>
+                About
+              </AppText>
+              <AppButton
+                title="Rules"
+                variant="secondary"
+                onPress={() => setIsRulesVisible(true)}
+              />
             </View>
 
             <DeleteAccountSection theme={theme} style={styles.section} onDeleted={onSignOut} />
 
-            <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={handleSave}>
-                {loading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.saveButtonText, { color: theme.onPrimary }]}>Save Changes</Text>}
-            </TouchableOpacity>
+            <AppButton title="Save Changes" loading={loading} onPress={handleSave} />
 
-            <TouchableOpacity style={[styles.signOutButton, { backgroundColor: theme.surface }, Platform.OS === 'web' && { cursor: 'pointer' } as any]} onPress={onSignOut}>
-                <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
+            <AppButton
+              title="Sign Out"
+              variant="destructive"
+              onPress={onSignOut}
+              style={styles.signOutButton}
+            />
           </View>
           <RulesModal visible={isRulesVisible} onClose={() => setIsRulesVisible(false)} />
         </SafeAreaView>
@@ -153,135 +199,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '400',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  closeText: {
-    fontSize: 17,
-    fontWeight: '400',
-  },
   content: {
     padding: 20,
+    gap: 8,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '400',
     textTransform: "uppercase",
     marginBottom: 8,
     marginLeft: 4,
+    letterSpacing: 0.4,
   },
   avatarRow: {
-      alignItems: 'center',
-      padding: 20,
-      borderRadius: 12,
-      marginBottom: 16,
+    alignItems: "center",
+    padding: 20,
+    marginBottom: 16,
   },
   avatarContainer: {
-      alignItems: 'center',
+    alignItems: "center",
+    gap: 8,
   },
   avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      marginBottom: 8,
+    width: 80,
+    height: 80,
   },
   avatarPlaceholder: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      marginBottom: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-  },
-  changePhotoText: {
-      fontSize: 15,
-      fontWeight: '400',
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 1,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    width: 80,
+    height: 80,
+    justifyContent: "center",
+    alignItems: "center",
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-  },
-  label: {
-      fontSize: 16,
-      width: 100,
-  },
-  input: {
-      flex: 1,
-      fontSize: 16,
-      textAlign: 'right',
-  },
-  infoValue: {
-      fontSize: 16,
-  },
-  themeRow: {
-      flexDirection: 'row',
-      padding: 4,
-      borderRadius: 8,
-  },
-  themeOption: {
-      flex: 1,
-      paddingVertical: 8,
-      alignItems: 'center',
-      borderRadius: 6,
-  },
-  themeText: {
-      fontWeight: '400',
-  },
-  saveButton: {
-      padding: 16,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginBottom: 12,
-  },
-  saveButtonText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: '400',
+    borderWidth: StyleSheet.hairlineWidth,
   },
   signOutButton: {
-      padding: 16,
-      borderRadius: 12,
-      alignItems: 'center',
-  },
-  signOutText: {
-      color: '#FF3B30',
-      fontSize: 16,
-      fontWeight: '400',
-  },
-  menuItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      borderRadius: 12,
-  },
-  menuItemText: {
-      fontSize: 16,
-      fontWeight: '400',
+    marginTop: 4,
   },
 });

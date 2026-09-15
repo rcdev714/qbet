@@ -3,9 +3,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { assertComplianceGate } from "../_shared/compliance.ts";
 import { parsePositiveIntegerCents } from "../_shared/payment-hardening.ts";
+import {
+  recipientBankCapabilities,
+  stripeV2Request,
+} from "../_shared/stripe-global-payouts.ts";
 
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-const STRIPE_API_VERSION = "2026-01-28.preview"; // Required for v2 API
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,34 +21,6 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-
-// Helper for Stripe v2 API calls
-function stripeV2Request(
-  endpoint: string,
-  method: string,
-  body?: Record<string, unknown>,
-  context?: string,
-  idempotencyKey?: string,
-): Promise<Response> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-    "Stripe-Version": STRIPE_API_VERSION,
-    "Content-Type": "application/json",
-  };
-  if (context) {
-    headers["Stripe-Context"] = context;
-  }
-  if (idempotencyKey) {
-    headers["Idempotency-Key"] = idempotencyKey;
-  }
-
-  const options: RequestInit = { method, headers };
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  return fetch(`https://api.stripe.com${endpoint}`, options);
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -177,6 +152,7 @@ serve(async (req) => {
 
       // Create recipient using v2 API
       const createResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
         "/v2/core/accounts",
         "POST",
         {
@@ -190,9 +166,7 @@ serve(async (req) => {
           configuration: {
             recipient: {
               capabilities: {
-                bank_accounts: {
-                  local: { requested: true },
-                },
+                bank_accounts: recipientBankCapabilities(payoutCountry),
               },
             },
           },
@@ -230,6 +204,7 @@ serve(async (req) => {
       // Create Account Link for bank account onboarding
 
       const linkResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
         "/v2/core/account_links",
         "POST",
         {
@@ -283,6 +258,7 @@ serve(async (req) => {
 
       // Query Stripe for payout methods using recipient context
       const pmResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
         "/v2/money_management/payout_methods",
         "GET",
         undefined,
@@ -334,6 +310,7 @@ serve(async (req) => {
 
       // Try account_update first (works for already-onboarded accounts)
       let linkResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
         "/v2/core/account_links",
         "POST",
         {
@@ -357,6 +334,7 @@ serve(async (req) => {
           "[Stripe Withdrawal] account_update link failed, trying account_onboarding...",
         );
         linkResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
           "/v2/core/account_links",
           "POST",
           {
@@ -403,6 +381,7 @@ serve(async (req) => {
 
     // 4. Verify recipient is ready for payouts
     const recipientResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
       `/v2/core/accounts/${wallet.global_recipient_id}?include[0]=configuration.recipient`,
       "GET",
     );
@@ -412,8 +391,10 @@ serve(async (req) => {
     }
 
     const recipientData = await recipientResponse.json();
-    const bankAccountsCapability = recipientData.configuration?.recipient
-      ?.capabilities?.bank_accounts?.local?.status;
+    const bankCaps = recipientData.configuration?.recipient?.capabilities
+      ?.bank_accounts;
+    const bankAccountsCapability =
+      bankCaps?.wire?.status ?? bankCaps?.local?.status;
 
     if (bankAccountsCapability !== "active") {
       console.log(
@@ -422,6 +403,7 @@ serve(async (req) => {
 
       // Create Account Link for completing setup
       const linkResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
         "/v2/core/account_links",
         "POST",
         {
@@ -507,6 +489,7 @@ serve(async (req) => {
 
     // 5. Create OutboundPayment using v2 API
     const paymentResponse = await stripeV2Request(
+        STRIPE_SECRET_KEY,
       "/v2/money_management/outbound_payments",
       "POST",
       {

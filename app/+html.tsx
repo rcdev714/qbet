@@ -23,8 +23,6 @@ const DEFAULT_IMAGE = `${APP_URL}/og-image.png`;
 const themeBootstrapScript = `
 (function () {
   var key = ${JSON.stringify(THEME_MODE_KEY)};
-  var light = ${JSON.stringify(lightBackground)};
-  var dark = ${JSON.stringify(darkBackground)};
   var mode = "dark";
   try {
     var stored = localStorage.getItem(key);
@@ -41,33 +39,21 @@ const themeBootstrapScript = `
   var resolved = mode === "system" ? (prefersDark ? "dark" : "light") : mode;
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
-  var bg = resolved === "dark" ? dark : light;
-  function applyBodyBackground() {
-    if (document.body) {
-      document.body.style.backgroundColor = bg;
-    }
-  }
-  applyBodyBackground();
-  if (!document.body) {
-    document.addEventListener("DOMContentLoaded", applyBodyBackground);
-  }
 })();
 `.trim();
 
 const responsiveBackground = `
-body {
+html[data-theme="light"] body {
   background-color: ${lightBackground};
 }
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: ${darkBackground};
-  }
+html[data-theme="dark"] body {
+  background-color: ${darkBackground};
 }
 `.trim();
 
 export default function Root({ children }: PropsWithChildren) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -93,8 +79,8 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
         <meta name="twitter:image" content={DEFAULT_IMAGE} />
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
       </head>
       <body suppressHydrationWarning>{children}</body>
     </html>

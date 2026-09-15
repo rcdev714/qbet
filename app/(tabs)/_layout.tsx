@@ -75,7 +75,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="groups"
         options={{
           title: t('groups', { defaultValue: 'Groups' }),
           tabBarIcon: ({ color }: { color: string }) => <IconSymbol size={ICON_SIZE} name="person.3.fill" color={color} />,

@@ -10,6 +10,9 @@ export type Market = Omit<
 > & {
     creator?: { username: string | null; avatar_url: string | null } | null;
     market_type?: MarketType | null;
+    payout_status?: string | null;
+    payout_release_at?: string | null;
+    settlement_override_status?: string | null;
 };
 export type MarketInsert = Database["public"]["Tables"]["markets"]["Insert"];
 export type MarketUpdate = Database["public"]["Tables"]["markets"]["Update"];

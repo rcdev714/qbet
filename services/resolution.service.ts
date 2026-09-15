@@ -126,6 +126,26 @@ export const resolutionService = {
     /**
      * Resolve a dispute (admin only)
      */
+    async getGroupDisputes(
+        groupId: string,
+        status = "pending",
+    ): Promise<Dispute[]> {
+        try {
+            const { data, error } = await (supabase as any).rpc(
+                "get_group_admin_disputes",
+                { p_group_id: groupId, p_status: status },
+            );
+            if (error) {
+                console.error("Error fetching group disputes:", error);
+                return [];
+            }
+            return (data || []) as Dispute[];
+        } catch (error) {
+            console.error("Error fetching group disputes:", error);
+            return [];
+        }
+    },
+
     async resolveDispute(
         disputeId: string,
         status: "upheld" | "overturned" | "dismissed",

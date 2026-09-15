@@ -1,3 +1,4 @@
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +18,7 @@ interface UserGroupsSectionProps {
 export function UserGroupsSection({ userId, isOwnProfile = false }: UserGroupsSectionProps) {
   const { theme } = useTheme();
   const router = useRouter();
+  const { openGroup } = useGroupNavigation();
   const { t } = useTranslation("social");
   const [groups, setGroups] = React.useState<(ProfileGroup | AdministeredGroup)[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -59,7 +61,7 @@ export function UserGroupsSection({ userId, isOwnProfile = false }: UserGroupsSe
         <Pressable
           key={group.group_id}
           style={[styles.row, { borderBottomColor: theme.border }]}
-          onPress={() => router.push(`/group/${group.group_id}` as any)}
+          onPress={() => openGroup(group.group_id)}
         >
           <UserAvatar uri={group.avatar_url} username={group.name ?? "G"} size={44} />
           <View style={styles.meta}>

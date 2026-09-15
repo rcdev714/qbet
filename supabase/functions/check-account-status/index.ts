@@ -55,26 +55,53 @@ serve(async (req: Request) => {
 
     const { data: wallet } = await supabase
       .from("wallets")
-      .select("stripe_account_id")
+      .select("stripe_account_id, global_recipient_id, payout_method_id, bank_details")
       .eq("user_id", userId)
       .single();
 
-    if (!wallet?.stripe_account_id) {
-      return new Response(JSON.stringify({ details_submitted: false, payouts_enabled: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let details_submitted = false;
+    let payouts_enabled = false;
+
+    if (wallet?.stripe_account_id) {
+      const account = await stripe.accounts.retrieve(wallet.stripe_account_id);
+      details_submitted = account.details_submitted;
+      payouts_enabled = account.payouts_enabled;
     }
 
-    const account = await stripe.accounts.retrieve(wallet.stripe_account_id);
+    const bankDetails = wallet?.bank_details && typeof wallet.bank_details === "object"
+      ? wallet.bank_details
+      : null;
+
+    const payoutDraft = bankDetails
+      ? {
+        bankName: bankDetails.bank_name ?? null,
+        swift: bankDetails.swift ?? null,
+        city: bankDetails.city ?? null,
+        province: bankDetails.province ?? null,
+        firstName: bankDetails.first_name ?? null,
+        lastName: bankDetails.last_name ?? null,
+      }
+      : null;
+
+    const hasProfileDraft = Boolean(
+      bankDetails?.first_name && bankDetails?.bank_name,
+    );
 
     return new Response(
       JSON.stringify({
-        details_submitted: account.details_submitted,
-        payouts_enabled: account.payouts_enabled,
+        details_submitted,
+        payouts_enabled,
+        connect: { details_submitted, payouts_enabled },
+        globalPayouts: {
+          hasRecipient: Boolean(wallet?.global_recipient_id),
+          hasPayoutMethod: Boolean(wallet?.payout_method_id),
+        },
+        payoutDraft,
+        hasProfileDraft,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -83,4 +110,3 @@ serve(async (req: Request) => {
     });
   }
 });
-

@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "400",
   },
   labelCompact: {
-    fontSize: 12,
+    fontSize: 13,
   },
   description: {
     marginTop: 2,

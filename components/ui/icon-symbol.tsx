@@ -64,6 +64,7 @@ const MAPPING = {
   'arrow.left.arrow.right': 'swap-horiz',
   'doc.text': 'description',
   'bell': 'notifications',
+  'mic.fill': 'mic',
   'rectangle.portrait.and.arrow.right': 'logout',
 } as const;
 

@@ -1,4 +1,5 @@
 import { User } from "@supabase/supabase-js";
+import { USER_FOLLOWS_FOLLOWER_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import { mapDiscoverableUsers, mapSuggestedUsers, parseToggleFollowResponse, type DiscoverableUser } from "./social.parsers";
 
@@ -223,14 +224,7 @@ export const socialService = {
         try {
             const { data, error } = await supabase
                 .from("user_follows")
-                .select(`
-                    created_at,
-                    follower:users!follower_id (
-                        id,
-                        username,
-                        avatar_url
-                    )
-                `)
+                .select(USER_FOLLOWS_FOLLOWER_SELECT)
                 .eq("following_id", userId)
                 .order("created_at", { ascending: false });
 

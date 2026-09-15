@@ -15,6 +15,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppText } from "@/components/ui/AppText";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useSocialFollow } from "@/contexts/SocialFollowContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { FollowingActivity, socialService } from "@/services/social.service";
 
@@ -22,61 +23,87 @@ const PAGE_SIZE = 30;
 
 interface ActivityFeedProps {
   scrollEnabled?: boolean;
-  embedded?: boolean;
+  /** When "none", discover suggestions are handled elsewhere (e.g. desktop sidebar). */
+  discoverPlacement?: "inline" | "none";
 }
 
-export function ActivityFeed({ scrollEnabled = true, embedded = false }: ActivityFeedProps) {
+export function ActivityFeed({
+  scrollEnabled = true,
+  discoverPlacement = "inline",
+}: ActivityFeedProps) {
   const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuthContext();
+  const { hasFollowing, subscribeActivityRefresh, refreshFollowingCount } = useSocialFollow();
   const { t } = useTranslation("social");
   const [items, setItems] = useState<FollowingActivity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  const load = useCallback(async (offset = 0, append = false) => {
-    if (!user) {
-      setItems([]);
-      setHasMore(false);
-      setLoading(false);
+  const load = useCallback(
+    async (offset = 0, append = false, options?: { silent?: boolean }) => {
+      if (!user) {
+        setItems([]);
+        setHasMore(false);
+        setInitialLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const data = await socialService.getFollowingActivity(PAGE_SIZE, offset);
+      setHasMore(data.length === PAGE_SIZE);
+      setItems((prev) => (append ? [...prev, ...data] : data));
+      if (!options?.silent) {
+        setInitialLoading(false);
+      }
       setRefreshing(false);
       setLoadingMore(false);
-      return;
-    }
-    const data = await socialService.getFollowingActivity(PAGE_SIZE, offset);
-    setHasMore(data.length === PAGE_SIZE);
-    setItems((prev) => (append ? [...prev, ...data] : data));
-    setLoading(false);
-    setRefreshing(false);
-    setLoadingMore(false);
-  }, [user]);
+    },
+    [user],
+  );
+
+  const refreshFeed = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setInitialLoading(true);
+      }
+      await Promise.all([load(0, false, options), refreshFollowingCount()]);
+    },
+    [load, refreshFollowingCount],
+  );
 
   useEffect(() => {
-    setLoading(true);
-    load(0, false);
-  }, [load]);
+    void refreshFeed();
+  }, [refreshFeed]);
+
+  useEffect(() => {
+    return subscribeActivityRefresh(() => {
+      void load(0, false, { silent: true });
+      void refreshFollowingCount();
+    });
+  }, [load, refreshFollowingCount, subscribeActivityRefresh]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load(0, false);
-  }, [load]);
+    await refreshFollowingCount();
+  }, [load, refreshFollowingCount]);
 
   const onEndReached = useCallback(async () => {
-    if (loadingMore || !hasMore || loading || !user) return;
+    if (loadingMore || !hasMore || initialLoading || !user) return;
     setLoadingMore(true);
     await load(items.length, true);
-  }, [hasMore, items.length, load, loading, loadingMore, user]);
+  }, [hasMore, initialLoading, items.length, load, loadingMore, user]);
 
-  const handleFollowChange = useCallback(async () => {
-    setLoading(true);
-    await load(0, false);
-  }, [load]);
+  const showInlineDiscover =
+    discoverPlacement === "inline" && !hasFollowing && items.length === 0;
 
   if (!user) {
     return (
-      <View style={[styles.emptyWrap, embedded && styles.emptyEmbedded]}>
+      <View style={styles.emptyWrap}>
         <EmptyState
           icon="people-outline"
           title={t("followingSignInTitle")}
@@ -88,7 +115,7 @@ export function ActivityFeed({ scrollEnabled = true, embedded = false }: Activit
     );
   }
 
-  if (loading && items.length === 0) {
+  if (initialLoading && items.length === 0) {
     return (
       <View style={styles.center} accessibilityLabel={t("loading")}>
         <ActivityIndicator color={theme.primary} />
@@ -98,36 +125,52 @@ export function ActivityFeed({ scrollEnabled = true, embedded = false }: Activit
 
   if (items.length === 0) {
     return (
-      <View style={[styles.emptyWrap, embedded && styles.emptyEmbedded]}>
-        <AppText variant="bodySm" color="secondary" style={styles.emptyText}>
-          {t("activityEmpty")}
-        </AppText>
-        <DiscoverPeopleList
-          embedded
-          scrollEnabled={scrollEnabled}
-          showHeader={false}
-          showSeeAll
-          onSeeAll={() => router.push("/discover" as any)}
-          onFollowChange={handleFollowChange}
-          suggestedFirst
-        />
-        <AppButton
-          title={t("activityEmptyAction")}
-          variant="secondary"
-          size="sm"
-          onPress={() => router.push("/discover" as any)}
-          style={styles.emptyAction}
-        />
+      <View style={styles.emptyWrap}>
+        {showInlineDiscover ? (
+          <>
+            <AppText variant="bodySm" color="secondary" style={styles.emptyText}>
+              {t("activityEmpty")}
+            </AppText>
+            <DiscoverPeopleList
+              variant="cards"
+              embedded
+              scrollEnabled={scrollEnabled}
+              showHeader={false}
+              suggestedFirst
+            />
+            <AppButton
+              title={t("activityEmptyAction")}
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push("/discover" as any)}
+              style={styles.emptyAction}
+            />
+          </>
+        ) : (
+          <View style={styles.caughtUpEmpty}>
+            <AppText variant="title3" style={styles.caughtUpTitle}>
+              {hasFollowing ? t("activityCaughtUp") : t("activityEmpty")}
+            </AppText>
+            <AppText variant="bodySm" color="secondary" style={styles.caughtUpText}>
+              {hasFollowing ? t("activityFollowingEmpty") : t("discoverHelper")}
+            </AppText>
+            {!hasFollowing ? (
+              <AppButton
+                title={t("openDiscover")}
+                variant="secondary"
+                size="sm"
+                onPress={() => router.push("/discover" as any)}
+                style={styles.emptyAction}
+              />
+            ) : null}
+          </View>
+        )}
       </View>
     );
   }
 
   return (
-    <View
-      style={embedded ? styles.embedded : styles.full}
-      accessibilityRole="list"
-      accessibilityLabel={t("activitySection")}
-    >
+    <View style={styles.full} accessibilityRole="list" accessibilityLabel={t("activitySection")}>
       <FlatList
         data={items}
         keyExtractor={(item) => `${item.activity_type}-${item.activity_id}`}
@@ -139,7 +182,7 @@ export function ActivityFeed({ scrollEnabled = true, embedded = false }: Activit
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
           ) : undefined
         }
-        contentContainerStyle={embedded ? styles.embeddedList : styles.listContent}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => <ActivityFeedRow item={item} />}
         ListFooterComponent={
           loadingMore ? (
@@ -161,8 +204,6 @@ export function ActivityFeed({ scrollEnabled = true, embedded = false }: Activit
 
 const styles = StyleSheet.create({
   full: { flex: 1 },
-  embedded: { flex: 1 },
-  embeddedList: { paddingBottom: 24 },
   listContent: { paddingTop: 8, paddingBottom: 24 },
   center: { padding: 24, alignItems: "center" },
   emptyWrap: {
@@ -170,15 +211,25 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: "stretch",
     flex: 1,
-    paddingHorizontal: 16,
   },
-  emptyEmbedded: { paddingHorizontal: 0 },
   emptyText: { lineHeight: 20 },
   emptyAction: { alignSelf: "center" },
+  caughtUpEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+    gap: 10,
+  },
+  caughtUpTitle: {
+    textAlign: "center",
+    fontWeight: "600",
+  },
   caughtUp: {
     paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: "center",
   },
-  caughtUpText: { textAlign: "center" },
+  caughtUpText: { textAlign: "center", lineHeight: 20 },
 });

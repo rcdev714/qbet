@@ -1,6 +1,7 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { scanMarketTextForSports } from "../lib/compliance/sports-content";
 import { createDebugLogger } from "../lib/debug-log";
+import { MARKET_WITH_CREATOR_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
 import type {
@@ -181,13 +182,14 @@ export const marketService = {
   async resolveMarket(
     marketId: string,
     winningOptionId: string,
+    evidence?: { url?: string | null; notes?: string | null },
   ): Promise<{ market: Market | null; error: Error | null }> {
     try {
       const { data, error } = await supabase.rpc("resolve_market", {
         p_market_id: marketId,
         p_winning_option_id: winningOptionId,
-        p_evidence_url: null,
-        p_evidence_notes: null,
+        p_evidence_url: evidence?.url ?? null,
+        p_evidence_notes: evidence?.notes ?? null,
       });
 
       if (error) {
@@ -230,6 +232,21 @@ export const marketService = {
         });
       }
 
+      return { market, error: null };
+    } catch (error) {
+      return { market: null, error: error as Error };
+    }
+  },
+
+  async closeMarket(
+    marketId: string,
+  ): Promise<{ market: Market | null; error: Error | null }> {
+    try {
+      const { error } = await (supabase as any).rpc("close_market", {
+        p_market_id: marketId,
+      });
+      if (error) return { market: null, error };
+      const market = await this.getMarket(marketId);
       return { market, error: null };
     } catch (error) {
       return { market: null, error: error as Error };
@@ -300,7 +317,7 @@ export const marketService = {
     try {
       const { data: market, error } = await supabase
         .from("markets")
-        .select("*, creator:users(username, avatar_url)")
+        .select(MARKET_WITH_CREATOR_SELECT)
         .eq("id", marketId)
         .single();
 

@@ -1,0 +1,16 @@
+# Paths still exempt from strict UI lint (remove as migration completes).
+# One path prefix or exact file per line. Lines starting with # are ignored.
+
+components/landing/
+app/index.tsx
+lib/legal/
+constants/
+components/ui/
+supabase/
+tests/
+scripts/
+components/themed-text.tsx
+components/AnymarktLoader.tsx
+components/navigation/PremiumTabBar.tsx
+components/BottomNavBar.tsx
+components/haptic-tab.tsx

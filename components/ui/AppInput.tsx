@@ -13,16 +13,20 @@ import { cn } from "@/lib/ui/cn";
 
 import { AppText } from "./AppText";
 
+export type AppInputVariant = "default" | "onDark";
+
 export interface AppInputProps extends TextInputProps {
   label?: string;
   error?: string;
   hint?: string;
+  variant?: AppInputVariant;
 }
 
 export function AppInput({
   label,
   error,
   hint,
+  variant = "default",
   style,
   accessibilityLabel,
   testID,
@@ -30,11 +34,21 @@ export function AppInput({
 }: AppInputProps) {
   const { theme } = useTheme();
   const hasError = Boolean(error);
+  const isOnDark = variant === "onDark";
+
+  const inputBorderColor = hasError
+    ? theme.destructive
+    : isOnDark
+      ? "rgba(255, 255, 255, 0.12)"
+      : theme.border;
+  const inputBackground = isOnDark ? "rgba(255, 255, 255, 0.08)" : theme.input;
+  const inputTextColor = isOnDark ? "#F4F8FF" : theme.text;
+  const placeholderColor = isOnDark ? "rgba(218, 230, 252, 0.6)" : theme.mutedForeground;
 
   return (
     <View style={{ gap: 6 }}>
       {label ? (
-        <AppText variant="label" color="default">
+        <AppText variant="label" color={isOnDark ? "secondary" : "default"} style={isOnDark ? { color: "rgba(238, 244, 255, 0.9)" } : undefined}>
           {label}
         </AppText>
       ) : null}
@@ -43,18 +57,18 @@ export function AppInput({
         testID={testID}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ disabled: props.editable === false }}
-        placeholderTextColor={theme.mutedForeground}
+        placeholderTextColor={placeholderColor}
         style={cn(
           {
             minHeight: 48,
             borderRadius: theme.radius.sm,
             borderWidth: 1,
-            borderColor: hasError ? theme.destructive : theme.border,
-            backgroundColor: theme.input,
+            borderColor: inputBorderColor,
+            backgroundColor: inputBackground,
             paddingHorizontal: theme.spacing.md,
             paddingVertical: theme.spacing.sm,
             fontSize: 15,
-            color: theme.text,
+            color: inputTextColor,
           },
           Platform.OS === "web" &&
             ({

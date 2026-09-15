@@ -1,3 +1,4 @@
+import { GROUP_MEMBERS_WITH_GROUP_SELECT, GROUP_MEMBERS_WITH_USER_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../types/database";
 import type { GroupMember, GroupSummary, Invite } from "../types/group";
@@ -27,6 +28,9 @@ export interface AdministeredGroup extends ProfileGroup {
   is_discoverable: boolean;
   show_on_profile: boolean;
   created_at: string;
+  pending_dispute_count?: number;
+  avg_admin_score?: number | null;
+  platform_override_active?: boolean;
 }
 
 /**
@@ -267,12 +271,7 @@ export const groupService = {
 
       const { data: groups, error } = await supabase
         .from("group_members")
-        .select(
-          `
-          group_id,
-          groups (id,name,description,admin_id,created_at,avatar_url)
-        `,
-        )
+        .select(GROUP_MEMBERS_WITH_GROUP_SELECT)
         .eq("user_id", user.id);
 
       if (error) {
@@ -317,12 +316,7 @@ export const groupService = {
     try {
       const { data: members, error } = await supabase
         .from("group_members")
-        .select(
-          `
-          *,
-          users (*)
-        `,
-        )
+        .select(GROUP_MEMBERS_WITH_USER_SELECT)
         .eq("group_id", groupId);
 
       if (error) {

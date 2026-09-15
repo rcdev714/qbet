@@ -6,6 +6,7 @@ import { MarketBoardCard } from "@/components/markets/MarketBoardCard";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { SEO } from "@/components/SEO";
 import { ActivityFeed } from "@/components/social/ActivityFeed";
+import { FollowingDiscoverSidebar } from "@/components/social/FollowingDiscoverSidebar";
 import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
 import { SwipeMarketCard } from "@/components/SwipeMarketCard";
 import { AppButton, EmptyState, ErrorBanner } from "@/components/ui";
@@ -336,10 +337,19 @@ export default function FeedScreen() {
 
         {feedTab === "following" ? (
           <View style={styles.webFollowingContainer}>
-            <WebContentColumn variant="social" style={styles.webFollowingHeader}>
-              <View style={styles.feedTabBar}>{feedTabControl}</View>
-            </WebContentColumn>
-            <ActivityFeed scrollEnabled />
+            <View style={styles.followingSplit}>
+              <View style={styles.followingMain}>
+                <WebContentColumn variant="social" style={styles.webFollowingHeader}>
+                  <View style={styles.feedTabBar}>{feedTabControl}</View>
+                </WebContentColumn>
+                <View style={styles.followingFeedArea}>
+                  <WebContentColumn variant="social">
+                    <ActivityFeed scrollEnabled discoverPlacement="none" />
+                  </WebContentColumn>
+                </View>
+              </View>
+              <FollowingDiscoverSidebar />
+            </View>
           </View>
         ) : (
         <ScrollView
@@ -693,6 +703,18 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   webFollowingContainer: {
+    flex: 1,
+  },
+  followingSplit: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  followingMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  followingFeedArea: {
     flex: 1,
   },
   webFollowingHeader: {

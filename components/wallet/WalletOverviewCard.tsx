@@ -1,18 +1,17 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+
+import { AppText } from "@/components/ui/AppText";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface WalletOverviewCardProps {
   balanceLabel: string;
   balanceDisplay: string;
   subtitle?: string;
   onboardingLabel?: string;
-  theme: {
-    surface: string;
-    border: string;
-    text: string;
-    textSecondary: string;
-    primary: string;
-  };
+  incomingTotal?: number;
+  incomingDisplay?: string;
+  incomingSubtitle?: string;
 }
 
 export function WalletOverviewCard({
@@ -20,26 +19,45 @@ export function WalletOverviewCard({
   balanceDisplay,
   subtitle,
   onboardingLabel,
-  theme,
+  incomingTotal = 0,
+  incomingDisplay,
+  incomingSubtitle,
 }: WalletOverviewCardProps) {
+  const { theme } = useTheme();
+  const showIncoming = incomingTotal > 0 && incomingDisplay;
+
   return (
     <View style={styles.card}>
-      <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>
+      <AppText variant="caption" color="secondary" style={styles.balanceLabel}>
         {balanceLabel}
-      </Text>
-      <Text style={[styles.balanceValue, { color: theme.text }]}>
+      </AppText>
+      <AppText variant="title1" style={styles.balanceValue}>
         {balanceDisplay}
-      </Text>
+      </AppText>
       {subtitle ? (
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+        <AppText variant="bodySm" color="secondary">
           {subtitle}
-        </Text>
+        </AppText>
       ) : null}
+
+      {showIncoming ? (
+        <View style={[styles.incomingRow, { borderTopColor: theme.border }]}>
+          <View style={styles.incomingLeft}>
+            <AppText variant="caption" color="secondary">
+              {incomingSubtitle ?? "Incoming"}
+            </AppText>
+            <AppText variant="body" color="success" style={styles.incomingAmount}>
+              {incomingDisplay}
+            </AppText>
+          </View>
+        </View>
+      ) : null}
+
       {onboardingLabel ? (
-        <View style={[styles.chip, { backgroundColor: `${theme.primary}1A` }]}>
-          <Text style={[styles.chipText, { color: theme.primary }]}>
+        <View style={[styles.chip, { backgroundColor: theme.primarySoft }]}>
+          <AppText variant="caption" color="primary">
             {onboardingLabel}
-          </Text>
+          </AppText>
         </View>
       ) : null}
     </View>
@@ -49,33 +67,33 @@ export function WalletOverviewCard({
 const styles = StyleSheet.create({
   card: {
     paddingVertical: 8,
-    marginBottom: 20,
+    marginBottom: 12,
+    gap: 4,
   },
   balanceLabel: {
     textTransform: "uppercase",
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   balanceValue: {
-    fontSize: 44,
-    fontWeight: '400',
-    marginTop: 4,
-    letterSpacing: -1.5,
+    letterSpacing: -0.4,
+    fontVariant: ["tabular-nums"],
   },
-  subtitle: {
-    marginTop: 4,
-    fontSize: 13,
+  incomingRow: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  incomingLeft: {
+    gap: 2,
+  },
+  incomingAmount: {
+    fontVariant: ["tabular-nums"],
   },
   chip: {
-    marginTop: 10,
+    marginTop: 6,
     alignSelf: "flex-start",
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '400',
+    paddingVertical: 4,
   },
 });

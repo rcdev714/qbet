@@ -3,7 +3,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter, usePathname, useSegments } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -20,21 +20,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlayModeToggle } from '@/components/PlayModeToggle';
 import { UserAvatar } from '@/components/social/UserAvatar';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
-import { SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED_MAX } from '@/constants/layout';
+import { DESKTOP_SPLIT_HEADER_HEIGHT, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED_MAX } from '@/constants/layout';
 import { FontWeight } from '@/constants/typography';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNavigationLayout } from '@/contexts/NavigationLayoutContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDesktopSidebarShortcuts } from '@/hooks/useDesktopSidebarShortcuts';
+import { useGroupNavigation } from '@/hooks/useGroupNavigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { GroupSummary } from '@/types/group';
 
 const MOBILE_ICON_SIZE = Platform.OS === 'ios' ? 22 : 24;
 
-type SidebarRouteName = 'feed' | 'index' | 'wallet' | 'profile' | 'settings';
+type SidebarRouteName = 'feed' | 'groups' | 'wallet' | 'profile' | 'settings';
 
-const DESKTOP_MAIN_ROUTES: SidebarRouteName[] = ['feed', 'index', 'wallet'];
-const MOBILE_MAIN_ROUTES: SidebarRouteName[] = ['feed', 'index', 'wallet', 'profile'];
+const DESKTOP_MAIN_ROUTES: SidebarRouteName[] = ['feed', 'groups', 'wallet'];
+const MOBILE_MAIN_ROUTES: SidebarRouteName[] = ['feed', 'groups', 'wallet', 'profile'];
 
 function BrandMark({ compact }: { compact?: boolean }) {
   const { theme: colors } = useTheme();
@@ -53,7 +54,7 @@ function BrandMark({ compact }: { compact?: boolean }) {
 
 const ROUTE_ICONS: Record<SidebarRouteName, { active: IconSymbolName; inactive: IconSymbolName }> = {
   feed: { active: 'house.fill', inactive: 'house' },
-  index: { active: 'person.3.fill', inactive: 'person.3' },
+  groups: { active: 'person.3.fill', inactive: 'person.3' },
   wallet: { active: 'wallet.fill', inactive: 'wallet' },
   profile: { active: 'person.fill', inactive: 'person' },
   settings: { active: 'gearshape', inactive: 'gearshape' },
@@ -313,13 +314,15 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
   const { theme: colors } = useTheme();
   const { user } = useAuthContext();
   const router = useRouter();
+  const pathname = usePathname();
   const segments = useSegments();
+  const { openGroup } = useGroupNavigation();
   const { t } = useTranslation('tabs');
   const { sidebarCollapsed, setSidebarCollapsed } = useNavigationLayout();
   const { pinnedGroups, isAuthenticated } = useDesktopSidebarShortcuts();
   const { unreadCount } = useNotifications();
 
-  const activeGroupId = segments[0] === 'group' ? (segments as string[])[1] : undefined;
+  const activeGroupId = pathname.match(/\/groups?\/([^/?#]+)/)?.[1];
   const isDiscoverActive = segments[0] === 'discover';
   const isNotificationsActive = segments[0] === 'notifications';
 
@@ -371,7 +374,12 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
         { backgroundColor: colors.surface, borderRightColor: colors.borderSubtle },
         Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : { minHeight: '100%' },
       ]}>
-      <View style={[styles.sidebarHeader, sidebarCollapsed && styles.sidebarHeaderCollapsed]}>
+      <View
+        style={[
+          styles.sidebarHeaderBand,
+          sidebarCollapsed && styles.sidebarHeaderBandCollapsed,
+          { borderBottomColor: colors.borderSubtle },
+        ]}>
         <Pressable
           onPress={() => router.push('/feed')}
           style={(state) => {
@@ -393,12 +401,12 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
             </Text>
           ) : null}
         </Pressable>
-        {!sidebarCollapsed ? (
-          <View style={styles.sidebarModeSlot}>
-            <PlayModeToggle compact variant="sidebar" />
-          </View>
-        ) : null}
       </View>
+      {!sidebarCollapsed ? (
+        <View style={styles.sidebarModeSlot}>
+          <PlayModeToggle compact variant="sidebar" />
+        </View>
+      ) : null}
 
       <ScrollView style={styles.sidebarScroll} contentContainerStyle={styles.sidebarScrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.sidebarSection}>
@@ -432,7 +440,7 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
                   focused={activeGroupId === group.id}
                   collapsed={sidebarCollapsed}
                   subtle
-                  onPress={() => router.push(`/group/${group.id}` as any)}
+                  onPress={() => openGroup(group.id)}
                 />
               ))}
             </View>
@@ -590,7 +598,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
-    paddingTop: 16,
+    paddingTop: 0,
     paddingBottom: 14,
   },
   sidebarExpandedShell: {
@@ -610,24 +618,28 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 8,
   },
-  sidebarHeader: {
-    marginBottom: 12,
-    paddingHorizontal: 2,
+  sidebarHeaderBand: {
+    height: DESKTOP_SPLIT_HEADER_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  sidebarHeaderCollapsed: {
+  sidebarHeaderBandCollapsed: {
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    paddingTop: 0,
   },
   sidebarModeSlot: {
     marginTop: 8,
+    marginBottom: 4,
     alignSelf: 'stretch',
+    paddingHorizontal: 2,
   },
   sidebarBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     minWidth: 0,
-    minHeight: 36,
   },
   sidebarBrandRowCollapsed: {
     justifyContent: 'center',
@@ -651,7 +663,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   sidebarBrand: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: FontWeight.regular,
     letterSpacing: -0.25,
   },

@@ -8,9 +8,15 @@ import {
     type ComplianceProfile,
 } from "../services/compliance.service";
 import {
-    walletService,
-    type TransferFundsInput,
+  settlementGovernanceService,
+} from "../services/settlement-governance.service";
+import {
+  walletService,
+  type TransferFundsInput,
 } from "../services/wallet.service";
+import type {
+  PendingSettlementPayoutItem,
+} from "../lib/settlement/payout-hold-constants";
 import type { Wallet } from "../types/user";
 
 const PLAY_MODE_KEY = "@qbet_play_mode";
@@ -23,6 +29,10 @@ export function useWallet(userId?: string) {
   const [error, setError] = useState<Error | null>(null);
   const [isPlayMode, setIsPlayMode] = useState(true);
   const [lastBetTime, setLastBetTime] = useState<number>(0);
+  const [pendingIncoming, setPendingIncoming] = useState(0);
+  const [pendingIncomingItems, setPendingIncomingItems] = useState<
+    PendingSettlementPayoutItem[]
+  >([]);
   const [complianceProfile, setComplianceProfile] = useState<ComplianceProfile | null>(null);
   const [complianceLoaded, setComplianceLoaded] = useState(false);
   const complianceFetchSeq = useRef(0);
@@ -137,6 +147,27 @@ export function useWallet(userId?: string) {
     };
   }, [userId]);
 
+  const loadPendingIncoming = useCallback(async () => {
+    if (!userId || isPlayMode) {
+      setPendingIncoming(0);
+      setPendingIncomingItems([]);
+      return;
+    }
+    try {
+      const summary = await settlementGovernanceService.getPendingPayouts();
+      setPendingIncoming(summary.total);
+      setPendingIncomingItems(summary.items);
+    } catch (e) {
+      console.warn("Failed to load pending settlement payouts:", e);
+      setPendingIncoming(0);
+      setPendingIncomingItems([]);
+    }
+  }, [isPlayMode, userId]);
+
+  useEffect(() => {
+    void loadPendingIncoming();
+  }, [loadPendingIncoming, lastBetTime]);
+
   const liveBalance = wallet ? Number(wallet.balance) : 0;
   const balance = isPlayMode ? playBalance : liveBalance;
   const isVirtual = wallet?.is_virtual ?? true;
@@ -200,6 +231,7 @@ export function useWallet(userId?: string) {
     const localPlayBalance = await walletService.getPlayBalance(userId);
     setPlayBalance(localPlayBalance);
     await refreshComplianceProfile();
+    await loadPendingIncoming();
     setLoading(false);
   };
 
@@ -239,5 +271,8 @@ export function useWallet(userId?: string) {
     sendFunds,
     lastBetTime,
     notifyBetPlaced,
+    pendingIncoming,
+    pendingIncomingItems,
+    loadPendingIncoming,
   };
 }

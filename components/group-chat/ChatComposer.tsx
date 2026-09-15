@@ -1,10 +1,15 @@
 import { MentionPicker, type MentionContext } from "@/components/chat/MentionPicker";
+import { AppIconButton } from "@/components/ui/AppIconButton";
+import { AppText } from "@/components/ui/AppText";
+import { ChatMessageInput } from "@/components/ui/ChatMessageInput";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { CHAT_LIST_PADDING_X, resolveGutter } from "@/constants/layout";
+import { useIsDesktopWebNav } from "@/contexts/NavigationLayoutContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-    CHAT_MESSAGE_MAX_LENGTH,
-    getSendShortcutLabel,
-    shouldSendChatMessage,
+  CHAT_MESSAGE_MAX_LENGTH,
+  getSendShortcutLabel,
+  shouldSendChatMessage,
 } from "@/lib/chat-composer";
 import { detectMentionQuery, stripMentionTrigger } from "@/lib/mentions";
 import type { MentionEmbedPayload } from "@/types/mention";
@@ -12,13 +17,11 @@ import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -46,12 +49,15 @@ export function ChatComposer({
   onSendMention,
 }: ChatComposerProps) {
   const { theme } = useTheme();
+  const { width } = useWindowDimensions();
+  const isDesktopWebNav = useIsDesktopWebNav();
   const { t } = useTranslation("groups");
   const insets = useSafeAreaInsets();
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ElementRef<typeof ChatMessageInput>>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | undefined>(undefined);
+  const horizontalPad = isDesktopWebNav ? CHAT_LIST_PADDING_X : resolveGutter(width);
 
   const trimmed = value.trim();
   const canSend = trimmed.length > 0 && !isSending;
@@ -109,6 +115,35 @@ export function ChatComposer({
         } as Record<string, unknown>)
       : {};
 
+  const rightAction = canSend ? (
+    <AppIconButton
+      accessibilityLabel={t("chatSendA11y")}
+      onPress={() => void handleSend()}
+      icon={
+        isSending ? (
+          <ActivityIndicator size="small" color={theme.onPrimary} />
+        ) : (
+          <IconSymbol name="paperplane.fill" size={20} color={theme.onPrimary} />
+        )
+      }
+      style={{ backgroundColor: theme.primary, borderRadius: theme.radius.pill }}
+    />
+  ) : (
+    <AppIconButton
+      accessibilityLabel={t("chatAttachA11y")}
+      onPress={onAttachPress}
+      disabled={isUploadingImage}
+      icon={
+        isUploadingImage ? (
+          <ActivityIndicator size="small" color={theme.primary} />
+        ) : (
+          <IconSymbol name="mic.fill" size={20} color={theme.textSecondary} />
+        )
+      }
+      variant="ghost"
+    />
+  );
+
   return (
     <View style={styles.composerStack}>
       {mentionState?.active && mentionContext && onSendMention ? (
@@ -121,130 +156,88 @@ export function ChatComposer({
         />
       ) : null}
 
+      {showCharCount ? (
+        <View style={[styles.charCountRow, { paddingHorizontal: horizontalPad }]}>
+          <AppText
+            variant="caption"
+            color={value.length >= maxLength ? "destructive" : "secondary"}
+          >
+            {value.length}/{maxLength}
+          </AppText>
+        </View>
+      ) : null}
+
       <View
         style={[
           styles.container,
-          theme.elevation("sm"),
           {
             backgroundColor: theme.surface,
             borderTopColor: theme.border,
-            paddingBottom: Math.max(insets.bottom, theme.spacing.sm),
+            paddingHorizontal: horizontalPad,
+            paddingTop: 12,
+            paddingBottom: Math.max(insets.bottom, 12),
           },
         ]}
       >
-        <TouchableOpacity
-          style={[styles.attachButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
-          onPress={onAttachPress}
-          accessibilityRole="button"
+        <AppIconButton
           accessibilityLabel={t("chatAttachA11y")}
           accessibilityHint={t("chatAttachHint")}
-        >
-          {isUploadingImage ? (
-            <ActivityIndicator size="small" color={theme.primary} />
-          ) : (
-            <IconSymbol name="plus.circle" size={26} color={theme.primary} />
-          )}
-        </TouchableOpacity>
+          onPress={onAttachPress}
+          disabled={isUploadingImage}
+          icon={
+            isUploadingImage ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <IconSymbol name="plus" size={22} color={theme.primary} />
+            )
+          }
+          variant="ghost"
+        />
 
-        <View style={styles.inputColumn}>
-          <View
-            style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: theme.input,
-                borderColor: isFocused ? theme.primary : theme.border,
-                borderRadius: theme.radius.pill,
-              },
-            ]}
-          >
-            <TextInput
-              ref={inputRef}
-              style={[styles.input, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text", outlineStyle: "none" } as any)]}
-              placeholder={resolvedPlaceholder}
-              placeholderTextColor={theme.textSecondary}
-              value={value}
-              onChangeText={onChangeText}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onSelectionChange={(event) => {
-                setSelectionStart(event.nativeEvent.selection.start);
-              }}
-              multiline
-              maxLength={maxLength}
-              textAlignVertical="top"
-              blurOnSubmit={false}
-              editable={!isSending}
-              accessibilityLabel={t("chatInputA11y")}
-              accessibilityHint={
-                Platform.OS === "web"
-                  ? t("chatInputHintWeb", { shortcut: sendShortcut })
-                  : t("chatInputHintNative")
-              }
-              {...webInputProps}
-            />
-            {value.length > 0 && !isSending && (
-              <TouchableOpacity
-                style={[styles.clearButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
-                onPress={() => onChangeText("")}
-                accessibilityRole="button"
-                accessibilityLabel={t("chatClearA11y")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <IconSymbol name="xmark.circle.fill" size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {(isFocused || showCharCount) && (
-            <View style={styles.inputMeta}>
-              {isFocused && Platform.OS === "web" && sendShortcut ? (
-                <Text style={[styles.shortcutHint, { color: theme.textSecondary }]}>
-                  {t("chatShortcutHint", { shortcut: sendShortcut })}
-                </Text>
-              ) : (
-                <View />
-              )}
-              {showCharCount && (
-                <Text
-                  style={[
-                    styles.charCount,
-                    {
-                      color: value.length >= maxLength ? theme.error : theme.textSecondary,
-                    },
-                  ]}
-                >
-                  {value.length}/{maxLength}
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        <TouchableOpacity
+        <View
           style={[
-            styles.sendButton,
+            styles.inputWrapper,
             {
-              backgroundColor: canSend ? theme.primary : theme.input,
+              backgroundColor: theme.input,
+              borderColor: isFocused ? theme.primary : "transparent",
               borderRadius: theme.radius.pill,
             },
-            Platform.OS === "web" && ({ cursor: canSend ? "pointer" : "default" } as any),
           ]}
-          onPress={() => void handleSend()}
-          disabled={!canSend}
-          accessibilityRole="button"
-          accessibilityLabel={t("chatSendA11y")}
         >
-          {isSending ? (
-            <ActivityIndicator size="small" color={theme.onPrimary} />
-          ) : (
-            <IconSymbol
-              name="paperplane.fill"
-              size={18}
-              color={canSend ? theme.onPrimary : theme.textSecondary}
-            />
-          )}
-        </TouchableOpacity>
+          <ChatMessageInput
+            ref={inputRef}
+            placeholder={resolvedPlaceholder}
+            placeholderTextColor={theme.textSecondary}
+            value={value}
+            onChangeText={onChangeText}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onSelectionChange={(event) => {
+              setSelectionStart(event.nativeEvent.selection.start);
+            }}
+            multiline
+            maxLength={maxLength}
+            textAlignVertical="center"
+            blurOnSubmit={false}
+            editable={!isSending}
+            accessibilityLabel={t("chatInputA11y")}
+            accessibilityHint={
+              Platform.OS === "web"
+                ? t("chatInputHintWeb", { shortcut: sendShortcut })
+                : t("chatInputHintNative")
+            }
+            {...webInputProps}
+          />
+        </View>
+
+        {rightAction}
       </View>
+
+      {isFocused && Platform.OS === "web" && sendShortcut ? (
+        <AppText variant="caption" color="secondary" style={[styles.shortcutHint, { paddingHorizontal: horizontalPad }]}>
+          {t("chatShortcutHint", { shortcut: sendShortcut })}
+        </AppText>
+      ) : null}
     </View>
   );
 }
@@ -255,69 +248,27 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 6,
-  },
-  attachButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 2,
-  },
-  inputColumn: {
-    flex: 1,
-    minWidth: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
   inputWrapper: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingLeft: 14,
-    paddingRight: 6,
+    alignItems: "center",
+    paddingHorizontal: 14,
     paddingVertical: Platform.OS === "ios" ? 10 : 8,
     maxHeight: 140,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    maxHeight: 112,
-    lineHeight: 21,
-    paddingTop: 0,
-    paddingBottom: 0,
-  },
-  clearButton: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Platform.OS === "ios" ? 0 : 1,
-  },
-  inputMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 6,
+  charCountRow: {
+    alignItems: "flex-end",
     paddingTop: 4,
-    minHeight: 16,
+    paddingBottom: 2,
   },
   shortcutHint: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
-  charCount: {
-    fontSize: 11,
-    fontWeight: "500",
-    marginLeft: "auto",
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 2,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
 });

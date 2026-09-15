@@ -1,4 +1,5 @@
 import { createDebugLogger } from "../lib/debug-log";
+import { BET_WITH_MARKET_AND_OPTION_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import type { Bet } from "../types/market";
 import type { BetContractPipelineResult } from "./betContract.service";
@@ -381,7 +382,7 @@ export const betService = {
 
       const { data: bets, error } = await supabase
         .from("bets")
-        .select("*, markets(*), options(*)")
+        .select(BET_WITH_MARKET_AND_OPTION_SELECT)
         .eq("user_id", targetUserId)
         .order("placed_at", { ascending: false });
 

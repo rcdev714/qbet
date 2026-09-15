@@ -70,6 +70,7 @@ supabase functions deploy create-account-link
 supabase functions deploy create-connect-account
 supabase functions deploy onboarding-callback
 supabase functions deploy update-connect-account
+supabase functions deploy create-payout-setup
 supabase functions deploy payout
 supabase functions deploy send-beta-approval-email
 

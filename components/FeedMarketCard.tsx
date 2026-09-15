@@ -1,5 +1,7 @@
 import { MarketProbabilityChart } from "@/components/MarketProbabilityChart";
+import { AppButton, AppIconButton, AppInput, AppText } from "@/components/ui";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ACTIVE_OPACITY } from "@/constants/motion";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -23,8 +25,6 @@ import {
     Dimensions,
     Platform,
     StyleSheet,
-    Text,
-    TextInput,
     TouchableOpacity,
     View,
     useWindowDimensions
@@ -331,34 +331,51 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
     return count.toString();
   };
 
+  const onDarkSurface = theme.surface;
+  const onDarkText = theme.onPrimary;
+  const onDarkMuted = theme.textSecondary;
+  const yesAccent = isPlayMode ? theme.primary : theme.success;
+
   return (
     <TouchableOpacity
       activeOpacity={0.98}
       onPress={handlePress}
-      style={[styles.container, { backgroundColor: '#000', width: cardWidth }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.background,
+          width: cardWidth,
+          borderRadius: Platform.OS === 'web' ? theme.radius.md : 0,
+        },
+      ]}
     >
-      {/* Top Controls Overlay */}
       <View style={[styles.topControls, { top: insets.top + 60 }]}>
         <View style={styles.badgeContainer}>
-             <View style={[styles.badge, styles.liveBadge]}>
-                <View style={styles.liveDot} />
-                <Text style={styles.badgeText}>LIVE</Text>
+             <View style={[styles.badge, styles.liveBadge, { borderRadius: theme.radius.pill, backgroundColor: theme.destructive }]}>
+                <View style={[styles.liveDot, { borderRadius: theme.radius.pill, backgroundColor: theme.onPrimary }]} />
+                <AppText variant="caption" color="onPrimary" style={{ letterSpacing: 0.3 }}>LIVE</AppText>
              </View>
-             
-             <View style={[styles.badge, styles.glassBadge, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)' }]}>
-               <IconSymbol name="clock" size={10} color={isDark ? "#fff" : "#000"} />
-               <Text style={[styles.badgeText, { color: isDark ? "#fff" : "#000" }]}>{timeLeft}</Text>
+
+             <View style={[styles.badge, styles.glassBadge, {
+               backgroundColor: isDark ? theme.overlay : theme.surface,
+               borderRadius: theme.radius.pill,
+             }]}>
+               <IconSymbol name="clock" size={10} color={isDark ? onDarkText : theme.text} />
+               <AppText variant="caption" style={{ color: isDark ? onDarkText : theme.text, letterSpacing: 0.3 }}>
+                 {timeLeft}
+               </AppText>
              </View>
         </View>
 
         {isAdmin && (
-          <TouchableOpacity 
-            style={styles.iconButton}
+          <AppIconButton
+            accessibilityLabel="Remove market from feed"
+            variant="onDark"
             onPress={handleRemove}
             disabled={removing}
-          >
-             <IconSymbol name="trash" size={16} color="#fff" />
-          </TouchableOpacity>
+            loading={removing}
+            icon={<IconSymbol name="trash" size={16} color={onDarkText} />}
+          />
         )}
       </View>
 
@@ -372,13 +389,13 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
             transition={300}
           />
         ) : (
-          <View style={[styles.placeholderImage, { backgroundColor: '#1A1A1A' }]}>
-            <IconSymbol name="chart.bar.fill" size={40} color="#333" />
+          <View style={[styles.placeholderImage, { backgroundColor: theme.borderSubtle }]}>
+            <IconSymbol name="chart.bar.fill" size={40} color={theme.textSecondary} />
           </View>
         )}
-        
+
         <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
+            colors={['transparent', theme.overlay, theme.background]}
             style={styles.gradientOverlay}
         />
       </View>
@@ -390,28 +407,35 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
          {/* Bottom Content Area */}
          <View style={styles.bottomContent}>
             <View style={styles.metadataRow}>
-                <View style={[styles.metadataContainer, { backgroundColor: isDark ? 'rgba(30,30,30,0.65)' : 'rgba(255,255,255,0.9)' }]}>
-                    <Text style={[styles.categoryText, { color: isDark ? "#fff" : "#000" }]}>{market.category || "General"}</Text>
-                    
+                <View style={[styles.metadataContainer, {
+                  backgroundColor: isDark ? theme.overlay : theme.surface,
+                  borderRadius: theme.radius.pill,
+                }]}>
+                    <AppText variant="caption" style={{ color: isDark ? onDarkText : theme.text, letterSpacing: 0.3 }}>
+                      {market.category || "General"}
+                    </AppText>
+
                     {stats && (
                         <View style={styles.statRow}>
-                            <View style={[styles.divider, { backgroundColor: isDark ? "#666" : "#999" }]} />
-                            <IconSymbol name="dollarsign.circle.fill" size={14} color={isDark ? "#fff" : "#000"} />
-                            <Text style={[styles.statText, { color: isDark ? "#fff" : "#000" }]}>${stats.totalPool.toLocaleString()}</Text>
+                            <View style={[styles.divider, { backgroundColor: theme.textSecondary, borderRadius: theme.radius.pill }]} />
+                            <IconSymbol name="dollarsign.circle.fill" size={14} color={isDark ? onDarkText : theme.text} />
+                            <AppText variant="caption" style={{ color: isDark ? onDarkText : theme.text, marginLeft: 2 }}>
+                              ${stats.totalPool.toLocaleString()}
+                            </AppText>
                         </View>
                     )}
                 </View>
             </View>
 
-            <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-                <Text style={styles.question} numberOfLines={3}>
+            <TouchableOpacity onPress={handlePress} activeOpacity={ACTIVE_OPACITY}>
+                <AppText variant="title1" color="onPrimary" numberOfLines={3} style={styles.question}>
                 {market.question}
-                </Text>
+                </AppText>
             </TouchableOpacity>
 
         {/* Probability Chart - Show for binary markets */}
         {stats && isBinaryMarket(market, stats.optionStats) && (
-          <View style={styles.chartContainer}>
+          <View style={[styles.chartContainer, { borderRadius: theme.radius.md, backgroundColor: theme.overlay }]}>
             <MarketProbabilityChart
               marketId={market.id}
               options={stats.optionStats.map(o => ({ id: o.optionId, label: o.label }))}
@@ -423,30 +447,36 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
         )}
 
         {/* Polymarket-style Trading Bar */}
-        <View style={styles.tradingBar}>
+        <View style={[styles.tradingBar, { borderRadius: theme.radius.lg, backgroundColor: theme.overlay, borderColor: theme.borderSubtle }]}>
             <View style={styles.inputSection}>
-                <View style={styles.customAmountContainer}>
-                    <Text style={styles.dollarSign}>$</Text>
-                    <TextInput
-                        style={styles.amountInput}
+                <View style={[styles.customAmountContainer, { borderRadius: theme.radius.md, borderColor: theme.borderSubtle }]}>
+                    <AppText variant="body" color="secondary">$</AppText>
+                    <AppInput
+                        variant="onDark"
                         placeholder="0"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
                         value={previewAmount}
                         onChangeText={setPreviewAmount}
                         keyboardType="numeric"
                         maxLength={6}
+                        style={{ flex: 1, borderWidth: 0, backgroundColor: 'transparent', minHeight: 32, paddingVertical: 0 }}
                     />
                 </View>
-                
+
                 <View style={styles.quickAmounts}>
                     {[10, 25, 50].map(amt => (
-                        <TouchableOpacity 
-                            key={amt} 
-                            style={styles.quickChip}
+                        <AppButton
+                            key={amt}
+                            title={`$${amt}`}
+                            variant="ghost"
+                            size="sm"
                             onPress={() => handleQuickAmountSelect(amt)}
-                        >
-                            <Text style={styles.quickChipText}>${amt}</Text>
-                        </TouchableOpacity>
+                            style={{
+                              paddingHorizontal: 12,
+                              minHeight: 36,
+                              backgroundColor: theme.borderSubtle,
+                              borderColor: theme.borderSubtle,
+                            }}
+                        />
                     ))}
                 </View>
             </View>
@@ -466,12 +496,12 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
 
                               return (
                                 <View style={{ flexDirection: 'row', gap: 16 }}>
-                                  <Text style={styles.previewText}>
-                                    Yes: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '400', fontSize: 18 }}>{formatCurrency(yesPayout)}</Text>
-                                  </Text>
-                                  <Text style={styles.previewText}>
-                                    No: <Text style={{ color: '#F87171', fontWeight: '400', fontSize: 18 }}>{formatCurrency(noPayout)}</Text>
-                                  </Text>
+                                  <AppText variant="caption" color="secondary">
+                                    Yes: <AppText variant="title2" style={{ color: yesAccent }}>{formatCurrency(yesPayout)}</AppText>
+                                  </AppText>
+                                  <AppText variant="caption" color="secondary">
+                                    No: <AppText variant="title2" style={{ color: theme.marketNo }}>{formatCurrency(noPayout)}</AppText>
+                                  </AppText>
                                 </View>
                               );
                         }
@@ -484,9 +514,9 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
 
                         return (
                             <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
-                                <Text style={styles.previewText}>
-                                    Est. Payout: <Text style={{ color: isPlayMode ? theme.primary : theme.success, fontWeight: '400', fontSize: 18 }}>{formatCurrency(payout)}</Text>
-                                </Text>
+                                <AppText variant="caption" color="secondary">
+                                    Est. Payout: <AppText variant="title2" style={{ color: yesAccent }}>{formatCurrency(payout)}</AppText>
+                                </AppText>
                             </View>
                         );
                     })()}
@@ -506,23 +536,18 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                       
                           return (
                             <>
-                              <TouchableOpacity 
-                                style={[
-                                  styles.actionButton, 
-                                  { 
-                                    backgroundColor: isPlayMode ? theme.primary : theme.success, 
-                                    borderColor: isPlayMode ? theme.primary : theme.success, 
-                                    borderWidth: 1 
-                                  }
-                                ]}
+                              <AppButton
+                                title={`Yes ${yesPrice}¢`}
+                                variant="primary"
+                                size="sm"
                                 onPress={() => {
                                   if (yesOpt) {
                                     Haptics.selectionAsync();
                                     const amount = previewAmount ? parseFloat(previewAmount) : undefined;
                                     router.push({
                                       pathname: "/market/[id]",
-                                      params: { 
-                                        id: market.id, 
+                                      params: {
+                                        id: market.id,
                                         optionId: yesOpt.optionId,
                                         side: "yes",
                                         ...(amount && !isNaN(amount) && amount > 0 ? { previewAmount: amount.toString() } : {})
@@ -530,19 +555,24 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                                     });
                                   }
                                 }}
-                              >
-                                <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>Yes {yesPrice}¢</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity 
-                                style={[styles.actionButton, { backgroundColor: '#F87171' }]}
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: yesAccent,
+                                  borderColor: yesAccent,
+                                }}
+                              />
+                              <AppButton
+                                title={`No ${noPrice}¢`}
+                                variant="destructive"
+                                size="sm"
                                 onPress={() => {
                                   if (noOpt) {
                                     Haptics.selectionAsync();
                                     const amount = previewAmount ? parseFloat(previewAmount) : undefined;
                                     router.push({
                                       pathname: "/market/[id]",
-                                      params: { 
-                                        id: market.id, 
+                                      params: {
+                                        id: market.id,
                                         optionId: noOpt.optionId,
                                         side: "yes",
                                         ...(amount && !isNaN(amount) && amount > 0 ? { previewAmount: amount.toString() } : {})
@@ -550,9 +580,8 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                                     });
                                   }
                                 }}
-                              >
-                                <Text style={[styles.actionButtonText, { color: '#fff' }]}>No {noPrice}¢</Text>
-                              </TouchableOpacity>
+                                style={{ flex: 1, backgroundColor: theme.marketNo, borderColor: theme.marketNo }}
+                              />
                             </>
                           );
                     }
@@ -563,20 +592,17 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                     const yesPrice = opt ? Math.round(opt.yesPrice * 100) : 50;
                     
                     return (
-                        <TouchableOpacity 
-                           style={[
-                             styles.actionButton, 
-                             { 
-                               backgroundColor: isPlayMode ? theme.primary : theme.success, 
-                               borderColor: isPlayMode ? theme.primary : theme.success, 
-                               borderWidth: 1, 
-                               flex: 1 
-                             }
-                           ]}
+                        <AppButton
+                           title={`Bet ${opt?.label || 'Option'} ${yesPrice}¢`}
+                           variant="primary"
+                           size="sm"
                            onPress={() => handleTrade("yes")}
-                        >
-                           <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>Bet {opt?.label || 'Option'} {yesPrice}¢</Text>
-                        </TouchableOpacity>
+                           style={{
+                             flex: 1,
+                             backgroundColor: yesAccent,
+                             borderColor: yesAccent,
+                           }}
+                        />
                     );
                  })()}
             </View>
@@ -595,34 +621,36 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
                   style={[
                     styles.optionRow,
                     isSelected && styles.optionRowSelected,
-                    { 
-                        backgroundColor: isDark ? (isSelected ? 'rgba(30, 30, 30, 0.9)' : 'rgba(20, 20, 20, 0.85)') : (isSelected ? '#F0F9FF' : '#ffffff'),
-                        borderColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')
+                    {
+                        backgroundColor: isDark
+                          ? (isSelected ? theme.surface : theme.overlay)
+                          : (isSelected ? theme.primarySoft : theme.surface),
+                        borderColor: isSelected ? accentColor : theme.borderSubtle,
+                        borderRadius: theme.radius.md,
                     }
                   ]}
                   onPress={() => {
                     setSelectedOptionId(opt.optionId);
                     Haptics.selectionAsync();
                   }}
-                  activeOpacity={0.8}
+                  activeOpacity={ACTIVE_OPACITY}
                 >
-                  {/* Probability Bar */}
                   <View style={[
-                      styles.optionBar, 
-                      { 
-                          width: `${opt.percentage}%`, 
+                      styles.optionBar,
+                      {
+                          width: `${opt.percentage}%`,
                           backgroundColor: accentColor,
-                          opacity: 0.1 // Further reduced opacity
+                          opacity: 0.1
                       }
                   ]} />
-                  
+
                   <View style={styles.optionContent}>
-                      <Text style={[styles.optionLabel, { color: isDark ? '#fff' : '#1A1A1A', fontWeight: '400' }]} numberOfLines={1}>
+                      <AppText variant="bodySm" style={{ color: isDark ? theme.onPrimary : theme.text, flex: 1, marginRight: 8 }} numberOfLines={1}>
                         {opt.label}
-                      </Text>
-                      <Text style={[styles.optionPercent, { color: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'), fontWeight: '400' }]}>
+                      </AppText>
+                      <AppText variant="bodySm" style={{ color: isSelected ? accentColor : onDarkMuted }}>
                         {Math.round(opt.percentage)}%
-                      </Text>
+                      </AppText>
                   </View>
                 </TouchableOpacity>
               );
@@ -630,7 +658,7 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
           </View>
         ) : !stats ? (
             <View style={{ height: 100, justifyContent: 'center' }}>
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.onPrimary} />
             </View>
         ) : null}
 
@@ -639,33 +667,37 @@ export function FeedMarketCard({ market, isVisible = true }: FeedMarketCardProps
           <TouchableOpacity
             style={styles.socialButton}
             onPress={handleLike}
-            activeOpacity={0.7}
+            activeOpacity={ACTIVE_OPACITY}
             disabled={isLiking}
           >
             <IconSymbol
               name={isLiked ? "heart.fill" : "heart"}
               size={20}
-              color={isLiked ? "#FF3B58" : "#fff"}
+              color={isLiked ? theme.destructive : theme.onPrimary}
             />
-            <Text style={styles.socialCount}>{formatCount(likeCount)}</Text>
+            <AppText variant="caption" color="onPrimary" style={styles.socialCountShadow}>
+              {formatCount(likeCount)}
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.socialButton}
             onPress={handleComment}
-            activeOpacity={0.7}
+            activeOpacity={ACTIVE_OPACITY}
           >
-            <IconSymbol name="bubble.left.fill" size={18} color="#fff" />
-            <Text style={styles.socialCount}>{formatCount(commentCount)}</Text>
+            <IconSymbol name="bubble.left.fill" size={18} color={theme.onPrimary} />
+            <AppText variant="caption" color="onPrimary" style={styles.socialCountShadow}>
+              {formatCount(commentCount)}
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.socialButton}
             onPress={handleShare}
-            activeOpacity={0.7}
+            activeOpacity={ACTIVE_OPACITY}
           >
-            <IconSymbol name="arrowshape.turn.up.right.fill" size={18} color="#fff" />
-            <Text style={styles.socialCount}>Share</Text>
+            <IconSymbol name="arrowshape.turn.up.right.fill" size={18} color={theme.onPrimary} />
+            <AppText variant="caption" color="onPrimary" style={styles.socialCountShadow}>Share</AppText>
           </TouchableOpacity>
         </View>
         </View>
@@ -698,10 +730,8 @@ const styles = StyleSheet.create({
     height: Platform.OS === 'web' ? undefined : CARD_HEIGHT,
     aspectRatio: Platform.OS === 'web' ? 9/16 : undefined,
     position: 'relative',
-    backgroundColor: '#000',
     overflow: 'hidden',
-    alignSelf: 'center', // Center on web
-    borderRadius: Platform.OS === 'web' ? 12 : 0,
+    alignSelf: 'center',
     marginTop: Platform.OS === 'web' ? 16 : 0,
   },
   topControls: {
@@ -722,38 +752,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 16,
     gap: 4,
   },
   glassBadge: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  liveBadge: {
-    backgroundColor: '#FF3B30',
-  },
+  liveBadge: {},
   liveDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: '#fff',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '400',
-    letterSpacing: 0.3,
-  },
-  iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   imageContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -763,7 +771,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#000',
     opacity: 1,
   },
   placeholderImage: {
@@ -796,10 +803,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  socialCount: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '400',
+  socialCountShadow: {
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
@@ -816,54 +820,32 @@ const styles = StyleSheet.create({
   metadataContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(30,30,30,0.65)',
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 100,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-  },
-  categoryText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.3,
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  statText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '400',
-    marginLeft: 2,
-  },
   divider: {
     width: 3,
     height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#666',
     marginHorizontal: 3,
   },
   question: {
-    fontSize: 22,
-    fontWeight: '400',
-    color: '#fff',
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
-    lineHeight: 28,
-    paddingRight: 60, // Make room for right icons if needed, though they are higher up
+    paddingRight: 60,
   },
   chartContainer: {
     width: '100%',
     marginTop: 12,
     marginBottom: 8,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 12,
     padding: 12,
     paddingBottom: 8,
   },
@@ -876,7 +858,6 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
     overflow: 'hidden',
     height: 44,
     borderWidth: 1,
@@ -898,22 +879,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
   },
-  optionLabel: {
-    fontSize: 14,
-    flex: 1,
-    marginRight: 8,
-  },
-  optionPercent: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
   tradingBar: {
     width: '100%',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     gap: 12
   },
   inputSection: {
@@ -925,68 +894,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
     width: 100,
-  },
-  dollarSign: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 16,
-    fontWeight: '400',
-    marginRight: 4,
-  },
-  amountInput: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '400',
-    flex: 1,
-    padding: 0,
   },
   quickAmounts: {
     flexDirection: 'row',
     gap: 8,
-  },
-  quickChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  quickChipText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontWeight: '400',
   },
   predictionPreview: {
       flexDirection: 'row',
       justifyContent: 'center',
       paddingVertical: 4
   },
-  previewText: {
-      color: 'rgba(255,255,255,0.7)',
-      fontSize: 12
-  },
   actionButtons: {
       flexDirection: 'row',
       gap: 12
-  },
-  actionButton: {
-      flex: 1,
-      height: 44,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 8
-  },
-  actionButtonText: {
-      color: '#000',
-      fontSize: 15,
-      fontWeight: '400'
   },
 });

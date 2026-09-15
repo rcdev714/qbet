@@ -1,0 +1,17 @@
+-- Settlement payout holds: manual verification script
+-- Run against local Supabase after migration 20260704160000_settlement_payout_holds.sql
+--
+-- Expected flow:
+-- 1. Resolve a private group market with live (is_play_mode=false) winning bets
+-- 2. settlement_payout_holds rows created; wallets.balance unchanged
+-- 3. transactions bet_won status=pending with metadata.pending_settlement=true
+-- 4. markets.payout_status=pending_release, payout_release_at ~ now()+72h
+-- 5. select release_due_settlement_payouts() after payout_release_at passes (or call release_market_payouts(id, true) as admin)
+-- 6. wallets credited; holds status=released; transactions status=completed
+
+-- Example checks (replace UUIDs):
+-- select payout_status, payout_release_at, settlement_override_status from markets where id = '<market_id>';
+-- select status, amount, transaction_id from settlement_payout_holds where market_id = '<market_id>';
+-- select balance from wallets where user_id = '<winner_id>';
+-- select type, status, amount, metadata from transactions where user_id = '<winner_id>' order by created_at desc limit 5;
+-- select get_pending_settlement_payouts();

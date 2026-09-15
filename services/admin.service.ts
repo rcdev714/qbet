@@ -365,7 +365,7 @@ export const adminService = {
             // Get active bets for open markets
             const { data: activeBets } = await supabase
                 .from("bets")
-                .select("user_id, market_id, option_id, markets!inner(status)")
+                .select("user_id, market_id, option_id, markets!bets_market_id_fkey!inner(status)")
                 .eq("is_play_mode", false) // Real money only
                 .eq("markets.status", "open");
 

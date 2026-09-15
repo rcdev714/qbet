@@ -26,7 +26,16 @@ export const SIDEBAR_WIDTH_EXPANDED_MAX = 260;
 export const SIDEBAR_WIDTH_COLLAPSED = 84;
 export const MOBILE_TAB_BAR_HEIGHT = 84;
 export const HEADER_HEIGHT = 56;
+/** Fixed height for aligned chrome across sidebar, groups list, and detail panes on desktop web */
+export const DESKTOP_SPLIT_HEADER_HEIGHT = 64;
+/** Chat feed inset below tab bar */
+export const CHAT_LIST_PADDING_TOP = 24;
+export const CHAT_LIST_PADDING_X = 20;
 export const ADMIN_SIDEBAR_WIDTH = 220;
+/** WhatsApp-style groups list column on desktop web */
+export const GROUPS_LIST_PANE_WIDTH = 360;
+/** Instagram-style discover rail on desktop Following tab */
+export const DISCOVER_PANE_WIDTH = 320;
 
 /** Horizontal page padding */
 export const GUTTER_MOBILE = 16;

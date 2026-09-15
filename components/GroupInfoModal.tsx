@@ -1,21 +1,20 @@
+import { AppButton, AppInput, AppListRow, AppText } from "@/components/ui";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useTheme } from "../contexts/ThemeContext";
-import { groupService } from "../services/group.service";
+import { useTheme } from "@/contexts/ThemeContext";
+import { groupService } from "@/services/group.service";
 
 interface GroupInfoModalProps {
   visible: boolean;
@@ -44,9 +43,9 @@ export function GroupInfoModal({
   onInvite,
   onLeave,
   onDelete,
-  shareCode
+  shareCode,
 }: GroupInfoModalProps) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const [inviteEmail, setInviteEmail] = useState("");
   const [sendingInvite, setSendingInvite] = useState(false);
 
@@ -73,132 +72,173 @@ export function GroupInfoModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: theme.surface }]}>
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={styles.safeArea}>
           <ModalHeader title="Group Info" onClose={onClose} closeLabel="Done" />
 
           <ScrollView contentContainerStyle={styles.content}>
-            {/* Header Section */}
             <View style={styles.groupHeader}>
-              <TouchableOpacity onPress={onEditImage} disabled={!isAdmin} activeOpacity={isAdmin ? 0.7 : 1} style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={isAdmin ? "Change group photo" : undefined}
+                onPress={onEditImage}
+                disabled={!isAdmin}
+                activeOpacity={isAdmin ? 0.7 : 1}
+                style={styles.avatarWrap}
+              >
                 {group.avatar_url ? (
                   <Image
                     source={{ uri: group.avatar_url }}
-                    style={styles.avatar}
+                    style={[styles.avatar, { borderRadius: theme.radius.pill }]}
                     contentFit="cover"
                   />
                 ) : (
-                  <View style={[styles.avatar, { backgroundColor: theme.primary + "20", alignItems: 'center', justifyContent: 'center' }]}>
-                    <Text style={{ fontSize: 40, fontWeight: '400', color: theme.primary }}>
+                  <View
+                    style={[
+                      styles.avatar,
+                      {
+                        backgroundColor: theme.primarySoft,
+                        borderRadius: theme.radius.pill,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                    ]}
+                  >
+                    <AppText variant="display" color="primary">
                       {group.name?.[0]?.toUpperCase() || "G"}
-                    </Text>
+                    </AppText>
                   </View>
                 )}
-                {isAdmin && (
-                  <View style={[styles.editBadge, { backgroundColor: theme.primary }]}>
-                    <Ionicons name="camera" size={12} color="#fff" />
+                {isAdmin ? (
+                  <View
+                    style={[
+                      styles.editBadge,
+                      {
+                        backgroundColor: theme.primary,
+                        borderRadius: theme.radius.pill,
+                        borderColor: theme.onPrimary,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="camera" size={12} color={theme.onPrimary} />
                   </View>
-                )}
+                ) : null}
               </TouchableOpacity>
-              
-              <TouchableOpacity onPress={onEditName} disabled={!isAdmin} style={styles.titleRow}>
-                 <Text style={[styles.groupName, { color: theme.text }]}>{group.name}</Text>
-                 {isAdmin && <Ionicons name="pencil" size={16} color={theme.textSecondary} style={{marginLeft: 8}} />}
+
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={onEditName}
+                disabled={!isAdmin}
+                style={styles.titleRow}
+              >
+                <AppText variant="title1">{group.name}</AppText>
+                {isAdmin ? (
+                  <Ionicons name="pencil" size={16} color={theme.textSecondary} style={styles.editIcon} />
+                ) : null}
               </TouchableOpacity>
-              
-              <Text style={[styles.memberCount, { color: theme.textSecondary }]}>
+
+              <AppText variant="body" color="secondary">
                 {memberCount} {memberCount === 1 ? "Member" : "Members"}
-              </Text>
+              </AppText>
             </View>
 
-            {/* Description Section */}
-            <View style={[styles.section, { backgroundColor: theme.input }]}>
-               <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>DESCRIPTION</Text>
-                  {isAdmin && (
-                      <TouchableOpacity onPress={onEditDescription}>
-                          <Text style={[styles.editLink, { color: theme.primary }]}>Edit</Text>
-                      </TouchableOpacity>
-                  )}
-               </View>
-              <Text style={[styles.description, { color: theme.text }]}>
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.input, borderRadius: theme.radius.lg },
+              ]}
+            >
+              <View style={styles.sectionHeader}>
+                <AppText variant="label" color="secondary">
+                  Description
+                </AppText>
+                {isAdmin ? (
+                  <AppButton
+                    title="Edit"
+                    variant="ghost"
+                    size="sm"
+                    onPress={onEditDescription}
+                    style={styles.editButton}
+                  />
+                ) : null}
+              </View>
+              <AppText variant="body">
                 {group.description || "No description provided."}
-              </Text>
-              {shareCode && (
-                  <View style={{ marginTop: 16, padding: 12, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#fff', borderRadius: 8, alignItems: 'center' }}>
-                      <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 4 }}>INVITE CODE</Text>
-                      <TouchableOpacity onPress={onInvite}>
-                          <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '400', letterSpacing: 2 }}>{shareCode}</Text>
-                      </TouchableOpacity>
-                  </View>
-              )}
+              </AppText>
+
+              {shareCode ? (
+                <View
+                  style={[
+                    styles.inviteCodeBox,
+                    {
+                      backgroundColor: theme.surface,
+                      borderRadius: theme.radius.sm,
+                    },
+                  ]}
+                >
+                  <AppText variant="caption" color="secondary">
+                    Invite code
+                  </AppText>
+                  <Pressable accessibilityRole="button" onPress={onInvite}>
+                    <AppText variant="mono" color="primary" style={styles.inviteCode}>
+                      {shareCode}
+                    </AppText>
+                  </Pressable>
+                </View>
+              ) : null}
+
               {isAdmin ? (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 8 }}>INVITE BY EMAIL</Text>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        borderWidth: 1,
-                        borderColor: theme.border,
-                        borderRadius: 8,
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        color: theme.text,
-                        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#fff",
-                        ...(Platform.OS === "web" ? { outlineStyle: "none" } as any : {}),
-                      }}
-                      placeholder="friend@email.com"
-                      placeholderTextColor={theme.textSecondary}
-                      value={inviteEmail}
-                      onChangeText={setInviteEmail}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
+                <View style={styles.emailInviteSection}>
+                  <AppText variant="caption" color="secondary" style={styles.emailInviteLabel}>
+                    Invite by email
+                  </AppText>
+                  <View style={styles.emailInviteRow}>
+                    <View style={styles.emailInputWrap}>
+                      <AppInput
+                        placeholder="friend@email.com"
+                        value={inviteEmail}
+                        onChangeText={setInviteEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    <AppButton
+                      title="Send"
+                      size="sm"
+                      loading={sendingInvite}
                       onPress={handleEmailInvite}
-                      disabled={sendingInvite}
-                      style={{
-                        backgroundColor: theme.primary,
-                        borderRadius: 8,
-                        paddingHorizontal: 14,
-                        justifyContent: "center",
-                      }}>
-                      <Text style={{ color: "#fff", fontWeight: '400' }}>
-                        {sendingInvite ? "..." : "Send"}
-                      </Text>
-                    </TouchableOpacity>
+                      disabled={!inviteEmail.trim()}
+                    />
                   </View>
                 </View>
               ) : null}
             </View>
 
-            {/* Actions Section */}
-            <View style={[styles.section, { backgroundColor: theme.input, padding: 0, overflow: 'hidden' }]}>
-                <TouchableOpacity style={[styles.actionRow, { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth }]} onPress={onInvite}>
-                    <View style={styles.actionIcon}>
-                        <Ionicons name="share-outline" size={20} color={theme.primary} />
-                    </View>
-                    <Text style={[styles.actionText, { color: theme.primary }]}>Invite Members</Text>
-                </TouchableOpacity>
-
-                 {/* Leave / Delete */}
-                 {isAdmin ? (
-                    <TouchableOpacity style={styles.actionRow} onPress={onDelete}>
-                        <View style={styles.actionIcon}>
-                            <Ionicons name="trash-outline" size={20} color={theme.error} />
-                        </View>
-                        <Text style={[styles.actionText, { color: theme.error }]}>Delete Group</Text>
-                    </TouchableOpacity>
-                 ) : (
-                    <TouchableOpacity style={styles.actionRow} onPress={onLeave}>
-                        <View style={styles.actionIcon}>
-                            <Ionicons name="log-out-outline" size={20} color={theme.error} />
-                        </View>
-                        <Text style={[styles.actionText, { color: theme.error }]}>Leave Group</Text>
-                    </TouchableOpacity>
-                 )}
+            <View
+              style={[
+                styles.section,
+                styles.actionsSection,
+                { backgroundColor: theme.input, borderRadius: theme.radius.lg },
+              ]}
+            >
+              <AppListRow
+                title="Invite Members"
+                leading={<Ionicons name="share-outline" size={20} color={theme.primary} />}
+                onPress={onInvite}
+              />
+              {isAdmin ? (
+                <AppListRow
+                  title="Delete Group"
+                  leading={<Ionicons name="trash-outline" size={20} color={theme.error} />}
+                  onPress={onDelete}
+                />
+              ) : (
+                <AppListRow
+                  title="Leave Group"
+                  leading={<Ionicons name="log-out-outline" size={20} color={theme.error} />}
+                  onPress={onLeave}
+                />
+              )}
             </View>
-
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -210,101 +250,85 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    position: 'relative',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '400',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 12,
-  },
-  closeButtonText: {
-    fontSize: 17,
-    fontWeight: '400',
+  safeArea: {
+    flex: 1,
   },
   content: {
     padding: 24,
     paddingBottom: 40,
   },
   groupHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 32,
+  },
+  avatarWrap: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
     marginBottom: 16,
   },
   editBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     right: 0,
     width: 28,
     height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#fff',
   },
   titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
   },
-  groupName: {
-    fontSize: 22,
-    fontWeight: '400',
-    textAlign: 'center',
-  },
-  memberCount: {
-    fontSize: 15,
+  editIcon: {
+    marginLeft: 8,
   },
   section: {
-    borderRadius: 12,
     padding: 16,
     marginBottom: 24,
   },
   sectionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '400',
-    opacity: 0.6,
+  editButton: {
+    minHeight: 32,
+    paddingHorizontal: 0,
   },
-  editLink: {
-      fontSize: 14,
-      fontWeight: '400',
+  inviteCodeBox: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: "center",
+    gap: 4,
   },
-  description: {
-    fontSize: 16,
-    lineHeight: 22,
+  inviteCode: {
+    letterSpacing: 2,
   },
-  actionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
+  emailInviteSection: {
+    marginTop: 16,
+    gap: 8,
   },
-  actionIcon: {
-      marginRight: 12,
+  emailInviteLabel: {
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  actionText: {
-      fontSize: 16,
-      fontWeight: '400',
+  emailInviteRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-start",
+  },
+  emailInputWrap: {
+    flex: 1,
+  },
+  actionsSection: {
+    padding: 0,
+    overflow: "hidden",
   },
 });

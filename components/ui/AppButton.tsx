@@ -14,7 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { AppText } from "./AppText";
 
 type AppButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
-type AppButtonSize = "sm" | "md" | "lg";
+type AppButtonSize = "xs" | "sm" | "md" | "lg";
 
 interface AppButtonProps extends TouchableOpacityProps {
   title: string;
@@ -25,8 +25,9 @@ interface AppButtonProps extends TouchableOpacityProps {
 }
 
 const SIZE_STYLES: Record<AppButtonSize, { minHeight: number; px: number }> = {
-  sm: { minHeight: 40, px: 12 },
-  md: { minHeight: 50, px: 16 },
+  xs: { minHeight: 34, px: 10 },
+  sm: { minHeight: 36, px: 12 },
+  md: { minHeight: 44, px: 16 },
   lg: { minHeight: 56, px: 20 },
 };
 
@@ -112,7 +113,10 @@ export function AppButton({
       ) : (
         <>
           {icon ? <View style={styles.iconSlot}>{icon}</View> : null}
-          <AppText variant={size === "sm" ? "label" : "body"} style={{ color: labelColor, fontWeight: "600" }}>
+          <AppText
+            variant={size === "xs" || size === "sm" ? "label" : "body"}
+            style={{ color: labelColor }}
+          >
             {title}
           </AppText>
         </>

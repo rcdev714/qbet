@@ -2253,6 +2253,7 @@ export type Database = {
       wallets: {
         Row: {
           balance: number
+          bank_details: Json | null
           country: string | null
           created_at: string
           currency: string
@@ -2271,6 +2272,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          bank_details?: Json | null
           country?: string | null
           created_at?: string
           currency?: string
@@ -2289,6 +2291,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          bank_details?: Json | null
           country?: string | null
           created_at?: string
           currency?: string

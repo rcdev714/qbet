@@ -31,6 +31,9 @@ serve(async (req: Request) => {
             state,
             postalCode,
             ssnLast4,
+            idNumber,
+            idType,
+            country,
             externalAccountToken
         } = await req.json();
 
@@ -61,7 +64,6 @@ serve(async (req: Request) => {
             });
         }
 
-        // 1. Get Wallet to find Stripe Account ID
         const { data: wallet, error: walletError } = await supabase
             .from("wallets")
             .select("stripe_account_id, country")
@@ -73,36 +75,43 @@ serve(async (req: Request) => {
         }
 
         const accountId = wallet.stripe_account_id;
-        const addressCountry = (wallet.country || "US").toUpperCase();
+        const addressCountry = (country || wallet.country || "US").toUpperCase();
+        const isEcuador = addressCountry === "EC";
+        const resolvedSsn = ssnLast4 ?? (idType === "ssn" ? idNumber : undefined);
 
         console.log(`Updating account ${accountId} with KYC data...`);
 
-        // 2. Update Stripe Account with PII (KYC)
-        await stripe.accounts.update(accountId, {
-            individual: {
-                first_name: firstName,
-                last_name: lastName,
-                dob: {
-                    day: dobDay,
-                    month: dobMonth,
-                    year: dobYear,
-                },
-                address: {
-                    line1: addressLine1,
-                    city: city,
-                    state: state,
-                    postal_code: postalCode,
-                    country: addressCountry,
-                },
-                ssn_last_4: ssnLast4,
+        const individual: Record<string, unknown> = {
+            first_name: firstName,
+            last_name: lastName,
+            dob: {
+                day: dobDay,
+                month: dobMonth,
+                year: dobYear,
             },
+            address: {
+                line1: addressLine1,
+                city: city,
+                state: state,
+                postal_code: postalCode,
+                country: addressCountry,
+            },
+        };
+
+        if (isEcuador && idNumber) {
+            individual.id_number = idNumber;
+        } else if (resolvedSsn) {
+            individual.ssn_last_4 = resolvedSsn;
+        }
+
+        await stripe.accounts.update(accountId, {
+            individual,
             business_profile: {
-                mcc: "7999", // Recreation Services (betting/gaming)
+                mcc: "7999",
                 url: "https://anymarkt.com",
             },
         });
 
-        // 3. Attach External Account (Debit Card for Payouts) if token provided
         if (externalAccountToken) {
             console.log(`Attaching external account to ${accountId}...`);
             await stripe.accounts.createExternalAccount(accountId, {

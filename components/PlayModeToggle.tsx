@@ -1,3 +1,7 @@
+import { AppButton, AppText } from '@/components/ui';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useWalletContext } from '@/contexts/WalletContext';
+import { formatCurrency } from '@/lib/parimutuel';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,15 +10,10 @@ import {
     Platform,
     Pressable,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
     type ViewStyle,
 } from 'react-native';
-import { FontWeight } from '../constants/typography';
-import { useTheme } from '../contexts/ThemeContext';
-import { useWalletContext } from '../contexts/WalletContext';
-import { formatCurrency } from '../lib/parimutuel';
 import { SegmentedControl } from './ui/SegmentedControl';
 
 interface PlayModeToggleProps {
@@ -47,22 +46,24 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
 
   const focusRing =
     Platform.OS === 'web'
-      ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as any)
+      ? ({ boxShadow: `0 0 0 3px ${theme.primarySoft}` } as ViewStyle)
       : null;
 
-  const playAccent = isDark ? '#93C5FD' : theme.primary;
-  const liveAccent = isDark ? '#86EFAC' : theme.success;
-  const inactiveLabelColor = isDark ? '#CBD5E1' : theme.textSecondary;
-  const glassSurface = isDark ? 'rgba(36, 45, 58, 0.92)' : 'rgba(255,255,255,0.92)';
-  const glassBorder = isDark ? 'rgba(255,255,255,0.14)' : theme.border;
+  const playAccent = isDark ? theme.primary : theme.primary;
+  const liveAccent = theme.success;
+  const inactiveLabelColor = theme.textSecondary;
+  const glassSurface = isDark ? theme.surface : theme.surface;
+  const glassBorder = theme.border;
 
-  const playChipStyle = isDark
-    ? { backgroundColor: 'rgba(0, 106, 220, 0.28)', borderColor: 'rgba(147, 197, 253, 0.45)' }
-    : { backgroundColor: theme.primarySoft, borderColor: theme.primary };
+  const playChipStyle = {
+    backgroundColor: theme.primarySoft,
+    borderColor: theme.primary,
+  };
 
-  const liveChipStyle = isDark
-    ? { backgroundColor: 'rgba(34, 197, 94, 0.22)', borderColor: 'rgba(134, 239, 172, 0.45)' }
-    : { backgroundColor: `${theme.success}18`, borderColor: `${theme.success}55` };
+  const liveChipStyle = {
+    backgroundColor: `${theme.success}18`,
+    borderColor: `${theme.success}55`,
+  };
 
   /** Compact live: split control — balance / add funds (left), Wallet screen (right). */
   const compactLiveSplit = (
@@ -70,8 +71,8 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
       style={[
         styles.liveSplitShell,
         isSidebar && styles.liveSplitShellSidebar,
-        { borderColor: compact && transparent ? glassBorder : theme.border },
-        compact && transparent && styles.liveSplitShadow,
+        { borderColor: compact && transparent ? glassBorder : theme.border, borderRadius: theme.radius.md },
+        compact && transparent && theme.elevation('sm'),
       ]}
     >
       <TouchableOpacity
@@ -81,61 +82,53 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
         onBlur={() => setFocusedControl(null)}
         onFocus={() => setFocusedControl("balance")}
         activeOpacity={0.85}
-        // @ts-ignore
         style={[
           styles.liveSplitLeft,
           isSidebar && styles.liveSplitLeftSidebar,
           {
-            backgroundColor:
-              compact && transparent ? glassSurface : theme.input,
+            backgroundColor: compact && transparent ? glassSurface : theme.input,
           },
-          Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+          Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
           focusedControl === "balance" && focusRing,
         ]}
       >
         <View
           style={[
             styles.modeDot,
-            { backgroundColor: theme.primary },
+            { backgroundColor: theme.primary, borderRadius: theme.radius.pill },
           ]}
         />
-        <Text style={[styles.liveSplitLabel, isSidebar && styles.liveSplitLabelSidebar, { color: liveAccent }]}>Live</Text>
-        <Text
-          style={[
-            styles.liveSplitBalance,
-            isSidebar && styles.liveSplitBalanceSidebar,
-            { color: compact && transparent && isDark ? '#F3F4F6' : theme.text },
-          ]}
+        <AppText variant="caption" style={{ color: liveAccent }}>Live</AppText>
+        <AppText
+          variant="bodySm"
+          style={{ color: theme.text, flexShrink: 1 }}
           numberOfLines={1}
         >
           {formatCurrency(activeBalance)}
-        </Text>
+        </AppText>
       </TouchableOpacity>
       {!isSidebar ? (
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Open wallet"
-        onPress={() => router.push('/wallet' as any)}
-        onBlur={() => setFocusedControl(null)}
-        onFocus={() => setFocusedControl("wallet")}
-        activeOpacity={0.85}
-        // @ts-ignore
-        style={[
-          styles.liveSplitRight,
-          { backgroundColor: theme.primary, borderLeftColor: 'rgba(255,255,255,0.14)' },
-          Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
-          focusedControl === "wallet" && focusRing,
-        ]}
-      >
-        <Text style={[styles.liveSplitWalletLabel, { color: theme.onPrimary }]}>Wallet</Text>
-      </TouchableOpacity>
+        <AppButton
+          title="Wallet"
+          variant="primary"
+          size="sm"
+          accessibilityLabel="Open wallet"
+          onPress={() => router.push('/wallet' as any)}
+          onBlur={() => setFocusedControl(null)}
+          onFocus={() => setFocusedControl("wallet")}
+          style={[
+            styles.liveSplitRight,
+            { borderLeftColor: theme.borderSubtle },
+            focusedControl === "wallet" && focusRing,
+          ]}
+        />
       ) : null}
     </View>
   );
 
   const sidebarToggle = (
     <View style={styles.sidebarCompact}>
-      <View style={[styles.sidebarCompactTrack, { backgroundColor: theme.input }]}>
+      <View style={[styles.sidebarCompactTrack, { backgroundColor: theme.input, borderRadius: theme.radius.sm }]}>
         {(['play', 'live'] as const).map((mode) => {
           const active = mode === 'play' ? isPlayMode : !isPlayMode;
           const label = mode === 'play' ? 'Play' : 'Live';
@@ -150,18 +143,17 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
               onPress={() => handleModeChange(mode)}
               style={({ pressed }) => [
                 styles.sidebarCompactSegment,
+                { borderRadius: theme.radius.sm },
                 active && { backgroundColor: theme.surface },
                 Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
                 pressed && { opacity: 0.85 },
               ]}>
-              <Text
-                style={[
-                  styles.sidebarCompactSegmentLabel,
-                  { color: active ? activeColor : inactiveLabelColor },
-                  active && styles.sidebarCompactSegmentLabelActive,
-                ]}>
+              <AppText
+                variant="caption"
+                style={{ color: active ? activeColor : inactiveLabelColor }}
+              >
                 {label}
-              </Text>
+              </AppText>
             </Pressable>
           );
         })}
@@ -182,14 +174,14 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
           Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
           pressed && { opacity: 0.75 },
         ]}>
-        <Text
-          style={[
-            styles.sidebarCompactBalance,
-            { color: isPlayMode ? theme.primary : theme.success },
-          ]}
-          numberOfLines={1}>
+        <AppText
+          variant="label"
+          color={isPlayMode ? 'primary' : 'success'}
+          numberOfLines={1}
+          style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}
+        >
           {formatCurrency(activeBalance)}
-        </Text>
+        </AppText>
       </Pressable>
     </View>
   );
@@ -213,68 +205,58 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
         onBlur={() => setFocusedControl(null)}
         onFocus={() => setFocusedControl("mode")}
         activeOpacity={0.8}
-        // @ts-ignore
         style={[
           styles.toggleRow,
-          isSidebar && styles.toggleRowSidebar,
+          isSidebar && [styles.toggleRowSidebar, { borderRadius: theme.radius.sm }],
           transparent ? styles.transparentRow : null,
-          compact && !transparent && isPlayMode && [styles.headerModeChip, playChipStyle],
-          compact && !transparent && !isPlayMode && [styles.headerModeChip, liveChipStyle],
+          compact && !transparent && isPlayMode && [styles.headerModeChip, playChipStyle, { borderRadius: theme.radius.pill }],
+          compact && !transparent && !isPlayMode && [styles.headerModeChip, liveChipStyle, { borderRadius: theme.radius.pill }],
           compact && transparent && isPlayMode && [
             styles.headerPlayBackdrop,
-            isDark && styles.headerPlayBackdropDark,
-            isDark && { backgroundColor: glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glassBorder },
+            theme.elevation('sm'),
+            { backgroundColor: glassSurface, borderWidth: StyleSheet.hairlineWidth, borderColor: glassBorder, borderRadius: theme.radius.pill },
           ],
-          Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+          Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
           focusedControl === "mode" && focusRing,
         ]}
       >
         <View
           style={[
             styles.modeDot,
-            { backgroundColor: isPlayMode ? theme.primary : theme.success },
+            { backgroundColor: isPlayMode ? theme.primary : theme.success, borderRadius: theme.radius.pill },
           ]}
         />
-        <Text
-          style={[
-            styles.modeLabel,
-            {
-              color: transparent
-                ? isPlayMode
-                  ? isDark
-                    ? playAccent
-                    : theme.primary
-                  : '#fff'
-                : isPlayMode
-                  ? playAccent
-                  : liveAccent,
-            },
-            transparent &&
-              !isPlayMode && {
-                textShadowColor: 'rgba(0,0,0,0.5)',
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 2,
-              },
-          ]}
+        <AppText
+          variant="label"
+          style={{
+            color: transparent
+              ? isPlayMode
+                ? playAccent
+                : theme.onPrimary
+              : isPlayMode
+                ? playAccent
+                : liveAccent,
+            ...(transparent && !isPlayMode
+              ? {
+                  textShadowColor: theme.overlay,
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }
+              : {}),
+          }}
         >
           {isPlayMode ? 'Play' : 'Live'}
-        </Text>
+        </AppText>
         {(!compact || !isPlayMode) && (
-          <Text
-            style={[
-              styles.balanceText,
-              compact && isPlayMode && styles.liveBalanceText,
-              {
-                color: transparent
-                  ? isDark
-                    ? '#E5E7EB'
-                    : '#fff'
-                  : inactiveLabelColor,
-              },
-            ]}
+          <AppText
+            variant="caption"
+            style={{
+              color: transparent ? theme.text : inactiveLabelColor,
+              fontVariant: ['tabular-nums'],
+            }}
           >
             {formatCurrency(activeBalance)}
-          </Text>
+          </AppText>
         )}
       </TouchableOpacity>
     );
@@ -300,42 +282,45 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
         animationType="fade"
         onRequestClose={() => setShowInfo(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}
           onPress={() => setShowInfo(false)}
         >
           <View style={[
             styles.infoPopup,
-            { backgroundColor: isDark ? theme.surface : '#fff' }
+            theme.elevation('lg'),
+            { backgroundColor: theme.surface, borderRadius: theme.radius.lg }
           ]}>
-            <Text style={[styles.infoTitle, { color: theme.text }]}>
+            <AppText variant="title2" style={{ textAlign: 'center', marginBottom: 12 }}>
               {isPlayMode ? 'Practice mode is on' : 'Live mode is on'}
-            </Text>
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-              {isPlayMode 
+            </AppText>
+            <AppText variant="bodySm" color="secondary" style={{ textAlign: 'center', marginBottom: 20 }}>
+              {isPlayMode
                 ? "You're using trial credits to learn how markets work. No real money is used in Practice mode."
                 : 'You are using real money. Deposits, withdrawals, and live bets are processed through Stripe.'
               }
-            </Text>
+            </AppText>
 
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
-                <Text style={[styles.balanceLabel, { color: theme.primary }]}>{t('playBalanceLabel')}</Text>
-                <Text style={[styles.balanceValue, { color: theme.text }]}>
-                  {formatCurrency(playBalance)}
-                </Text>
+                <AppText variant="caption" color="primary" style={{ textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  {t('playBalanceLabel')}
+                </AppText>
+                <AppText variant="title2">{formatCurrency(playBalance)}</AppText>
               </View>
               <View style={styles.balanceItem}>
-                <Text style={[styles.balanceLabel, { color: theme.success }]}>{t('liveBalanceLabel')}</Text>
-                <Text style={[styles.balanceValue, { color: theme.text }]}>
-                  {formatCurrency(liveBalance)}
-                </Text>
+                <AppText variant="caption" color="success" style={{ textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  {t('liveBalanceLabel')}
+                </AppText>
+                <AppText variant="title2">{formatCurrency(liveBalance)}</AppText>
               </View>
             </View>
 
-            <TouchableOpacity
+            <AppButton
               testID="mode-switch-to-live"
-              style={[styles.switchButton, { backgroundColor: theme.primary }]}
+              title={isPlayMode ? t('switchToLive') : t('switchToPlay')}
+              variant="primary"
+              size="md"
               onPress={async () => {
                 if (isPlayMode) {
                   const ok = await requestLiveMode();
@@ -345,32 +330,28 @@ export function PlayModeToggle({ compact = false, transparent = false, variant =
                   setShowInfo(false);
                 }
               }}
-            >
-              <Text style={[styles.switchButtonText, { color: theme.onPrimary }]}>
-                {isPlayMode ? t('switchToLive') : t('switchToPlay')}
-              </Text>
-            </TouchableOpacity>
+              style={{ marginBottom: 12 }}
+            />
 
             {!isPlayMode && (
-              <TouchableOpacity
-                style={[styles.addFundsButton, { backgroundColor: theme.primary }]}
+              <AppButton
+                title={t('addLiveFunds')}
+                variant="primary"
+                size="md"
                 onPress={() => {
                   setShowInfo(false);
                   router.push('/topup' as any);
                 }}
-              >
-                <Text style={[styles.addFundsButtonText, { color: theme.onPrimary }]}>{t('addLiveFunds')}</Text>
-              </TouchableOpacity>
+                style={{ marginBottom: 12 }}
+              />
             )}
 
-            <TouchableOpacity
-              style={styles.closeButton}
+            <AppButton
+              title={t('close')}
+              variant="ghost"
+              size="sm"
               onPress={() => setShowInfo(false)}
-            >
-              <Text style={[styles.closeButtonText, { color: theme.textSecondary }]}>
-                {t('close')}
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </Pressable>
       </Modal>
@@ -409,7 +390,6 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingVertical: 6,
     paddingHorizontal: 8,
-    borderRadius: 10,
     overflow: 'hidden',
   },
   sidebarCompact: {
@@ -418,7 +398,6 @@ const styles = StyleSheet.create({
   },
   sidebarCompactTrack: {
     flexDirection: 'row',
-    borderRadius: 8,
     padding: 2,
     gap: 2,
   },
@@ -427,29 +406,13 @@ const styles = StyleSheet.create({
     minHeight: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
     paddingHorizontal: 8,
-  },
-  sidebarCompactSegmentLabel: {
-    fontSize: 12,
-    fontWeight: FontWeight.regular,
-    letterSpacing: -0.1,
-  },
-  sidebarCompactSegmentLabelActive: {
-    fontWeight: FontWeight.regular,
   },
   sidebarCompactBalanceHit: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 22,
     paddingHorizontal: 4,
-  },
-  sidebarCompactBalance: {
-    fontSize: 13,
-    fontWeight: FontWeight.regular,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -0.2,
-    textAlign: 'center',
   },
   transparentRow: {
     backgroundColor: 'transparent',
@@ -458,40 +421,21 @@ const styles = StyleSheet.create({
   headerPlayBackdrop: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerPlayBackdropDark: {
-    shadowOpacity: 0.35,
   },
   headerModeChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
   liveSplitShell: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
   },
   liveSplitShellSidebar: {
     width: '100%',
     maxWidth: '100%',
-  },
-  liveSplitShadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.16,
-    shadowRadius: 6,
-    elevation: 3,
   },
   liveSplitLeft: {
     flexDirection: 'row',
@@ -510,61 +454,21 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   liveSplitRight: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 44,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
     borderLeftWidth: StyleSheet.hairlineWidth,
-  },
-  liveSplitLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  liveSplitLabelSidebar: {
-    fontSize: 11,
-  },
-  liveSplitBalance: {
-    fontSize: 14,
-    fontWeight: '400',
-    letterSpacing: -0.2,
-    fontVariant: ['tabular-nums'],
-    flexShrink: 1,
-  },
-  liveSplitBalanceSidebar: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  liveSplitWalletLabel: {
-    fontSize: 13,
-    fontWeight: '400',
-    letterSpacing: -0.1,
+    minHeight: 44,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   modeDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-  },
-  modeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  balanceText: {
-    fontSize: 12,
-    fontVariant: ['tabular-nums'],
-  },
-  liveBalanceText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   segmentWrapper: {
     width: 260,
     marginTop: 8,
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -572,25 +476,7 @@ const styles = StyleSheet.create({
   infoPopup: {
     width: '100%',
     maxWidth: 320,
-    borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 20,
   },
   balanceRow: {
     flexDirection: 'row',
@@ -599,43 +485,5 @@ const styles = StyleSheet.create({
   },
   balanceItem: {
     alignItems: 'center',
-  },
-  balanceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  balanceValue: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  switchButton: {
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  switchButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  addFundsButton: {
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  addFundsButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  closeButton: {
-    alignItems: 'center',
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 14,
   },
 });

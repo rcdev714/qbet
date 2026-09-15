@@ -1,5 +1,4 @@
-import { AppButton, AppInput, AppText, FieldGroup } from "@/components/ui";
-import { Brand } from "@/constants/theme";
+import { AppButton, AppInput, AppText, ErrorBanner, FieldGroup } from "@/components/ui";
 import { formatAuthError } from "@/lib/auth-errors";
 import { getBetaAccessIntent } from "@/lib/beta-access-intent";
 import { getParamString } from "@/lib/route-params";
@@ -10,19 +9,20 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  View,
 } from "react-native";
-import { useAuthContext } from "../contexts/AuthContext";
-import { authService } from "../services/auth.service";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { authService } from "@/services/auth.service";
 
 export default function LoginScreen() {
   const { signIn, signUp, signInWithGoogle } = useAuthContext();
+  const { theme } = useTheme();
   const { t } = useTranslation("auth");
   const { t: tAccess } = useTranslation("accessRequest");
   const params = useLocalSearchParams();
@@ -32,6 +32,7 @@ export default function LoginScreen() {
   const signupMode = getParamString(params.mode) === "signup";
   const [isLogin, setIsLogin] = useState(!signupMode);
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [approvedIntent, setApprovedIntent] = useState(false);
 
@@ -63,6 +64,7 @@ export default function LoginScreen() {
     }
 
     setAuthSubmitting(true);
+    setAuthError(null);
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
@@ -89,6 +91,7 @@ export default function LoginScreen() {
       });
 
       showAppAlertRaw(t("error"), errorMessage);
+      setAuthError(errorMessage);
     } finally {
       setAuthSubmitting(false);
     }
@@ -98,16 +101,31 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <Image
         source={require("../assets/images/auth-bg.jpg")}
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
+        style={[StyleSheet.absoluteFillObject, styles.backgroundImage]}
         contentFit="cover"
         transition={500}
       />
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" />
-        
+
         <View style={styles.backgroundOverlay} />
         <View style={styles.authContainer}>
-          <View style={styles.authCard}>
+          <View
+            style={[
+              styles.authCard,
+              {
+                borderRadius: theme.radius.xl,
+                borderColor: "rgba(255,255,255,0.22)",
+              },
+              Platform.select({
+                web: {
+                  boxShadow: "0px 28px 56px rgba(3, 8, 19, 0.35)",
+                  backdropFilter: "blur(8px)",
+                } as object,
+                default: theme.elevation("lg"),
+              }),
+            ]}
+          >
             <View style={styles.authHeader}>
               <View style={styles.logoContainer}>
                 <Image
@@ -115,26 +133,33 @@ export default function LoginScreen() {
                   style={styles.logo}
                   contentFit="contain"
                 />
-                <AppText variant="display" style={styles.brandName}>Anymarkt</AppText>
+                <AppText variant="display" color="onPrimary" style={styles.brandName}>
+                  Anymarkt
+                </AppText>
               </View>
               <AppText variant="title3" style={styles.subtitle}>
                 {isLogin ? t("welcomeBack") : t("createAccount")}
               </AppText>
-              {!isLogin && (
+              {!isLogin ? (
                 <AppText variant="bodySm" color="secondary" style={styles.helperText}>
                   {t("signupHelper")}
                 </AppText>
-              )}
+              ) : null}
               {approvedIntent ? (
-                <AppText variant="bodySm" color="success" style={styles.approvedBanner}>{tAccess("approvedLoginBanner")}</AppText>
+                <AppText variant="bodySm" color="success" style={styles.approvedBanner}>
+                  {tAccess("approvedLoginBanner")}
+                </AppText>
               ) : null}
             </View>
 
             <View style={styles.form}>
-              {Platform.OS === "web" && (
+              {Platform.OS === "web" ? (
                 <View style={styles.googleSection}>
-                  <TouchableOpacity
-                    style={[styles.googleButton, authSubmitting && styles.buttonDisabled, Platform.OS === "web" && { cursor: "pointer" } as any]}
+                  <AppButton
+                    title={isLogin ? t("continueGoogle") : t("createGoogle")}
+                    variant="secondary"
+                    loading={authSubmitting}
+                    disabled={authSubmitting}
                     onPress={async () => {
                       setAuthSubmitting(true);
                       try {
@@ -146,26 +171,23 @@ export default function LoginScreen() {
                         setAuthSubmitting(false);
                       }
                     }}
-                    disabled={authSubmitting}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="logo-google" size={20} color="#16243F" style={{ marginRight: 10 }} />
-                    <AppText variant="body" style={styles.googleButtonText}>
-                      {isLogin ? t("continueGoogle") : t("createGoogle")}
-                    </AppText>
-                  </TouchableOpacity>
+                    icon={<Ionicons name="logo-google" size={20} color={theme.text} />}
+                  />
 
                   <View style={styles.dividerRow}>
                     <View style={styles.dividerLine} />
-                    <AppText variant="caption" color="muted" style={styles.dividerText}>{t("orEmail")}</AppText>
+                    <AppText variant="caption" color="muted" style={styles.dividerText}>
+                      {t("orEmail")}
+                    </AppText>
                     <View style={styles.dividerLine} />
                   </View>
                 </View>
-              )}
+              ) : null}
 
               <FieldGroup>
                 <AppInput
                   testID="login-email"
+                  variant="onDark"
                   placeholder={t("email")}
                   value={email}
                   onChangeText={setEmail}
@@ -174,24 +196,30 @@ export default function LoginScreen() {
                 />
                 <AppInput
                   testID="login-password"
+                  variant="onDark"
                   placeholder={t("password")}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
                 />
-                {!isLogin && (
+                {!isLogin ? (
                   <AppInput
                     testID="login-confirm-password"
+                    variant="onDark"
                     placeholder={t("confirmPassword")}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry
                   />
-                )}
+                ) : null}
               </FieldGroup>
 
               {isLogin ? (
-                <TouchableOpacity
+                <AppButton
+                  title={showForgotPassword ? t("sendingReset") : t("forgotPassword")}
+                  variant="ghost"
+                  size="sm"
+                  disabled={showForgotPassword}
                   onPress={async () => {
                     if (!email) {
                       showAppAlertRaw(t("missingInfo"), t("missingInfoBody"));
@@ -206,13 +234,14 @@ export default function LoginScreen() {
                     }
                     Alert.alert(t("resetEmailSent"), t("resetEmailSentBody"));
                   }}
-                  disabled={showForgotPassword}
-                  style={Platform.OS === "web" ? ({ cursor: "pointer", alignSelf: "flex-end" } as any) : { alignSelf: "flex-end" }}
-                >
-                  <AppText variant="bodySm" color="secondary" style={{ marginBottom: 8 }}>
-                    {showForgotPassword ? t("sendingReset") : t("forgotPassword")}
-                  </AppText>
-                </TouchableOpacity>
+                  style={styles.forgotButton}
+                />
+              ) : null}
+
+              {authError ? (
+                <View testID="login-error">
+                  <ErrorBanner message={authError} />
+                </View>
               ) : null}
 
               <AppButton
@@ -220,7 +249,6 @@ export default function LoginScreen() {
                 title={isLogin ? t("signIn") : t("createAccountButton")}
                 loading={authSubmitting}
                 onPress={handleAuth}
-                style={styles.button}
               />
 
               <AppButton
@@ -236,7 +264,7 @@ export default function LoginScreen() {
             </View>
           </View>
         </View>
-        </SafeAreaView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -247,6 +275,10 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  backgroundImage: {
+    width: "100%",
+    height: "100%",
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -261,32 +293,17 @@ const styles = StyleSheet.create({
   authCard: {
     width: "100%",
     maxWidth: 500,
-    borderRadius: 28,
     padding: 24,
     backgroundColor: "rgba(15, 25, 43, 0.7)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.22)",
-    ...Platform.select({
-      web: {
-        boxShadow: "0px 28px 56px rgba(3, 8, 19, 0.35)",
-        backdropFilter: "blur(8px)",
-      } as any,
-      default: {
-        shadowColor: "#000",
-        shadowOpacity: 0.28,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: 12 },
-        elevation: 10,
-      },
-    }),
   },
   authHeader: {
     marginBottom: 22,
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 14,
     gap: 10,
   },
@@ -295,30 +312,19 @@ const styles = StyleSheet.create({
     height: 44,
   },
   brandName: {
-    fontSize: 34,
-    fontWeight: "400",
-    color: "#FFFFFF",
     letterSpacing: -0.9,
   },
   subtitle: {
-    fontSize: 18,
     color: "rgba(238, 244, 255, 0.9)",
-    fontWeight: "400",
     textAlign: "center",
   },
   helperText: {
     marginTop: 8,
-    color: "rgba(222, 232, 248, 0.74)",
-    fontSize: 13.5,
-    lineHeight: 20,
     textAlign: "center",
     maxWidth: 360,
   },
   approvedBanner: {
     marginTop: 10,
-    color: "#86EFAC",
-    fontSize: 13.5,
-    lineHeight: 20,
     textAlign: "center",
     maxWidth: 360,
   },
@@ -340,94 +346,14 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 10,
-    color: "rgba(218, 230, 252, 0.6)",
-    fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
-  input: {
-    height: 50,
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    fontSize: 15.5,
-    color: "#F4F8FF",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.24)",
-  },
-  agreementContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginTop: 4,
-    paddingHorizontal: 2,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.25,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  checkboxChecked: {
-    backgroundColor: Brand.primary,
-    borderColor: Brand.primary,
-  },
-  checkboxLabel: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: 'rgba(228, 236, 250, 0.75)',
-    textAlign: 'left',
-    flexShrink: 1,
-  },
-  linkText: {
-    color: '#F8FBFF',
-    textDecorationLine: 'underline',
-  },
-  button: {
-    marginTop: 4,
-    height: 50,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: 'center',
-    backgroundColor: Brand.primary,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "400",
-  },
-  googleButton: {
-    height: 50,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: 'center',
-    backgroundColor: '#F7FAFF',
-    flexDirection: 'row',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(16, 24, 40, 0.08)',
-  },
-  googleButtonText: {
-    color: "#16243F",
-    fontSize: 15,
-    fontWeight: "500",
+  forgotButton: {
+    alignSelf: "flex-end",
+    marginBottom: 4,
   },
   switchButton: {
     marginTop: 4,
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  switchButtonText: {
-    color: "rgba(227, 236, 250, 0.68)",
-    fontSize: 14,
-    fontWeight: "400",
   },
 });
-
-

@@ -1,3 +1,4 @@
+import { APP_URL } from "../brand";
 import type { ComplianceJurisdiction } from "../compliance/jurisdiction";
 import { DEFAULT_JURISDICTION } from "../compliance/jurisdiction";
 import type { PolicyKind } from "../compliance/policy";
@@ -263,12 +264,19 @@ function termsSections(copy: JurisdictionCopy): PolicySection[] {
     {
       heading: "4. Fraud, Harm, and Illegal Behavior Prevention",
       paragraphs: [
-        "Anymarkt operates a layered trust and safety program designed to detect, prevent, investigate, and respond to fraud, platform manipulation, illegal activity, abusive content, and user harm.",
+        "Anymarkt operates a layered trust and safety program backed by substantial engineering investment in a proprietary fraud detection engine. The engine is designed to detect, prevent, investigate, and respond to fraud, platform manipulation, illegal activity, abusive content, settlement abuse, and user harm.",
+        joinNodes(
+          txt("For a user-facing overview of fraud detection, settlement security, algorithmic review, and support escalation, see our "),
+          externalLink("Platform Integrity, Fraud Detection & Settlement Security", `${APP_URL}/platform-integrity`),
+          txt(" disclosure."),
+        ),
       ],
       bullets: [
         "Identity verification, age attestation, sanctions and restricted-person screening, payment-provider checks, and residence-based compliance gates.",
-        "Risk scoring using account, device, network, market, transaction, wallet, and behavioral signals where lawful and appropriate.",
-        "Monitoring for collusion, wash activity, multi-accounting, chargeback abuse, stolen payment methods, synthetic identity indicators, suspicious velocity, market manipulation, and abuse of referral or promotional systems.",
+        "Proprietary risk scoring using account, device, network, market, transaction, wallet, settlement, rating, and behavioral signals where lawful and appropriate.",
+        "Monitoring for collusion, wash activity, multi-accounting, chargeback abuse, stolen payment methods, synthetic identity indicators, suspicious velocity, market manipulation, coordinated settlement-rating campaigns, and abuse of referral or promotional systems.",
+        "Secure settlement infrastructure with auditable records, evidence preservation, payout holds during review, and platform override for fraud or compliance reasons.",
+        "Algorithmic settlement review in private groups, combined with human support, dispute queues, and urgent escalation paths.",
         "Manual review workflows, account freezes, market freezes, content reports, user blocks, administrator review, and escalation to payment partners or authorities where legally required.",
       ],
     },
@@ -542,13 +550,15 @@ function riskSections(copy: JurisdictionCopy): PolicySection[] {
       heading: "5. Fraud, Manipulation, and Integrity Risk",
       paragraphs: [
         joinNodes(
-          txt("Anymarkt operates fraud, harm, and illegal behavior prevention systems described in our "),
+          txt("Anymarkt operates proprietary fraud detection, settlement security, and integrity systems described in our "),
           policyLink("terms", "Terms of Service"),
-          txt(" and "),
+          txt(", "),
           policyLink("aml_kyc", "AML and KYC Policy"),
-          txt(", but no system can prevent every attempted abuse. Markets may be affected by bots, collusion, false information, coordinated behavior, payment fraud, account compromise, or other misconduct."),
+          txt(", and "),
+          externalLink("Platform Integrity disclosure", `${APP_URL}/platform-integrity`),
+          txt(". No system can prevent every attempted abuse. Markets may be affected by bots, collusion, false information, coordinated behavior, payment fraud, account compromise, settlement-rating abuse, or other misconduct."),
         ),
-        "We may use risk controls, limits, manual review, freezes, voids, corrections, settlement delays, or account restrictions to reduce harm and protect market integrity.",
+        "We may use risk controls, limits, manual review, freezes, voids, corrections, settlement delays, algorithmic review, or account restrictions to reduce harm and protect market integrity.",
       ],
     },
     {
@@ -643,7 +653,11 @@ function marketRuleSections(copy: JurisdictionCopy): PolicySection[] {
         },
         {
           label: "5.2 Disputes.",
-          text: "Users may raise disputes where supported. Anymarkt may review evidence, source materials, market language, trading patterns, and policy requirements before confirming, correcting, delaying, or voiding settlement.",
+          text: joinNodes(
+            txt("Users may raise disputes where supported. Anymarkt may review evidence, source materials, market language, trading patterns, fraud signals, and policy requirements before confirming, correcting, delaying, or voiding settlement. Private group markets may also use automated settlement review as described in our "),
+            externalLink("Private Group Settlement & Review", `${APP_URL}/group-settlements`),
+            txt(" disclosure."),
+          ),
         },
         {
           label: "5.3 Corrections.",
@@ -653,11 +667,19 @@ function marketRuleSections(copy: JurisdictionCopy): PolicySection[] {
     },
     {
       heading: "6. Manipulation and Integrity Controls",
+      paragraphs: [
+        joinNodes(
+          txt("Anymarkt's fraud detection engine and settlement security controls operate continuously alongside market rules. See "),
+          externalLink("Platform Integrity, Fraud Detection & Settlement Security", `${APP_URL}/platform-integrity`),
+          txt(" for an overview."),
+        ),
+      ],
       bullets: [
         "No collusion, wash activity, coordinated manipulation, false rumors, spoofing, bot abuse, multi-accounting, self-dealing, insider misuse, or artificial activity.",
         "No threatening, bribing, harassing, doxxing, coercing, or encouraging anyone to affect a real-world outcome.",
-        "No attempts to overload, scrape, reverse engineer, bypass, or interfere with market, wallet, or moderation systems.",
-        "Anymarkt may use detection systems, risk limits, review queues, transaction holds, market freezes, settlement delays, and evidence preservation to protect integrity.",
+        "No attempts to overload, scrape, reverse engineer, bypass, or interfere with market, wallet, moderation, or fraud-detection systems.",
+        "No coordinated or bad-faith settlement-rating campaigns intended to manipulate automated review.",
+        "Anymarkt may use detection systems, risk limits, review queues, transaction holds, market freezes, settlement delays, algorithmic review, and evidence preservation to protect integrity.",
       ],
     },
     {

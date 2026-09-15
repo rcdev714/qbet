@@ -1,25 +1,22 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+
+import { AppButton, AppText } from "@/components/ui";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface WalletOnboardingCardProps {
   state: "ready" | "needs_identity" | "pending_review";
   loading?: boolean;
   onContinue: () => void;
-  theme: {
-    surface: string;
-    border: string;
-    text: string;
-    textSecondary: string;
-    primary: string;
-  };
 }
 
 export function WalletOnboardingCard({
   state,
   loading = false,
   onContinue,
-  theme,
 }: WalletOnboardingCardProps) {
+  const { theme } = useTheme();
+
   if (state === "ready") return null;
 
   const isPending = state === "pending_review";
@@ -33,22 +30,14 @@ export function WalletOnboardingCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: theme.surface, borderColor: theme.border },
+        { backgroundColor: theme.surface, borderColor: theme.border, borderRadius: theme.radius.lg },
       ]}
     >
-      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.body, { color: theme.textSecondary }]}>{body}</Text>
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: theme.primary }]}
-        disabled={loading}
-        onPress={onContinue}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{cta}</Text>
-        )}
-      </TouchableOpacity>
+      <AppText variant="title3">{title}</AppText>
+      <AppText variant="bodySm" color="secondary">
+        {body}
+      </AppText>
+      <AppButton title={cta} size="sm" loading={loading} onPress={onContinue} />
     </View>
   );
 }
@@ -56,29 +45,8 @@ export function WalletOnboardingCard({
 const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
-    padding: 14,
+    padding: 16,
     marginBottom: 14,
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: '400',
-    marginBottom: 6,
-  },
-  body: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  button: {
-    borderRadius: 10,
-    minHeight: 42,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: '400',
-    fontSize: 15,
+    gap: 8,
   },
 });

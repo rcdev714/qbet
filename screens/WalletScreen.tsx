@@ -1,45 +1,60 @@
-import { AppButton, AppInput, AppText } from "@/components/ui";
-import { AppScreen } from "@/components/ui/AppScreen";
+import {
+  AppButton,
+  AppInput,
+  AppScreen,
+  AppText,
+  FieldGroup,
+} from "@/components/ui";
+import { BackButton } from "@/components/ui/BackButton";
 import { showAppAlertRaw } from "@/lib/ui/feedback";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Alert,
-    Linking,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
-import { GlobalHeader } from "../components/GlobalHeader";
-import { RulesModal } from "../components/profile/RulesModal";
-import { BackButton } from "../components/ui/BackButton";
-import { WalletActionRail, type WalletActionKey } from "../components/wallet/WalletActionRail";
+import { GlobalHeader } from "@/components/GlobalHeader";
+import { RulesModal } from "@/components/profile/RulesModal";
+import { WalletActionRail, type WalletActionKey } from "@/components/wallet/WalletActionRail";
+import { WalletDesktopLayout } from "@/components/wallet/WalletDesktopLayout";
 import {
-    WalletHistoryFilters,
-    type WalletHistoryFilter,
-} from "../components/wallet/WalletHistoryFilters";
-import { WalletOnboardingCard } from "../components/wallet/WalletOnboardingCard";
-import { WalletOverviewCard } from "../components/wallet/WalletOverviewCard";
-import { WalletTransactionList } from "../components/wallet/WalletTransactionList";
-import { useAuthContext } from "../contexts/AuthContext";
-import { useAppLocale } from "../contexts/LocaleContext";
-import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
-import { useTheme } from "../contexts/ThemeContext";
-import { useWalletContext } from "../contexts/WalletContext";
-import { formatCurrency } from "../lib/parimutuel";
-import { isStripeNativeAvailable, useStripe } from "../lib/stripe-bridge";
-import { walletService } from "../services/wallet.service";
+  WalletHistoryFilters,
+  type WalletHistoryFilter,
+} from "@/components/wallet/WalletHistoryFilters";
+import {
+  WalletPayoutSetupPanel,
+} from "@/components/wallet/WalletPayoutSetupPanel";
+import { WalletPayoutProfileForm } from "@/components/wallet/WalletPayoutProfileForm";
+import { WalletOverviewCard } from "@/components/wallet/WalletOverviewCard";
+import { WalletIncomingPayouts } from "@/components/wallet/WalletIncomingPayouts";
+import { WalletTransactionList } from "@/components/wallet/WalletTransactionList";
+import { formatIncomingReleaseDate } from "@/lib/settlement/payout-hold-constants";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useAppLocale } from "@/contexts/LocaleContext";
+import { useIsDesktopWebNav } from "@/contexts/NavigationLayoutContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useWalletContext } from "@/contexts/WalletContext";
+import {
+  buildPayoutSteps,
+  mapOnboardingLabelKey,
+  shouldShowPayoutSidePanel,
+  shouldUseDesktopWalletLayout,
+} from "@/lib/wallet-payout.logic";
+import { formatCurrency } from "@/lib/parimutuel";
+import { isStripeNativeAvailable, useStripe } from "@/lib/stripe-bridge";
+import { walletService, type PayoutDraft, type PayoutSetupState } from "@/services/wallet.service";
 
 const PREDEFINED_AMOUNTS = [10, 20, 50, 100];
 const MIN_DEPOSIT = 10;
 const MIN_WITHDRAWAL = 15;
 
-type OnboardingState = "ready" | "needs_identity" | "pending_review";
+type OnboardingState = PayoutSetupState;
 
 function sanitizeAmount(text: string) {
   let cleaned = text.replace(/[^0-9.]/g, "");
@@ -54,9 +69,7 @@ function sanitizeAmount(text: string) {
 }
 
 function mapOnboardingLabel(state: OnboardingState, t: (key: string) => string) {
-  if (state === "ready") return t("payoutsEnabled");
-  if (state === "pending_review") return t("verificationReview");
-  return t("setupRequired");
+  return t(mapOnboardingLabelKey(state));
 }
 
 function mapTxCategory(type: string): WalletHistoryFilter {
@@ -77,7 +90,7 @@ export function WalletScreen({
   const router = useRouter();
   const stripe = useStripe();
   const { user } = useAuthContext();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const isDesktopWebNav = useIsDesktopWebNav();
   const { locale } = useAppLocale();
   const { t } = useTranslation("wallet");
@@ -92,6 +105,9 @@ export function WalletScreen({
     refresh,
     liveWalletReady,
     requestLiveMode,
+    pendingIncoming,
+    pendingIncomingItems,
+    loadPendingIncoming,
   } = useWalletContext();
 
   const [walletAction, setWalletAction] = useState<WalletActionKey>(initialAction);
@@ -110,19 +126,32 @@ export function WalletScreen({
   const [sendNote, setSendNote] = useState("");
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [isRulesVisible, setIsRulesVisible] = useState(false);
-  const [onboardingState, setOnboardingState] = useState<OnboardingState>("needs_identity");
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>("needs_profile");
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [payoutDraft, setPayoutDraft] = useState<PayoutDraft | null>(null);
+  const [walletCountry, setWalletCountry] = useState("EC");
+  const [bankLinked, setBankLinked] = useState(false);
+  const [profileSubmitted, setProfileSubmitted] = useState(false);
+
+  const useDesktopWalletLayout = shouldUseDesktopWalletLayout(
+    Platform.OS,
+    isDesktopWebNav,
+  );
 
   const filteredTransactions = useMemo(() => {
-    const rows = historyFilter === "all"
-      ? transactions
-      : transactions.filter((tx) => mapTxCategory(tx.type) === historyFilter);
+    const rows =
+      historyFilter === "all"
+        ? transactions
+        : transactions.filter((tx) => mapTxCategory(tx.type) === historyFilter);
     return rows.slice(0, txLimit);
   }, [historyFilter, transactions, txLimit]);
 
   useEffect(() => {
     loadTransactions();
     loadOnboarding();
+    if (!isPlayMode) {
+      void loadPendingIncoming();
+    }
 
     if (Platform.OS === "web") {
       const params = new URLSearchParams(window.location.search);
@@ -156,9 +185,16 @@ export function WalletScreen({
 
   const loadOnboarding = async () => {
     if (!user?.id || isPlayMode) return;
-    const status = await walletService.getOnboardingStatus(user.id);
+    const wallet = await walletService.getWallet(user.id);
+    if (wallet?.country) {
+      setWalletCountry(wallet.country);
+    }
+    const status = await walletService.getPayoutSetupStatus(user.id);
     if (status) {
       setOnboardingState(status.state);
+      setPayoutDraft(status.payoutDraft);
+      setProfileSubmitted(status.hasProfileDraft || status.connect.detailsSubmitted);
+      setBankLinked(status.globalPayouts.hasPayoutMethod);
     }
   };
 
@@ -255,6 +291,32 @@ export function WalletScreen({
     await refresh();
   };
 
+  const handleStripeRedirect = async (url: string) => {
+    if (Platform.OS === "web") {
+      window.location.href = url;
+    } else {
+      await Linking.openURL(url);
+    }
+  };
+
+  const handlePayoutFormSuccess = async () => {
+    setBannerMessage(t("payoutSetupComplete"));
+    await loadOnboarding();
+  };
+
+  const payoutSteps = buildPayoutSteps({
+    liveWalletReady,
+    onboardingState,
+    profileSubmitted,
+    bankLinked,
+  });
+
+  const showPayoutSidePanel = shouldShowPayoutSidePanel({
+    liveWalletReady,
+    isPlayMode,
+    onboardingState,
+  });
+
   const handleContinueOnboarding = async () => {
     if (!user?.id || !user?.email) return;
     setOnboardingLoading(true);
@@ -272,11 +334,7 @@ export function WalletScreen({
         return;
       }
 
-      if (Platform.OS === "web") {
-        window.location.href = link.url;
-      } else {
-        await Linking.openURL(link.url);
-      }
+      await handleStripeRedirect(link.url);
     } finally {
       setOnboardingLoading(false);
     }
@@ -355,9 +413,10 @@ export function WalletScreen({
       return;
     }
 
-    const confirmation = Platform.OS === "web"
-      ? window.confirm(`Send ${formatCurrency(value)} to @${recipient.username}?`)
-      : true;
+    const confirmation =
+      Platform.OS === "web"
+        ? window.confirm(`Send ${formatCurrency(value)} to @${recipient.username}?`)
+        : true;
     if (!confirmation) return;
 
     setLoading(true);
@@ -384,9 +443,7 @@ export function WalletScreen({
   };
 
   const copyReceiveHandle = async () => {
-    const handle = user?.username
-      ? `@${user.username}`
-      : user?.email || "";
+    const handle = user?.username ? `@${user.username}` : user?.email || "";
     if (!handle) return;
 
     try {
@@ -399,51 +456,81 @@ export function WalletScreen({
     }
   };
 
+  const renderQuickAmounts = () => (
+    <View style={styles.quickRow}>
+      {PREDEFINED_AMOUNTS.map((value) => {
+        const selected = amount === String(value);
+        return (
+          <Pressable
+            key={value}
+            accessibilityRole="button"
+            accessibilityLabel={`$${value}`}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setAmount(String(value));
+            }}
+            style={[
+              styles.quickChip,
+              {
+                backgroundColor: selected ? theme.primary : theme.surface,
+                borderColor: selected ? theme.primary : theme.border,
+                borderRadius: theme.radius.pill,
+              },
+            ]}
+          >
+            <AppText variant="label" color={selected ? "onPrimary" : "default"}>
+              ${value}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const renderGuideCard = (title: string, body: string) => (
+    <View
+      style={[
+        styles.guideCard,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          borderRadius: theme.radius.lg,
+        },
+      ]}
+    >
+      <AppText variant="title3">{title}</AppText>
+      <AppText variant="bodySm" color="secondary">
+        {body}
+      </AppText>
+    </View>
+  );
+
   const renderActionPanel = () => {
     if (walletAction === "deposit") {
       return (
         <View>
-          <View style={[styles.walletGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <AppText variant="title3">{t("addLiveFunds")}</AppText>
-            <AppText variant="bodySm" color="secondary" style={styles.walletGuideText}>
-              Deposits go to your live wallet. Practice credits stay separate, and the minimum deposit is ${MIN_DEPOSIT}.
-            </AppText>
-          </View>
-          <AppText variant="label" color="secondary" style={styles.sectionTitle}>Quick amounts</AppText>
-          <View style={styles.quickRow}>
-            {PREDEFINED_AMOUNTS.map((value) => (
-              <TouchableOpacity
-                key={value}
-                style={[
-                  styles.quickChip,
-                  { backgroundColor: isDark ? "#1C1C1E" : "#E5E5EA" },
-                  amount === String(value) && { backgroundColor: theme.primary },
-                ]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setAmount(String(value));
-                }}
-              >
-                <AppText
-                  variant="label"
-                  style={{ color: amount === String(value) ? theme.onPrimary : theme.text }}
-                >
-                  ${value}
-                </AppText>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <AppText variant="label" color="secondary" style={styles.sectionTitle}>Custom amount</AppText>
-          <AppInput
-            testID="topup-amount"
-            value={amount}
-            onChangeText={(text) => setAmount(sanitizeAmount(text))}
-            placeholder={`Minimum $${MIN_DEPOSIT}`}
-            keyboardType="decimal-pad"
-          />
+          {renderGuideCard(
+            t("addLiveFunds"),
+            `Deposits go to your live wallet. Practice credits stay separate, and the minimum deposit is $${MIN_DEPOSIT}.`,
+          )}
+          <AppText variant="caption" color="secondary" style={styles.sectionTitle}>
+            Quick amounts
+          </AppText>
+          {renderQuickAmounts()}
+          <FieldGroup>
+            <AppInput
+              label="Custom amount"
+              testID="topup-amount"
+              value={amount}
+              onChangeText={(text) => setAmount(sanitizeAmount(text))}
+              placeholder={`Minimum $${MIN_DEPOSIT}`}
+              keyboardType="decimal-pad"
+            />
+          </FieldGroup>
           <AppButton
             testID="topup-submit"
             title="Add Funds"
+            size="sm"
             loading={loading}
             onPress={handleTopUp}
             style={styles.primaryButton}
@@ -455,58 +542,59 @@ export function WalletScreen({
     if (walletAction === "send") {
       return (
         <View>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Recipient</Text>
-          <View style={styles.lookupRow}>
-            <TextInput
-              value={recipientQuery}
-              onChangeText={setRecipientQuery}
-              placeholder="@username or email"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.input,
-                styles.lookupInput,
-                { color: theme.text, backgroundColor: theme.input },
-              ]}
-            />
-            <TouchableOpacity
-              style={[styles.lookupButton, { backgroundColor: theme.primary }]}
-              onPress={handleRecipientLookup}
-            >
-              <Text style={styles.lookupButtonText}>Find</Text>
-            </TouchableOpacity>
-          </View>
-
-          {recipient ? (
-            <View style={[styles.infoBox, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-              <Text style={[styles.infoTitle, { color: theme.text }]}>@{recipient.username}</Text>
-              <Text style={[styles.infoSub, { color: theme.textSecondary }]}>{recipient.email || "Qbet user"}</Text>
+          <FieldGroup>
+            <View style={styles.lookupRow}>
+              <View style={styles.lookupInputWrap}>
+                <AppInput
+                  label="Recipient"
+                  value={recipientQuery}
+                  onChangeText={setRecipientQuery}
+                  placeholder="@username or email"
+                />
+              </View>
+              <AppButton
+                title="Find"
+                size="sm"
+                loading={loading}
+                onPress={handleRecipientLookup}
+              />
             </View>
-          ) : null}
 
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Amount</Text>
-          <TextInput
-            value={amount}
-            onChangeText={(text) => setAmount(sanitizeAmount(text))}
-            placeholder="0.00"
-            placeholderTextColor={theme.textSecondary}
-            keyboardType="decimal-pad"
-            style={[
-              styles.input,
-              { color: theme.text, backgroundColor: theme.input },
-            ]}
-          />
-          <TextInput
-            value={sendNote}
-            onChangeText={setSendNote}
-            placeholder="Add note (optional)"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.input,
-              { color: theme.text, backgroundColor: theme.input, marginTop: 10 },
-            ]}
-          />
+            {recipient ? (
+              <View
+                style={[
+                  styles.infoBox,
+                  {
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
+                    borderRadius: theme.radius.md,
+                  },
+                ]}
+              >
+                <AppText variant="body">@{recipient.username}</AppText>
+                <AppText variant="bodySm" color="secondary">
+                  {recipient.email || "Qbet user"}
+                </AppText>
+              </View>
+            ) : null}
+
+            <AppInput
+              label="Amount"
+              value={amount}
+              onChangeText={(text) => setAmount(sanitizeAmount(text))}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+            />
+            <AppInput
+              label="Note (optional)"
+              value={sendNote}
+              onChangeText={setSendNote}
+              placeholder="Add note"
+            />
+          </FieldGroup>
           <AppButton
             title="Send Funds"
+            size="sm"
             loading={loading}
             onPress={handleSend}
             style={styles.primaryButton}
@@ -518,17 +606,27 @@ export function WalletScreen({
     if (walletAction === "receive") {
       return (
         <View>
-          <View style={[styles.infoBox, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-            <Text style={[styles.infoTitle, { color: theme.text }]}>Your receive handle</Text>
-            <Text style={[styles.receiveHandle, { color: theme.primary }]}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                borderRadius: theme.radius.md,
+              },
+            ]}
+          >
+            <AppText variant="body">Your receive handle</AppText>
+            <AppText variant="title2" color="primary" style={styles.receiveHandle}>
               {user?.username ? `@${user.username}` : user?.email || "Unavailable"}
-            </Text>
-            <Text style={[styles.infoSub, { color: theme.textSecondary }]}>
+            </AppText>
+            <AppText variant="bodySm" color="secondary">
               Share this with another user so they can send funds instantly.
-            </Text>
+            </AppText>
           </View>
           <AppButton
             title="Copy Receive Handle"
+            size="sm"
             onPress={copyReceiveHandle}
             style={styles.primaryButton}
           />
@@ -538,29 +636,27 @@ export function WalletScreen({
 
     return (
       <View>
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Withdraw amount</Text>
-        <TextInput
-          value={amount}
-          onChangeText={(text) => setAmount(sanitizeAmount(text))}
-          placeholder={`Min $${MIN_WITHDRAWAL}`}
-          placeholderTextColor={theme.textSecondary}
-          keyboardType="decimal-pad"
-          style={[
-            styles.input,
-            { color: theme.text, backgroundColor: theme.input },
-          ]}
-        />
+        <FieldGroup>
+          <AppInput
+            label="Withdraw amount"
+            value={amount}
+            onChangeText={(text) => setAmount(sanitizeAmount(text))}
+            placeholder={`Min $${MIN_WITHDRAWAL}`}
+            keyboardType="decimal-pad"
+          />
+        </FieldGroup>
         {amount ? (
-          <TouchableOpacity
-            style={[styles.feeRow, { borderColor: theme.border, backgroundColor: theme.surface }]}
+          <AppButton
+            title="Fees and settlement timeline"
+            variant="secondary"
+            size="sm"
             onPress={() => setIsRulesVisible(true)}
-          >
-            <Text style={{ color: theme.textSecondary }}>Fees and settlement timeline</Text>
-            <Text style={{ color: theme.primary }}>View</Text>
-          </TouchableOpacity>
+            style={styles.feeButton}
+          />
         ) : null}
         <AppButton
           title="Confirm Withdrawal"
+          size="sm"
           loading={loading}
           onPress={handleWithdraw}
           style={styles.primaryButton}
@@ -569,138 +665,182 @@ export function WalletScreen({
     );
   };
 
-  const showBackButton = !(hideBackButton || (Platform.OS === "web" && isDesktopWebNav));
+  const payoutSideContent =
+    showPayoutSidePanel && user?.id && user?.email ? (
+      <>
+        <WalletPayoutSetupPanel
+          steps={payoutSteps}
+          loading={onboardingLoading}
+          showStripeFallback
+          onContinueStripe={handleContinueOnboarding}
+        />
+        <WalletPayoutProfileForm
+          userId={user.id}
+          email={user.email}
+          country={walletCountry}
+          initialDraft={payoutDraft}
+          defaultName={user.username ?? undefined}
+          onSuccess={handlePayoutFormSuccess}
+          onNeedsStripeRedirect={handleStripeRedirect}
+        />
+      </>
+    ) : null;
 
-  const renderWebActionLinks = () => (
-    <View style={styles.webActionLinks}>
-      {(["send", "receive", "withdraw"] as WalletActionKey[]).map((action) => {
-        const labels: Record<WalletActionKey, string> = {
-          deposit: "Add funds",
-          send: "Send",
-          receive: "Receive",
-          withdraw: "Withdraw",
-        };
-        const active = walletAction === action;
-        return (
-          <TouchableOpacity key={action} onPress={() => setWalletAction(action)}>
-            <Text style={[styles.webActionLink, { color: active ? theme.primary : theme.textSecondary }]}>
-              {labels[action]}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+  const renderLiveWalletBody = () => (
+    <>
+      <View
+        style={[
+          styles.modeCard,
+          {
+            backgroundColor: theme.primarySoft,
+            borderColor: `${theme.primary}33`,
+            borderRadius: theme.radius.md,
+          },
+        ]}
+      >
+        <AppText variant="label" color="primary">
+          Live wallet uses real money. Add funds first, then return to a market to place live bets.
+        </AppText>
+      </View>
+      <WalletDesktopLayout
+        enabled={useDesktopWalletLayout}
+        main={
+          <>
+            <WalletActionRail active={walletAction} onSelect={setWalletAction} />
+            {renderActionPanel()}
+          </>
+        }
+        side={payoutSideContent}
+      />
+    </>
   );
 
+  const showBackButton = !(hideBackButton || (Platform.OS === "web" && isDesktopWebNav));
+
   return (
-    <AppScreen maxWidth="narrow" scroll padBottomForTabBar={hideBackButton}>
+    <AppScreen
+      maxWidth={useDesktopWalletLayout ? "wide" : "narrow"}
+      scroll
+      padBottomForTabBar={hideBackButton}
+    >
       <GlobalHeader
         showToggle={!isDesktopWebNav}
-        left={
-          showBackButton ? (
-            <BackButton />
-          ) : undefined
-        }
+        left={showBackButton ? <BackButton /> : undefined}
       />
-          <WalletOverviewCard
-            balanceLabel={isPlayMode ? "Play balance" : "Live balance"}
-            balanceDisplay={formatCurrency(balance, "USD", intlLocale)}
-            subtitle={isPlayMode ? "Trial credits for practice only." : "Real-money wallet"}
-            onboardingLabel={!isPlayMode ? mapOnboardingLabel(onboardingState, t) : undefined}
-            theme={theme}
-          />
+      <WalletOverviewCard
+        balanceLabel={isPlayMode ? t("playBalanceLabel") : t("availableBalance")}
+        balanceDisplay={formatCurrency(balance, "USD", intlLocale)}
+        subtitle={isPlayMode ? "Trial credits for practice only." : "Spendable live wallet balance"}
+        incomingTotal={!isPlayMode ? pendingIncoming : 0}
+        incomingDisplay={
+          !isPlayMode && pendingIncoming > 0
+            ? `+${formatCurrency(pendingIncoming, "USD", intlLocale)}`
+            : undefined
+        }
+        incomingSubtitle={
+          !isPlayMode && pendingIncomingItems.length > 0
+            ? t("incomingAvailableAround", {
+                date: formatIncomingReleaseDate(
+                  pendingIncomingItems.reduce((earliest, item) =>
+                    new Date(item.releasesAt) < new Date(earliest.releasesAt) ? item : earliest,
+                  pendingIncomingItems[0]).releasesAt,
+                  intlLocale,
+                ),
+              })
+            : t("incoming")
+        }
+        onboardingLabel={!isPlayMode ? mapOnboardingLabel(onboardingState, t) : undefined}
+      />
 
-          {bannerMessage ? (
-            <View style={[styles.banner, { backgroundColor: `${theme.primary}14` }]}>
-              <Text style={[styles.bannerText, { color: theme.primary }]}>{bannerMessage}</Text>
-            </View>
-          ) : null}
+      {!isPlayMode && pendingIncomingItems.length > 0 ? (
+        <WalletIncomingPayouts
+          items={pendingIncomingItems}
+          intlLocale={intlLocale}
+          incomingLabel={t("incoming")}
+          availableAroundLabel={(date) => t("incomingAvailableAround", { date })}
+        />
+      ) : null}
 
-          {isPlayMode ? (
-            <>
-              <View style={[styles.walletGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.walletGuideTitle, { color: theme.text }]}>Practice wallet</Text>
-                <Text style={[styles.walletGuideText, { color: theme.textSecondary }]}>
-                  Practice credits help you learn the app. Switch to live only when you want to deposit or withdraw real money.
-                </Text>
-              </View>
-              <AppButton title="Switch to Live Wallet" onPress={() => void requestLiveMode()} style={styles.primaryButton} />
-            </>
-          ) : !liveWalletReady ? (
-            <>
-              <View style={[styles.walletGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <Text style={[styles.walletGuideTitle, { color: theme.text }]}>Verify to use live wallet</Text>
-                <Text style={[styles.walletGuideText, { color: theme.textSecondary }]}>
-                  Complete Stripe Identity verification before depositing, withdrawing, or placing live bets.
-                </Text>
-              </View>
-              <AppButton
-                title="Verify identity"
-                onPress={() => router.push("/wallet/verify" as any)}
-                style={styles.primaryButton}
-              />
-              <AppButton
-                title="Back to practice mode"
-                variant="ghost"
-                onPress={toggleMode}
-                style={styles.secondaryLinkButton}
-              />
-            </>
-          ) : (
-            <>
-              <View style={[styles.walletModeCard, { backgroundColor: `${theme.primary}14`, borderColor: `${theme.primary}33` }]}>
-                <Text style={[styles.walletModeText, { color: theme.primary }]}>
-                  Live wallet uses real money. Add funds first, then return to a market to place live bets.
-                </Text>
-              </View>
-              <WalletOnboardingCard
-                state={onboardingState}
-                loading={onboardingLoading}
-                onContinue={handleContinueOnboarding}
-                theme={theme}
-              />
-              {Platform.OS === "web" ? (
-                <>
-                  <AppButton
-                    title="Add funds"
-                    onPress={() => setWalletAction("deposit")}
-                    style={styles.primaryButton}
-                  />
-                  {renderWebActionLinks()}
-                </>
-              ) : (
-                <WalletActionRail active={walletAction} onSelect={setWalletAction} theme={theme} />
-              )}
-              {renderActionPanel()}
-            </>
+      {bannerMessage ? (
+        <View
+          style={[
+            styles.banner,
+            {
+              backgroundColor: theme.primarySoft,
+              borderRadius: theme.radius.md,
+            },
+          ]}
+        >
+          <AppText variant="label" color="primary">
+            {bannerMessage}
+          </AppText>
+        </View>
+      ) : null}
+
+      {isPlayMode ? (
+        <>
+          {renderGuideCard(
+            "Practice wallet",
+            "Practice credits help you learn the app. Switch to live only when you want to deposit or withdraw real money.",
           )}
-
-          <View style={styles.historyHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent activity</Text>
-          </View>
-
-          <WalletHistoryFilters
-            value={historyFilter}
-            onChange={(next) => {
-              setHistoryFilter(next);
-              setTxLimit(10);
-            }}
+          <AppButton
+            title="Switch to Live Wallet"
+            size="sm"
+            onPress={() => void requestLiveMode()}
+            style={styles.primaryButton}
           />
-
-          <WalletTransactionList
-            transactions={filteredTransactions}
-            loading={transactionsLoading}
-            totalCount={
-              historyFilter === "all"
-                ? transactions.length
-                : transactions.filter((tx) => mapTxCategory(tx.type) === historyFilter).length
-            }
-            visibleCount={filteredTransactions.length}
-            onLoadMore={() => setTxLimit((prev) => prev + 10)}
-            intlLocale={intlLocale}
-            t={t}
-            theme={theme}
+        </>
+      ) : !liveWalletReady ? (
+        <>
+          {renderGuideCard(
+            "Verify to use live wallet",
+            "Complete Stripe Identity verification before depositing, withdrawing, or placing live bets.",
+          )}
+          <AppButton
+            title="Verify identity"
+            size="sm"
+            onPress={() => router.push("/wallet/verify" as any)}
+            style={styles.primaryButton}
           />
+          <AppButton
+            title="Back to practice mode"
+            variant="ghost"
+            size="sm"
+            onPress={toggleMode}
+            style={styles.secondaryLinkButton}
+          />
+        </>
+      ) : (
+        renderLiveWalletBody()
+      )}
+
+      <View style={styles.historyHeader}>
+        <AppText variant="caption" color="secondary" style={styles.sectionTitle}>
+          Recent activity
+        </AppText>
+      </View>
+
+      <WalletHistoryFilters
+        value={historyFilter}
+        onChange={(next) => {
+          setHistoryFilter(next);
+          setTxLimit(10);
+        }}
+      />
+
+      <WalletTransactionList
+        transactions={filteredTransactions}
+        loading={transactionsLoading}
+        totalCount={
+          historyFilter === "all"
+            ? transactions.length
+            : transactions.filter((tx) => mapTxCategory(tx.type) === historyFilter).length
+        }
+        visibleCount={filteredTransactions.length}
+        onLoadMore={() => setTxLimit((prev) => prev + 10)}
+        intlLocale={intlLocale}
+        t={t}
+      />
       <RulesModal
         visible={isRulesVisible}
         onClose={() => setIsRulesVisible(false)}
@@ -711,71 +851,30 @@ export function WalletScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerButtonLeft: {
-    padding: 8,
-    marginLeft: -8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    fontWeight: "300",
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
   banner: {
-    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 14,
   },
-  bannerText: {
-    fontSize: 13,
-    fontWeight: '400',
-  },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '400',
     textTransform: "uppercase",
     marginBottom: 8,
     letterSpacing: 0.4,
   },
-  walletGuideCard: {
+  guideCard: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
     padding: 16,
     marginBottom: 14,
-  },
-  walletGuideTitle: {
-    fontSize: 17,
-    fontWeight: '400',
-    marginBottom: 6,
-  },
-  walletGuideText: {
-    fontSize: 14,
-    lineHeight: 20,
+    gap: 6,
   },
   secondaryLinkButton: {
     marginTop: 8,
-    alignItems: "center",
-    paddingVertical: 10,
   },
-  secondaryLinkText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  walletModeCard: {
+  modeCard: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 14,
-  },
-  walletModeText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '400',
   },
   quickRow: {
     flexDirection: "row",
@@ -784,143 +883,37 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   quickChip: {
-    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    minHeight: 34,
     minWidth: 56,
     alignItems: "center",
-  },
-  quickChipText: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  input: {
-    height: 48,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    marginBottom: 10,
+    justifyContent: "center",
   },
   primaryButton: {
-    minHeight: 48,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
     marginTop: 8,
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: '400',
-    fontSize: 15,
   },
   lookupRow: {
     flexDirection: "row",
     gap: 8,
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-end",
   },
-  lookupInput: { flex: 1, marginBottom: 0 },
-  lookupButton: {
-    borderRadius: 10,
-    minHeight: 48,
-    paddingHorizontal: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  lookupButtonText: {
-    color: "#fff",
-    fontWeight: '400',
-    fontSize: 14,
+  lookupInputWrap: {
+    flex: 1,
   },
   infoBox: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
     padding: 12,
-    marginBottom: 10,
-  },
-  infoTitle: {
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  infoSub: {
-    marginTop: 4,
-    fontSize: 13,
+    gap: 4,
   },
   receiveHandle: {
     marginTop: 6,
-    fontSize: 20,
-    fontWeight: '400',
   },
-  feeRow: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  feeButton: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   historyHeader: {
     marginTop: 24,
-  },
-  webActionLinks: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  webActionLink: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  historyList: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  emptyHistory: {
-    textAlign: "center",
-    paddingVertical: 22,
-    fontSize: 14,
-  },
-  txRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  txTitle: {
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  txSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-  },
-  txRight: {
-    alignItems: "flex-end",
-  },
-  txAmount: {
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  txStatus: {
-    fontSize: 10,
-    fontWeight: '400',
-    marginTop: 2,
-    letterSpacing: 0.3,
-  },
-  moreButton: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  moreButtonText: {
-    fontSize: 13,
-    fontWeight: '400',
   },
 });

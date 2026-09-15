@@ -9,12 +9,14 @@ import 'react-native-reanimated';
 import '@/lib/sentry-init';
 
 import { AnymarktLoader } from '@/components/AnymarktLoader';
+import { ClientOnlyWebApp } from '@/components/ClientOnlyWebApp';
 import { PremiumNavigationProvider } from '@/components/PremiumNavigationProvider';
 import { SEO } from '@/components/SEO';
 import { SignupBanner } from '@/components/SignupBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { WebContainer } from '@/components/WebContainer';
 import { AuthProvider, useAuthContext } from '@/contexts/AuthContext';
+import { SocialFollowProvider } from '@/contexts/SocialFollowContext';
 import { LocaleProvider } from '@/contexts/LocaleContext';
 import { NavigationLayoutProvider } from '@/contexts/NavigationLayoutContext';
 import { OnboardingGuardProvider } from '@/contexts/OnboardingGuardContext';
@@ -26,6 +28,7 @@ import { LEGAL_COLORS, LEGAL_STACK_SCREEN_OPTIONS } from '@/lib/legal/typography
 import { getPublicEnv } from '@/lib/public-env';
 import { Sentry } from '@/lib/sentry';
 import { StripeProvider } from '@/lib/stripe-bridge';
+import { shouldShowBootstrapLoader } from '@/lib/web-client-mount.logic';
 import { complianceService } from '@/services/compliance.service';
 import { groupService } from '@/services/group.service';
 
@@ -189,7 +192,6 @@ function RootLayoutNav() {
   const [hasPolicyAcceptances, setHasPolicyAcceptances] = useState(true);
   const [hasResidence, setHasResidence] = useState(true);
   const [hasBetaAccess, setHasBetaAccess] = useState(true);
-  const [clientMounted, setClientMounted] = useState(Platform.OS !== 'web');
   const hasPageLevelSeo =
     isLanding ||
     currentSegment === 'market' ||
@@ -205,10 +207,6 @@ function RootLayoutNav() {
     hasPolicyAcceptances: true,
     hasBetaAccess: true,
   });
-
-  useEffect(() => {
-    setClientMounted(true);
-  }, []);
 
   const refreshOnboardingStatus = useCallback(async () => {
     if (!hasSession || !user?.id) return;
@@ -582,8 +580,12 @@ function RootLayoutNav() {
     }
   }, [hasSession, loading, segments, router, policyCheckDone, hasPolicyAcceptances, hasResidence, hasBetaAccess, user?.id, user]);
 
-  const showBootstrapLoader =
-    clientMounted && (loading || (hasSession && (!policyCheckDone || !user?.id)));
+  const showBootstrapLoader = shouldShowBootstrapLoader({
+    loading,
+    hasSession,
+    policyCheckDone,
+    userId: user?.id,
+  });
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
@@ -650,8 +652,8 @@ const styles = StyleSheet.create({
   },
 });
 
-/** Matches `app/index.tsx` landing root so wide-web gutters are not theme.dark while the page is light. */
-const LANDING_PAGE_BACKGROUND = '#F5F7FB';
+/** Matches `app/index.tsx` landing root so wide-web gutters align with the hero. */
+const LANDING_PAGE_BACKGROUND = '#030712';
 
 function WebShell({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
@@ -669,18 +671,6 @@ function WebShell({ children }: { children: React.ReactNode }) {
       {children}
     </WebContainer>
   );
-}
-
-function ClientOnlyWebApp({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(Platform.OS !== 'web');
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
-  return <>{children}</>;
 }
 
 export default Sentry.wrap(function RootLayout() {
@@ -701,6 +691,7 @@ export default Sentry.wrap(function RootLayout() {
         <ClientOnlyWebApp>
           <WebShell>
             <AuthProvider>
+              <SocialFollowProvider>
               <LocaleProvider>
                 <PolicyFrameworkProvider>
                 <WalletProvider>
@@ -712,6 +703,7 @@ export default Sentry.wrap(function RootLayout() {
                 </WalletProvider>
                 </PolicyFrameworkProvider>
               </LocaleProvider>
+              </SocialFollowProvider>
             </AuthProvider>
           </WebShell>
         </ClientOnlyWebApp>
