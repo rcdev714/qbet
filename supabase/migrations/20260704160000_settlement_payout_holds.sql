@@ -643,7 +643,7 @@ end;
 $$;
 
 -- Use tagged dollar-quotes so the cron command body can keep $$ without
--- terminating this DO block early (42P13 sibling: nested $$ is a syntax error).
+-- terminating this DO block early (nested $$ is a syntax error).
 do $schedule_settlement_payout_cron$
 begin
   perform cron.schedule(
