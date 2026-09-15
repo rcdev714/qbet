@@ -4,6 +4,7 @@ import { ChatComposer } from "@/components/group-chat/ChatComposer";
 import { ReportContentButton } from "@/components/moderation/ReportContentButton";
 import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
 import { Brand } from "@/constants/theme";
+import { CHAT_LIST_PADDING_TOP, CHAT_LIST_PADDING_X } from "@/constants/layout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMarket } from "@/hooks/useMarket";
 import { getRandomColor } from "@/lib/colors";
@@ -116,6 +117,7 @@ interface ChatTabProps {
   onBet: (market: Market, optionId: string, side: "yes" | "no") => void;
   onResolve: (marketId: string, optionId: string) => void;
   currentUserId?: string;
+  embedded?: boolean;
 }
 
 // ─── ChatTab ───────────────────────────────────────────────────────────────
@@ -136,9 +138,11 @@ export function ChatTab({
   onBet,
   onResolve,
   currentUserId,
+  embedded = false,
 }: ChatTabProps) {
   const { theme, isDark } = useTheme();
   const flatListRef = useRef<FlatList>(null);
+  const skipKeyboardAvoiding = embedded || Platform.OS === "web";
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -354,16 +358,16 @@ export function ChatTab({
               ? [styles.myMessage, { 
                   backgroundColor: theme.primary, 
                   borderBottomRightRadius: 4, 
-                  borderTopRightRadius: 20,
-                  borderTopLeftRadius: 20,
-                  borderBottomLeftRadius: 20,
+                  borderTopRightRadius: 18,
+                  borderTopLeftRadius: 18,
+                  borderBottomLeftRadius: 18,
                 }]
               : [styles.theirMessage, { 
                   backgroundColor: isDark ? "rgba(44, 44, 46, 0.8)" : "rgba(242, 242, 247, 0.9)", 
                   borderBottomLeftRadius: 4, 
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 20,
-                  borderBottomRightRadius: 20,
+                  borderTopLeftRadius: 18,
+                  borderTopRightRadius: 18,
+                  borderBottomRightRadius: 18,
                   borderWidth: 1, 
                   borderColor: theme.border 
                 }],
@@ -374,27 +378,29 @@ export function ChatTab({
               <Text style={[styles.senderName, { color: getRandomColor(displayName || "User") }]}>{displayName}</Text>
             </TouchableOpacity>
           )}
-          <Text style={[styles.messageText, { color: isMe ? "#FFFFFF" : theme.text }]}>{item.content}</Text>
-          <View style={styles.messageFooter}>
-            <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.6)" : theme.textSecondary }]}>
-              {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </Text>
-            {!isMe && (
-              <ReportContentButton
-                targetType="group_message"
-                targetId={item.id}
-                targetUserId={item.user_id}
-                label="Report"
-                theme={{
-                  text: theme.text,
-                  textSecondary: theme.textSecondary,
-                  surface: theme.surface,
-                  border: theme.border,
-                  primary: theme.primary,
-                }}
-              />
-            )}
-            {renderStatusIndicator()}
+          <View style={styles.messageContent}>
+            <Text style={[styles.messageText, { color: isMe ? "#FFFFFF" : theme.text }]}>{item.content}</Text>
+            <View style={styles.messageMeta}>
+              <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.55)" : theme.textSecondary }]}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </Text>
+              {!isMe && (
+                <ReportContentButton
+                  targetType="group_message"
+                  targetId={item.id}
+                  targetUserId={item.user_id}
+                  label="Report"
+                  theme={{
+                    text: theme.text,
+                    textSecondary: theme.textSecondary,
+                    surface: theme.surface,
+                    border: theme.border,
+                    primary: theme.primary,
+                  }}
+                />
+              )}
+              {renderStatusIndicator()}
+            </View>
           </View>
         </View>
         {isMe && <Avatar />}
@@ -403,19 +409,19 @@ export function ChatTab({
   };
 
   // ── Render ─────────────────────────────────────────────────────────────
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.chatArea, { backgroundColor: theme.background }]}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
+  const chatBody = (
+    <View style={styles.chatBody}>
       <FlatList
-        style={{ flex: 1 }}
+        style={styles.messageListContainer}
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item: any) => item.id}
-        contentContainerStyle={[styles.messageList, messages.length === 0 && styles.emptyMessageList]}
+        keyExtractor={(item: Message) => item.id}
+        contentContainerStyle={[
+          styles.messageList,
+          embedded && styles.messageListEmbedded,
+          messages.length === 0 && styles.emptyMessageList,
+        ]}
         ListEmptyComponent={
           <View style={styles.emptyMessages}>
             <Text style={styles.emptyMessagesText}>No messages yet</Text>
@@ -435,6 +441,24 @@ export function ChatTab({
         mentionContext={{ groupId }}
         onSendMention={onSendMention}
       />
+    </View>
+  );
+
+  if (skipKeyboardAvoiding) {
+    return (
+      <View style={[styles.chatArea, { backgroundColor: theme.background, flex: 1, minHeight: 0 }]}>
+        {chatBody}
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[styles.chatArea, { backgroundColor: theme.background }]}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      {chatBody}
     </KeyboardAvoidingView>
   );
 }
@@ -443,10 +467,25 @@ export function ChatTab({
 const styles = StyleSheet.create({
   chatArea: {
     flex: 1,
+    minHeight: 0,
+  },
+  chatBody: {
+    flex: 1,
+    minHeight: 0,
+  },
+  messageListContainer: {
+    flex: 1,
+    minHeight: 0,
   },
   messageList: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  messageListEmbedded: {
+    paddingTop: CHAT_LIST_PADDING_TOP,
+    paddingHorizontal: CHAT_LIST_PADDING_X,
+    paddingBottom: 24,
   },
   emptyMessageList: {
     flex: 1,
@@ -473,7 +512,7 @@ const styles = StyleSheet.create({
   messageRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   messageRowLeft: {
     justifyContent: "flex-start",
@@ -483,11 +522,9 @@ const styles = StyleSheet.create({
   },
   myMessage: {
     alignSelf: "flex-end",
-    alignItems: "flex-end",
   },
   theirMessage: {
     alignSelf: "flex-start",
-    alignItems: "flex-start",
   },
   senderName: {
     fontSize: 11,
@@ -517,19 +554,34 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: "75%",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    paddingBottom: 5,
+    borderRadius: 18,
+    marginBottom: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 1,
   },
+  messageContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-end",
+    columnGap: 6,
+    rowGap: 1,
+  },
   messageText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  messageMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginLeft: "auto",
+    paddingBottom: 1,
   },
   messageFooter: {
     flexDirection: "row",
@@ -538,7 +590,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   messageTime: {
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 13,
     color: "#8E8E93",
   },
   // Status indicators

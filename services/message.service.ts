@@ -1,4 +1,5 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { MESSAGE_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
 import type { Message, MessageInsert } from "../types/message";
@@ -25,11 +26,7 @@ export const messageService = {
           referenced_user_id: data.referenced_user_id,
           bet_id: data.bet_id,
         })
-        .select(`
-          *,
-          user:users(*),
-          market:markets(*)
-        `)
+        .select(MESSAGE_SELECT)
         .single();
 
       if (error || !message) {
@@ -50,17 +47,13 @@ export const messageService = {
       console.log("[messageService] Fetching messages for group:", groupId);
       const { data: messages, error } = await supabase
         .from("messages")
-        .select(`
-          *,
-          user:users(*),
-          market:markets(*)
-        `)
+        .select(MESSAGE_SELECT)
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
         .limit(limit);
 
       if (error) {
-        console.error("[messageService] Error fetching messages:", error);
+        console.error("[messageService] Error fetching messages:", error.message, error.code, error.details);
         return [];
       }
 
@@ -79,11 +72,7 @@ export const messageService = {
     try {
       const { data: messages, error } = await supabase
         .from("messages")
-        .select(`
-          *,
-          user:users(*),
-          market:markets(*)
-        `)
+        .select(MESSAGE_SELECT)
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -145,11 +134,7 @@ export const messageService = {
           // Fetch full message with user and market data
           const { data: message, error } = await supabase
             .from("messages")
-            .select(`
-              *,
-              user:users(*),
-              market:markets(*)
-            `)
+            .select(MESSAGE_SELECT)
             .eq("id", payload.new.id)
             .single();
 

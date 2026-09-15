@@ -1,4 +1,10 @@
 import { supabase } from "../lib/supabase";
+import {
+  buildConnectVerificationBody,
+  derivePayoutSetupState,
+  parseBankDetailsDraft,
+  type PayoutSetupState,
+} from "../lib/wallet-payout.logic";
 import type { Wallet } from "../types/user";
 
 export interface WalletRecipient {
@@ -12,6 +18,45 @@ export interface TransferFundsInput {
   amount: number;
   note?: string;
   clientReference?: string;
+}
+
+export type { PayoutSetupState };
+
+export interface PayoutDraft {
+  bankCode?: string;
+  bankName?: string;
+  swift?: string;
+  city?: string;
+  province?: string;
+  firstName?: string;
+  lastName?: string;
+  addressLine1?: string;
+  postalCode?: string;
+}
+
+export interface PayoutSetupStatus {
+  state: PayoutSetupState;
+  connect: { detailsSubmitted: boolean; payoutsEnabled: boolean };
+  globalPayouts: { hasRecipient: boolean; hasPayoutMethod: boolean };
+  payoutDraft: PayoutDraft | null;
+  hasProfileDraft: boolean;
+}
+
+export interface PayoutSetupSubmitInput {
+  firstName: string;
+  lastName: string;
+  dobDay: number;
+  dobMonth: number;
+  dobYear: number;
+  addressLine1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  idNumber: string;
+  idType: string;
+  bankAccountNumber: string;
+  swift: string;
+  returnPath?: string;
 }
 
 /**
@@ -456,7 +501,14 @@ export const walletService = {
    */
   async checkAccountStatus(
     userId: string,
-  ): Promise<{ details_submitted: boolean; payouts_enabled: boolean } | null> {
+  ): Promise<{
+    details_submitted: boolean;
+    payouts_enabled: boolean;
+    connect?: { details_submitted: boolean; payouts_enabled: boolean };
+    globalPayouts?: { hasRecipient: boolean; hasPayoutMethod: boolean };
+    payoutDraft?: PayoutDraft | null;
+    hasProfileDraft?: boolean;
+  } | null> {
     try {
       const { data, error } = await supabase.functions.invoke(
         "check-account-status",
@@ -477,40 +529,154 @@ export const walletService = {
     }
   },
 
+  async getPayoutSetupStatus(userId: string): Promise<PayoutSetupStatus | null> {
+    const status = await this.checkAccountStatus(userId);
+    if (!status) return null;
+
+    const connect = {
+      detailsSubmitted:
+        status.connect?.details_submitted ?? status.details_submitted,
+      payoutsEnabled:
+        status.connect?.payouts_enabled ?? status.payouts_enabled,
+    };
+    const globalPayouts = status.globalPayouts ?? {
+      hasRecipient: false,
+      hasPayoutMethod: false,
+    };
+
+    const rawDraft = status.payoutDraft;
+    const payoutDraft: PayoutDraft | null = rawDraft
+      ? {
+          bankName: rawDraft.bankName ?? undefined,
+          swift: rawDraft.swift ?? undefined,
+          city: rawDraft.city ?? undefined,
+          province: rawDraft.province ?? undefined,
+          firstName: rawDraft.firstName ?? undefined,
+          lastName: rawDraft.lastName ?? undefined,
+        }
+      : null;
+
+    const wallet = await this.getWallet(userId);
+    const bankDetails =
+      wallet?.bank_details && typeof wallet.bank_details === "object" && !Array.isArray(wallet.bank_details)
+        ? (wallet.bank_details as Record<string, string>)
+        : null;
+    const mergedDraft: PayoutDraft | null =
+      payoutDraft ?? parseBankDetailsDraft(bankDetails);
+
+    const hasProfileDraft =
+      status.hasProfileDraft ??
+      Boolean(mergedDraft?.firstName && mergedDraft?.bankName);
+
+    const state = derivePayoutSetupState({
+      connect,
+      globalPayouts,
+      hasProfileDraft,
+    });
+
+    return {
+      state,
+      connect,
+      globalPayouts,
+      payoutDraft: mergedDraft,
+      hasProfileDraft,
+    };
+  },
+
   async getOnboardingStatus(
     userId: string,
   ): Promise<
     | {
-      state: "ready" | "needs_identity" | "pending_review";
+      state: PayoutSetupState;
       detailsSubmitted: boolean;
       payoutsEnabled: boolean;
     }
     | null
   > {
-    const status = await this.checkAccountStatus(userId);
+    const status = await this.getPayoutSetupStatus(userId);
     if (!status) return null;
 
-    if (status.payouts_enabled) {
-      return {
-        state: "ready",
-        detailsSubmitted: true,
-        payoutsEnabled: true,
-      };
-    }
-
-    if (status.details_submitted) {
-      return {
-        state: "pending_review",
-        detailsSubmitted: true,
-        payoutsEnabled: false,
-      };
-    }
-
     return {
-      state: "needs_identity",
-      detailsSubmitted: false,
-      payoutsEnabled: false,
+      state: status.state,
+      detailsSubmitted: status.connect.detailsSubmitted,
+      payoutsEnabled: status.connect.payoutsEnabled,
     };
+  },
+
+  async ensureConnectAccount(
+    userId: string,
+    email: string,
+    country: string,
+  ): Promise<{ accountId: string } | null> {
+    return this.createConnectAccount(userId, email, country);
+  },
+
+  async savePayoutDraft(draft: Record<string, unknown>): Promise<boolean> {
+    try {
+      const { error } = await (supabase as any).rpc("save_wallet_payout_draft", {
+        p_draft: {
+          ...draft,
+          updated_at: new Date().toISOString(),
+        },
+      });
+      if (error) {
+        console.error("[WalletService] savePayoutDraft error:", error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("[WalletService] savePayoutDraft exception:", error);
+      return false;
+    }
+  },
+
+  async submitPayoutSetup(
+    input: PayoutSetupSubmitInput,
+  ): Promise<{
+    success: boolean;
+    needsOnboarding?: string;
+    payoutMethodId?: string;
+    error?: string;
+  } | null> {
+    try {
+      const returnPath =
+        input.returnPath ??
+        (typeof window !== "undefined" && window.location?.pathname
+          ? window.location.pathname
+          : "/wallet");
+
+      const cryptoApi =
+        (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+      const requestId = cryptoApi?.randomUUID
+        ? cryptoApi.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      const { data, error } = await supabase.functions.invoke(
+        "create-payout-setup",
+        {
+          body: { ...input, returnPath },
+          headers: { "idempotency-key": requestId },
+        },
+      );
+
+      if (error) {
+        console.error("[WalletService] submitPayoutSetup error:", error);
+        return { success: false, error: error.message };
+      }
+
+      if (data?.error) {
+        return { success: false, error: data.error };
+      }
+
+      return {
+        success: Boolean(data?.success),
+        needsOnboarding: data?.needsOnboarding,
+        payoutMethodId: data?.payoutMethodId,
+      };
+    } catch (error: any) {
+      console.error("[WalletService] submitPayoutSetup exception:", error);
+      return { success: false, error: error.message || "Unknown error" };
+    }
   },
 
   async startOnboarding(
@@ -748,15 +914,16 @@ export const walletService = {
       postalCode: string;
       country: string;
       idNumber: string;
+      idType?: string;
       externalAccountToken?: string;
     },
   ): Promise<{ success: true; error?: string } | null> {
     try {
+      const body = buildConnectVerificationBody(details);
+
       const { data, error } = await supabase.functions.invoke(
         "update-connect-account",
-        {
-          body: { ...details },
-        },
+        { body },
       );
 
       if (error) {
@@ -769,6 +936,19 @@ export const walletService = {
       return null;
     }
   },
+  async getPendingSettlementPayouts(userId?: string) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id && !userId) {
+      return { total: 0, items: [] };
+    }
+    const { settlementGovernanceService } = await import(
+      "./settlement-governance.service"
+    );
+    return settlementGovernanceService.getPendingPayouts();
+  },
+
   /**
    * Get wallet transactions for a user
    * @param userId - User ID to fetch transactions for

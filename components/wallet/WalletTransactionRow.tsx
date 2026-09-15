@@ -1,5 +1,8 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+
+import { AppText } from "@/components/ui/AppText";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface WalletTransactionRowProps {
   title: string;
@@ -7,13 +10,8 @@ interface WalletTransactionRowProps {
   amountLabel: string;
   statusLabel: string;
   isPositive: boolean;
+  isPending?: boolean;
   isLast?: boolean;
-  theme: {
-    text: string;
-    textSecondary: string;
-    success: string;
-    border: string;
-  };
 }
 
 export function WalletTransactionRow({
@@ -22,9 +20,11 @@ export function WalletTransactionRow({
   amountLabel,
   statusLabel,
   isPositive,
+  isPending = false,
   isLast,
-  theme,
 }: WalletTransactionRowProps) {
+  const { theme } = useTheme();
+
   return (
     <View
       style={[
@@ -34,16 +34,24 @@ export function WalletTransactionRow({
       ]}
     >
       <View style={styles.left}>
-        <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+        <AppText variant="body" numberOfLines={1}>
+          {title}
+        </AppText>
+        <AppText variant="caption" color="secondary" numberOfLines={1}>
           {subtitle}
-        </Text>
+        </AppText>
       </View>
       <View style={styles.right}>
-        <Text style={[styles.amount, { color: isPositive ? theme.success : theme.text }]}>
+        <AppText
+          variant="body"
+          color={isPending ? "secondary" : isPositive ? "success" : "default"}
+          style={styles.amount}
+        >
           {amountLabel}
-        </Text>
-        <Text style={[styles.status, { color: theme.textSecondary }]}>{statusLabel}</Text>
+        </AppText>
+        <AppText variant="caption" color="secondary" style={styles.status}>
+          {statusLabel}
+        </AppText>
       </View>
     </View>
   );
@@ -53,7 +61,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLast: {
@@ -62,26 +70,16 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     paddingRight: 12,
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  subtitle: {
-    fontSize: 12,
-    marginTop: 2,
+    gap: 2,
   },
   right: {
     alignItems: "flex-end",
+    gap: 2,
   },
   amount: {
-    fontSize: 15,
-    fontWeight: '400',
     fontVariant: ["tabular-nums"],
   },
   status: {
-    fontSize: 11,
-    marginTop: 2,
     textTransform: "uppercase",
     letterSpacing: 0.3,
   },

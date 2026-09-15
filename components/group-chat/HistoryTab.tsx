@@ -19,6 +19,13 @@ interface HistoryTabProps {
   onRefresh: () => void;
 }
 
+function payoutStatusLabel(market: Market): string | null {
+  if (market.status !== "resolved" || !market.group_id) return null;
+  if (market.payout_status === "pending_release") return "PAYOUT PENDING";
+  if (market.payout_status === "held") return "REVIEW";
+  return null;
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -42,7 +49,9 @@ export function HistoryTab({ markets, loading, onRefresh }: HistoryTabProps) {
     <FlatList
       data={markets}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
+      renderItem={({ item }) => {
+        const payoutLabel = payoutStatusLabel(item);
+        return (
         <TouchableOpacity
           style={[
             styles.card,
@@ -62,7 +71,9 @@ export function HistoryTab({ markets, loading, onRefresh }: HistoryTabProps) {
               style={[
                 styles.statusPill,
                 {
-                  backgroundColor: item.status === "resolved"
+                  backgroundColor: payoutLabel
+                    ? (isDark ? "rgba(255,149,0,0.15)" : "#FFF4E5")
+                    : item.status === "resolved"
                     ? (isDark ? "rgba(52,199,89,0.15)" : "#E8FAF0")
                     : (isDark ? "rgba(142,142,147,0.15)" : "#F2F2F7"),
                 },
@@ -72,11 +83,13 @@ export function HistoryTab({ markets, loading, onRefresh }: HistoryTabProps) {
                 style={[
                   styles.statusText,
                   {
-                    color: item.status === "resolved" ? theme.success : theme.textSecondary,
+                    color: payoutLabel
+                      ? theme.warning ?? "#FF9500"
+                      : item.status === "resolved" ? theme.success : theme.textSecondary,
                   },
                 ]}
               >
-                {(item.status || "closed").toUpperCase()}
+                {(payoutLabel || item.status || "closed").toUpperCase()}
               </Text>
             </View>
           </View>
@@ -87,7 +100,8 @@ export function HistoryTab({ markets, loading, onRefresh }: HistoryTabProps) {
             <IconSymbol name="chevron.right" size={14} color={theme.textSecondary} />
           </View>
         </TouchableOpacity>
-      )}
+        );
+      }}
       contentContainerStyle={[
         styles.list,
         markets.length === 0 && styles.emptyList,

@@ -168,7 +168,15 @@ const EC_TERMS_ES = createPolicyDocument({
     {
       heading: "4. Prevención de Fraude y Conducta Ilegal",
       paragraphs: [
-        "Anymarkt opera un programa de confianza y seguridad para detectar, prevenir, investigar y responder a fraude, manipulación, actividad ilegal, contenido abusivo y daño a usuarios.",
+        "Anymarkt opera un programa de confianza y seguridad respaldado por una inversión sustancial en un motor propietario de detección de fraude. El motor está diseñado para detectar, prevenir, investigar y responder a fraude, manipulación, actividad ilegal, contenido abusivo, abuso de liquidaciones y daño a usuarios.",
+        "Para una descripción general de detección de fraude, seguridad de liquidaciones, revisión algorítmica y escalación de soporte, consulte nuestra divulgación de Integridad de la Plataforma, Detección de Fraude y Seguridad de Liquidaciones en anymarkt.com/platform-integrity.",
+      ],
+      bullets: [
+        "Verificación de identidad, sanciones, controles de proveedores de pago y cumplimiento por residencia.",
+        "Puntuación de riesgo propietaria usando señales de cuenta, dispositivo, red, mercado, transacción, billetera, liquidación y comportamiento.",
+        "Monitoreo de colusión, multicuentas, chargebacks, manipulación de mercados, campañas coordinadas de calificaciones de liquidación y abuso de referidos.",
+        "Infraestructura segura de liquidación con registros auditables, retención de evidencia y anulación de la plataforma por fraude o cumplimiento.",
+        "Revisión algorítmica de liquidaciones en grupos privados, con soporte humano, disputas y escalación urgente.",
       ],
     },
     {

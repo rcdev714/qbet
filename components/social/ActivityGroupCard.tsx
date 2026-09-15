@@ -3,6 +3,7 @@ import { UserAvatar } from "@/components/social/UserAvatar";
 import { AppCard } from "@/components/ui/AppCard";
 import { AppText } from "@/components/ui/AppText";
 import { FollowingActivity } from "@/services/social.service";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,11 +16,12 @@ interface ActivityGroupCardProps {
 
 export function ActivityGroupCard({ item, relativeTime }: ActivityGroupCardProps) {
   const router = useRouter();
+  const { openGroup: navigateToGroup } = useGroupNavigation();
   const { t } = useTranslation("social");
 
   const openProfile = () => router.push(`/profile/${item.user_id}` as any);
   const openGroup = () => {
-    if (item.group_id) router.push(`/group/${item.group_id}` as any);
+    if (item.group_id) navigateToGroup(item.group_id);
   };
 
   const actionLabel =

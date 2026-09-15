@@ -14,22 +14,23 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
-import { useTheme } from "../contexts/ThemeContext";
-import { scanMarketTextForSports } from "../lib/compliance/sports-content";
-import { supabase } from "../lib/supabase";
-import { adminService } from "../services/admin.service";
+import { AppButton, AppIconButton, AppText } from "@/components/ui";
+import { getTextStyle } from "@/constants/typography";
+import { useTheme } from "@/contexts/ThemeContext";
+import { scanMarketTextForSports } from "@/lib/compliance/sports-content";
+import { supabase } from "@/lib/supabase";
+import { adminService } from "@/services/admin.service";
 import {
     FEED_CATEGORIES,
     type FeedCategory,
     type FeedMarketSuggestion,
     feedService,
-} from "../services/feed.service";
-import type { Market } from "../types/market";
+} from "@/services/feed.service";
+import type { Market } from "@/types/market";
 
 export type AdminFeedManagerTab = "suggestions" | "promote" | "create" | "manage" | "resolve";
 
@@ -65,7 +66,7 @@ interface MarketOption {
 }
 
 export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" }: AdminFeedManagerProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [candidates, setCandidates] = useState<Market[]>([]);
   const [activeMarkets, setActiveMarkets] = useState<Market[]>([]);
@@ -545,9 +546,9 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
     if (groupedSuggestions.length === 0) {
       return (
         <View style={styles.center}>
-          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+          <AppText variant="body" color="secondary" style={{ textAlign: 'center', paddingHorizontal: 24 }}>
             No pending AI suggestions. New batches arrive at 8am, 12pm, and 3pm ET.
-          </Text>
+          </AppText>
         </View>
       );
     }
@@ -556,92 +557,83 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
       <ScrollView contentContainerStyle={styles.suggestionsList}>
         {groupedSuggestions.map((group) => (
           <View key={group.batchId} style={styles.suggestionGroup}>
-            <Text style={[styles.suggestionGroupTitle, { color: theme.text }]}>
+            <AppText variant="bodySm" style={{ color: theme.text }}>
               {group.header}
-            </Text>
+            </AppText>
             {group.items.map((item) => (
               <View
                 key={item.id}
                 style={[styles.suggestionCard, {
                   backgroundColor: theme.surface,
                   borderColor: theme.border,
+                  borderRadius: theme.radius.md,
                 }]}
               >
                 <View style={styles.suggestionMetaRow}>
-                  <Text style={[styles.suggestionCategory, { color: theme.primary }]}>
+                  <AppText variant="caption" color="primary" style={{ textTransform: 'uppercase' }}>
                     {item.category}
-                  </Text>
-                  <Text style={[styles.suggestionChip, { color: theme.textSecondary }]}>
+                  </AppText>
+                  <AppText variant="caption" color="secondary">
                     {item.horizon === "near_term" ? "Near-term" : "Long-term"}
-                  </Text>
-                  <Text style={[styles.suggestionChip, { color: theme.textSecondary }]}>
+                  </AppText>
+                  <AppText variant="caption" color="secondary">
                     {item.autopilot_status === "eligible"
                       ? `Autopilot eligible · ${item.autopilot_score}`
                       : `${item.autopilot_status.replace("_", " ")} · ${item.autopilot_score}`}
-                  </Text>
+                  </AppText>
                 </View>
-                <Text style={[styles.suggestionSubject, { color: theme.textSecondary }]}>
-                  {item.subject}
-                </Text>
-                <Text style={[styles.suggestionQuestion, { color: theme.text }]}>
-                  {item.question}
-                </Text>
-                <Text style={[styles.suggestionOptions, { color: theme.textSecondary }]}>
+                <AppText variant="bodySm" color="secondary">{item.subject}</AppText>
+                <AppText variant="title3">{item.question}</AppText>
+                <AppText variant="bodySm" color="secondary">
                   Options: {item.options.join(" · ")}
-                </Text>
-                <Text style={[styles.suggestionMeta, { color: theme.textSecondary }]}>
+                </AppText>
+                <AppText variant="caption" color="secondary">
                   Closes {new Date(item.suggested_closes_at).toLocaleString()}
-                </Text>
-                <Text style={[styles.suggestionMeta, { color: theme.textSecondary }]}>
+                </AppText>
+                <AppText variant="caption" color="secondary">
                   Source score {item.source_quality_score} · Resolution score {item.resolution_quality_score} · Engagement {item.engagement_score}
-                </Text>
+                </AppText>
                 {item.rationale ? (
-                  <Text style={[styles.suggestionRationale, { color: theme.textSecondary }]}>
-                    {item.rationale}
-                  </Text>
+                  <AppText variant="bodySm" color="secondary">{item.rationale}</AppText>
                 ) : null}
                 {item.resolution_criteria ? (
-                  <Text style={[styles.suggestionRationale, { color: theme.textSecondary }]}>
+                  <AppText variant="bodySm" color="secondary">
                     Resolution: {item.resolution_criteria}
-                  </Text>
+                  </AppText>
                 ) : null}
                 {item.autopilot_reasons?.length ? (
-                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                  <AppText variant="caption" color="secondary">
                     Checks: {item.autopilot_reasons.slice(0, 4).join(", ")}
-                  </Text>
+                  </AppText>
                 ) : null}
                 {item.evidence_sources?.length ? (
-                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                  <AppText variant="caption" color="secondary">
                     Evidence: {item.evidence_sources.slice(0, 3).map((source) =>
                       `${source.publisher || "Source"} (${source.source_type})`
                     ).join(", ")}
-                  </Text>
+                  </AppText>
                 ) : null}
                 {item.source_urls?.length ? (
-                  <Text style={[styles.suggestionSources, { color: theme.textSecondary }]}>
+                  <AppText variant="caption" color="secondary">
                     Sources: {item.source_urls.slice(0, 3).join(", ")}
-                  </Text>
+                  </AppText>
                 ) : null}
                 <View style={styles.suggestionActions}>
-                  <TouchableOpacity
-                    style={[styles.suggestionActionBtn, { backgroundColor: theme.primary }]}
+                  <AppButton
+                    title="Use in Create"
+                    variant="primary"
+                    size="sm"
                     onPress={() => handleUseSuggestion(item)}
-                  >
-                    <Text style={styles.suggestionActionText}>Use in Create</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.suggestionActionBtn, {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    }]}
+                    style={{ flex: 1 }}
+                  />
+                  <AppButton
+                    title="Dismiss"
+                    variant="secondary"
+                    size="sm"
                     disabled={processingId === item.id}
                     onPress={() => handleDismissSuggestion(item.id)}
-                  >
-                    <Text style={[styles.suggestionActionText, { color: theme.text }]}>
-                      Dismiss
-                    </Text>
-                  </TouchableOpacity>
+                    style={{ flex: 1 }}
+                  />
                 </View>
               </View>
             ))}
@@ -787,42 +779,37 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             onPress={cancelResolve}
           >
             <Ionicons name="arrow-back" size={20} color={theme.primary} />
-            <Text
-              style={{ color: theme.primary, marginLeft: 8, fontWeight: '400' }}
-            >
+            <AppText variant="body" color="primary" style={{ marginLeft: 8 }}>
               Back to Markets
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <View
             style={[styles.resolveHeader, {
               backgroundColor: theme.surface,
               borderColor: theme.border,
+              borderRadius: theme.radius.md,
             }]}
           >
-            <Text style={[styles.resolveQuestion, { color: theme.text }]}>
+            <AppText variant="title2" style={{ color: theme.text, marginBottom: 12 }}>
               {resolvingMarket.question}
-            </Text>
+            </AppText>
             <View style={styles.resolveStats}>
-              <Text
-                style={[styles.resolveStat, { color: theme.textSecondary }]}
-              >
+              <AppText variant="bodySm" color="secondary">
                 Category: {resolvingMarket.category || "General"}
-              </Text>
-              <Text
-                style={[styles.resolveStat, { color: theme.textSecondary }]}
-              >
+              </AppText>
+              <AppText variant="bodySm" color="secondary">
                 Total Pool: ${totalPool.toLocaleString()}
-              </Text>
+              </AppText>
             </View>
           </View>
 
-          <Text style={[styles.label, { color: theme.text }]}>
+          <AppText variant="label" style={{ color: theme.text, marginTop: 16, marginBottom: 8 }}>
             Select Winning Option
-          </Text>
-          <Text style={[styles.resolveHint, { color: theme.textSecondary }]}>
+          </AppText>
+          <AppText variant="bodySm" color="secondary" style={{ marginBottom: 16, marginLeft: 4 }}>
             Winners will receive proportional payouts (minus 7.95% platform fee)
-          </Text>
+          </AppText>
 
           {loadingOptions
             ? (
@@ -847,9 +834,10 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                         styles.resolveOption,
                         {
                           backgroundColor: isSelected
-                            ? "#34C75920"
+                            ? `${theme.success}20`
                             : theme.surface,
-                          borderColor: isSelected ? "#34C759" : theme.border,
+                          borderColor: isSelected ? theme.success : theme.border,
+                          borderRadius: theme.radius.md,
                         },
                       ]}
                       onPress={() => setSelectedWinningOption(option.id)}
@@ -860,38 +848,27 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                             styles.radioButton,
                             {
                               borderColor: isSelected
-                                ? "#34C759"
+                                ? theme.success
                                 : theme.border,
+                              borderRadius: theme.radius.pill,
                             },
                           ]}
                         >
                           {isSelected && (
-                            <View style={styles.radioButtonInner} />
+                            <View style={[styles.radioButtonInner, { backgroundColor: theme.success, borderRadius: theme.radius.pill }]} />
                           )}
                         </View>
-                        <Text
-                          style={[styles.resolveOptionLabel, {
-                            color: theme.text,
-                          }]}
-                        >
+                        <AppText variant="title3" style={{ color: theme.text, flex: 1 }}>
                           {option.label}
-                        </Text>
+                        </AppText>
                       </View>
                       <View style={styles.resolveOptionRight}>
-                        <Text
-                          style={[styles.resolveOptionPool, {
-                            color: theme.textSecondary,
-                          }]}
-                        >
+                        <AppText variant="bodySm" color="secondary">
                           ${option.total_pool.toLocaleString()}
-                        </Text>
-                        <Text
-                          style={[styles.resolveOptionPercent, {
-                            color: theme.primary,
-                          }]}
-                        >
+                        </AppText>
+                        <AppText variant="caption" color="primary" style={{ marginTop: 2 }}>
                           {`${percentage}%`}
-                        </Text>
+                        </AppText>
                       </View>
                     </TouchableOpacity>
                   );
@@ -900,23 +877,19 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             )}
 
           {/* Evidence Section */}
-          <Text style={[styles.label, { color: theme.text, marginTop: 16 }]}>
+          <AppText variant="label" style={{ color: theme.text, marginTop: 16, marginBottom: 8 }}>
             Resolution Evidence (Recommended)
-          </Text>
-          <Text
-            style={[styles.resolveHint, {
-              color: theme.textSecondary,
-              marginBottom: 8,
-            }]}
-          >
+          </AppText>
+          <AppText variant="bodySm" color="secondary" style={{ marginBottom: 8, marginLeft: 4 }}>
             Add proof for transparency and dispute prevention
-          </Text>
+          </AppText>
 
           <TextInput
             style={[styles.input, {
               backgroundColor: theme.surface,
               color: theme.text,
               borderColor: theme.border,
+              borderRadius: theme.radius.sm,
             }]}
             placeholder="Evidence URL (news article, official source, etc.)"
             placeholderTextColor={theme.textSecondary}
@@ -931,6 +904,7 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
               backgroundColor: theme.surface,
               color: theme.text,
               borderColor: theme.border,
+              borderRadius: theme.radius.sm,
               height: 80,
               textAlignVertical: "top",
               marginTop: 8,
@@ -942,32 +916,24 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             multiline
           />
 
-          <TouchableOpacity
-            style={[
-              styles.resolveButton,
-              {
-                backgroundColor: selectedWinningOption
-                  ? "#34C759"
-                  : theme.border,
-                opacity: resolving ? 0.7 : 1,
-              },
-            ]}
+          <AppButton
+            title="Resolve Market & Distribute Payouts"
+            variant="primary"
+            size="md"
             onPress={handleResolveMarket}
             disabled={!selectedWinningOption || resolving}
-          >
-            {resolving
-              ? <ActivityIndicator color="#fff" />
-              : (
-                <Text style={styles.resolveButtonText}>
-                  Resolve Market & Distribute Payouts
-                </Text>
-              )}
-          </TouchableOpacity>
+            loading={resolving}
+            style={{
+              marginTop: 24,
+              backgroundColor: selectedWinningOption ? theme.success : theme.border,
+              borderColor: selectedWinningOption ? theme.success : theme.border,
+            }}
+          />
 
-          <Text style={[styles.warningText, { color: theme.error }]}>
+          <AppText variant="caption" color="destructive" style={{ textAlign: 'center', marginTop: 16, marginBottom: 24 }}>
             This action cannot be undone. All participants will receive or lose
             their stakes based on this result.
-          </Text>
+          </AppText>
         </ScrollView>
       );
     }
@@ -981,27 +947,26 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             style={[styles.itemContainer, {
               backgroundColor: theme.surface,
               borderColor: theme.border,
+              borderRadius: theme.radius.md,
             }]}
           >
             <View style={styles.itemInfo}>
-              <Text
-                style={[styles.itemQuestion, { color: theme.text }]}
-                numberOfLines={2}
-              >
+              <AppText variant="title3" numberOfLines={2} style={{ marginBottom: 4 }}>
                 {item.question}
-              </Text>
-              <Text style={[styles.itemMeta, { color: theme.textSecondary }]}>
+              </AppText>
+              <AppText variant="caption" color="secondary">
                 {(item.status || "open").toUpperCase()} •{" "}
                 {new Date(item.created_at || "").toLocaleDateString()} •{" "}
                 {item.category || "General"}
-              </Text>
+              </AppText>
             </View>
-            <TouchableOpacity
-              style={[styles.promoteButton, { backgroundColor: "#34C759" }]}
+            <AppButton
+              title="Resolve"
+              variant="primary"
+              size="sm"
               onPress={() => handleSelectMarketToResolve(item)}
-            >
-              <Text style={styles.promoteText}>Resolve</Text>
-            </TouchableOpacity>
+              style={{ backgroundColor: theme.success, borderColor: theme.success }}
+            />
           </View>
         )}
         keyExtractor={(item) => item.id}
@@ -1015,9 +980,9 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
               size={48}
               color={theme.textSecondary}
             />
-            <Text style={{ color: theme.textSecondary, marginTop: 12 }}>
+            <AppText variant="body" color="secondary" style={{ marginTop: 12 }}>
               No open markets to resolve
-            </Text>
+            </AppText>
           </View>
         }
       />
@@ -1031,23 +996,21 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
       style={[styles.itemContainer, {
         backgroundColor: theme.surface,
         borderColor: theme.border,
+        borderRadius: theme.radius.md,
       }]}
     >
       <View style={styles.itemInfo}>
-        <Text
-          style={[styles.itemQuestion, { color: theme.text }]}
-          numberOfLines={2}
-        >
+        <AppText variant="title3" numberOfLines={2} style={{ marginBottom: 4 }}>
           {item.question}
-        </Text>
-        <Text style={[styles.itemMeta, { color: theme.textSecondary }]}>
+        </AppText>
+        <AppText variant="caption" color="secondary">
           {(item.status || "open").toUpperCase()} •{" "}
           {new Date(item.created_at || "").toLocaleDateString()} •{" "}
           {item.category || "General"}
           {isManage
             ? ` • Feed: ${(item as any).public_feed_allowed ? "allowed" : "blocked"} • Review: ${(item as any).compliance_review_state || "pending"}`
             : null}
-        </Text>
+        </AppText>
       </View>
 
       {isManage
@@ -1056,57 +1019,44 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             {(item as any).compliance_review_state !== "approved" ||
             (item as any).public_feed_allowed !== true
               ? (
-                <TouchableOpacity
-                  style={[styles.promoteButton, { backgroundColor: "#34C759", minWidth: 72 }]}
+                <AppButton
+                  title="Approve"
+                  variant="primary"
+                  size="sm"
                   onPress={() => handleApproveForFeed(item.id)}
                   disabled={processingId === item.id}
-                >
-                  {processingId === item.id
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <Text style={styles.promoteText}>Approve</Text>}
-                </TouchableOpacity>
+                  loading={processingId === item.id}
+                  style={{ backgroundColor: theme.success, borderColor: theme.success, minWidth: 72 }}
+                />
               )
               : null}
-            <TouchableOpacity
-              style={[styles.promoteButton, {
-                backgroundColor: theme.surface,
-                borderWidth: 1,
-                borderColor: theme.border,
-                minWidth: 60,
-                paddingHorizontal: 12,
-              }]}
+            <AppButton
+              title="Edit"
+              variant="secondary"
+              size="sm"
               onPress={() => handleEdit(item)}
-            >
-              <Text style={[styles.promoteText, { color: theme.text }]}>
-                Edit
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.promoteButton, {
-                backgroundColor: "#FF3B30",
-                minWidth: 40,
-                paddingHorizontal: 10,
-              }]}
+              style={{ minWidth: 60 }}
+            />
+            <AppIconButton
+              accessibilityLabel="Delete market"
+              variant="default"
               onPress={() => handleDelete(item.id)}
               disabled={processingId === item.id}
-            >
-              {processingId === item.id
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Ionicons name="trash-outline" size={18} color="#fff" />}
-            </TouchableOpacity>
+              loading={processingId === item.id}
+              icon={<Ionicons name="trash-outline" size={18} color={theme.onPrimary} />}
+              style={{ backgroundColor: theme.destructive, borderColor: theme.destructive, width: 40, height: 40 }}
+            />
           </View>
         )
         : (
-          <TouchableOpacity
-            style={[styles.promoteButton, { backgroundColor: theme.primary }]}
+          <AppButton
+            title="Promote"
+            variant="primary"
+            size="sm"
             onPress={() => handlePromote(item.id)}
             disabled={processingId === item.id}
-          >
-            {processingId === item.id
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.promoteText}>Promote</Text>}
-          </TouchableOpacity>
+            loading={processingId === item.id}
+          />
         )}
     </View>
   );
@@ -1122,29 +1072,29 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             backgroundColor: theme.surface,
             borderColor: theme.border,
             borderWidth: 1,
+            borderRadius: theme.radius.sm,
           }]}
         >
-          <Text style={{ color: theme.primary, fontWeight: '400' }}>
-            Editing Market
-          </Text>
-          <TouchableOpacity
+          <AppText variant="body" color="primary">Editing Market</AppText>
+          <AppButton
+            title="Cancel"
+            variant="ghost"
+            size="sm"
             onPress={() => {
               resetForm();
               setActiveTab("manage");
             }}
-          >
-            <Text style={{ color: theme.error }}>Cancel</Text>
-          </TouchableOpacity>
+          />
         </View>
       )}
 
-      {/* Question */}
-      <Text style={[styles.label, { color: theme.text }]}>Question</Text>
+      <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Question</AppText>
       <TextInput
         style={[styles.input, {
           backgroundColor: theme.surface,
           color: theme.text,
           borderColor: theme.border,
+          borderRadius: theme.radius.sm,
         }]}
         placeholder="Will X happen by Y date?"
         placeholderTextColor={theme.textSecondary}
@@ -1153,11 +1103,10 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
         multiline
       />
 
-      {/* Category */}
-      <Text style={[styles.label, { color: theme.text }]}>Category</Text>
-      <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+      <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Category</AppText>
+      <AppText variant="caption" color="secondary" style={{ marginTop: 12 }}>
         Sports markets are not permitted on the public feed for Ecuador launch.
-      </Text>
+      </AppText>
       <View style={styles.categoryRow}>
         {FEED_CATEGORIES.map((cat) => (
           <TouchableOpacity
@@ -1167,18 +1116,14 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
               {
                 backgroundColor: category === cat ? theme.primarySoft : theme.surface,
                 borderColor: category === cat ? theme.primary : theme.border,
+                borderRadius: theme.radius.pill,
               },
             ]}
             onPress={() => setCategory(cat)}
           >
-            <Text
-              style={{
-                color: category === cat ? theme.primary : theme.text,
-                fontWeight: '400',
-              }}
-            >
+            <AppText variant="body" color={category === cat ? 'primary' : 'default'}>
               {cat}
-            </Text>
+            </AppText>
           </TouchableOpacity>
         ))}
       </View>
@@ -1186,16 +1131,15 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
       {/* Market Type Toggle - Hide when editing */}
       {!editingMarketId && (
         <>
-          <Text style={[styles.label, { color: theme.text }]}>Market Type</Text>
+          <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Market Type</AppText>
           <View style={styles.marketTypeRow}>
             <TouchableOpacity
               style={[
                 styles.marketTypeButton,
                 {
-                  backgroundColor: isBinaryMarket
-                    ? theme.primary
-                    : theme.surface,
+                  backgroundColor: isBinaryMarket ? theme.primary : theme.surface,
                   borderColor: isBinaryMarket ? theme.primary : theme.border,
+                  borderRadius: theme.radius.md,
                 },
               ]}
               onPress={() => {
@@ -1203,34 +1147,20 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                 setOptions(["Yes", "No"]);
               }}
             >
-              <Text
-                style={{
-                  color: isBinaryMarket ? "#fff" : theme.text,
-                  fontWeight: '400',
-                }}
-              >
+              <AppText variant="body" color={isBinaryMarket ? 'onPrimary' : 'default'}>
                 Yes / No
-              </Text>
-              <Text
-                style={{
-                  color: isBinaryMarket
-                    ? "rgba(255,255,255,0.7)"
-                    : theme.textSecondary,
-                  fontSize: 11,
-                  marginTop: 2,
-                }}
-              >
+              </AppText>
+              <AppText variant="caption" color={isBinaryMarket ? 'onPrimary' : 'secondary'} style={{ marginTop: 2, opacity: isBinaryMarket ? 0.7 : 1 }}>
                 Simple binary question
-              </Text>
+              </AppText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.marketTypeButton,
                 {
-                  backgroundColor: !isBinaryMarket
-                    ? theme.primary
-                    : theme.surface,
+                  backgroundColor: !isBinaryMarket ? theme.primary : theme.surface,
                   borderColor: !isBinaryMarket ? theme.primary : theme.border,
+                  borderRadius: theme.radius.md,
                 },
               ]}
               onPress={() => {
@@ -1240,32 +1170,19 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                 }
               }}
             >
-              <Text
-                style={{
-                  color: !isBinaryMarket ? "#fff" : theme.text,
-                  fontWeight: '400',
-                }}
-              >
+              <AppText variant="body" color={!isBinaryMarket ? 'onPrimary' : 'default'}>
                 Multi-option
-              </Text>
-              <Text
-                style={{
-                  color: !isBinaryMarket
-                    ? "rgba(255,255,255,0.7)"
-                    : theme.textSecondary,
-                  fontSize: 11,
-                  marginTop: 2,
-                }}
-              >
+              </AppText>
+              <AppText variant="caption" color={!isBinaryMarket ? 'onPrimary' : 'secondary'} style={{ marginTop: 2, opacity: !isBinaryMarket ? 0.7 : 1 }}>
                 Multiple choices
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
 
           {/* Options - Only show for multi-option markets */}
           {!isBinaryMarket && (
             <>
-              <Text style={[styles.label, { color: theme.text }]}>Options</Text>
+              <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Options</AppText>
               {options.map((opt, idx) => (
                 <View key={idx} style={styles.optionRow}>
                   <TextInput
@@ -1273,6 +1190,7 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                       backgroundColor: theme.surface,
                       color: theme.text,
                       borderColor: theme.border,
+                      borderRadius: theme.radius.sm,
                     }]}
                     placeholder={`Option ${idx + 1}`}
                     placeholderTextColor={theme.textSecondary}
@@ -1281,40 +1199,36 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                       updateOption(idx, val)}
                   />
                   {options.length > 2 && (
-                    <TouchableOpacity
+                    <AppIconButton
+                      accessibilityLabel={`Remove option ${idx + 1}`}
+                      variant="ghost"
                       onPress={() => removeOption(idx)}
-                      style={styles.removeBtn}
-                    >
-                      <Ionicons
-                        name="close-circle"
-                        size={24}
-                        color={theme.textSecondary}
-                      />
-                    </TouchableOpacity>
+                      icon={<Ionicons name="close-circle" size={24} color={theme.textSecondary} />}
+                      style={{ width: 36, height: 36, marginLeft: 8 }}
+                    />
                   )}
                 </View>
               ))}
-              <TouchableOpacity
-                style={[styles.addOptionBtn, { borderColor: theme.border }]}
+              <AppButton
+                title="Add Option"
+                variant="secondary"
+                size="sm"
+                icon={<Ionicons name="add" size={20} color={theme.primary} />}
                 onPress={addOption}
-              >
-                <Ionicons name="add" size={20} color={theme.primary} />
-                <Text style={{ color: theme.primary, marginLeft: 4 }}>
-                  Add Option
-                </Text>
-              </TouchableOpacity>
+                style={{ borderStyle: 'dashed', marginTop: 4 }}
+              />
             </>
           )}
         </>
       )}
 
-      {/* Close Date */}
-      <Text style={[styles.label, { color: theme.text }]}>Close Date</Text>
+      <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Close Date</AppText>
       {Platform.OS === 'web' ? (
         <View
           style={[styles.dateButton, {
             backgroundColor: theme.surface,
             borderColor: theme.border,
+            borderRadius: theme.radius.sm,
           }]}
         >
           <Ionicons name="calendar-outline" size={20} color={theme.text} />
@@ -1336,10 +1250,10 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
               outline: 'none',
               background: 'transparent',
               color: theme.text,
-              fontSize: 15,
+              fontSize: getTextStyle('body').fontSize,
               marginLeft: 8,
               cursor: 'pointer',
-              colorScheme: theme.background === '#000000' ? 'dark' : 'light',
+              colorScheme: isDark ? 'dark' : 'light',
             },
           })}
         </View>
@@ -1349,16 +1263,17 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             style={[styles.dateButton, {
               backgroundColor: theme.surface,
               borderColor: theme.border,
+              borderRadius: theme.radius.sm,
             }]}
             onPress={() => setShowDatePicker(true)}
           >
             <Ionicons name="calendar-outline" size={20} color={theme.text} />
-            <Text style={[styles.dateText, { color: theme.text }]}>
+            <AppText variant="body" style={{ color: theme.text }}>
               {closesAt.toLocaleDateString()} at {closesAt.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
-            </Text>
+            </AppText>
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -1371,64 +1286,48 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
               }}
               minimumDate={new Date()}
               textColor={theme.text}
-              themeVariant={theme.background === "#000000" ? "dark" : "light"}
+              themeVariant={isDark ? "dark" : "light"}
             />
           )}
         </>
       )}
 
-      {/* Image/Video Upload & Phone Preview */}
-      <Text style={[styles.label, { color: theme.text }]}>Market Visual</Text>
+      <AppText variant="label" style={{ marginBottom: 8, marginTop: 16 }}>Market Visual</AppText>
       <View
         style={[styles.imageManagementCard, {
           backgroundColor: theme.surface,
           borderColor: theme.border,
+          borderRadius: theme.radius.lg,
         }]}
       >
-        {/* Upload Button */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity
-            style={[styles.uploadButton, {
-              backgroundColor: theme.primary,
-              flex: 1,
-              opacity: uploading ? 0.7 : 1,
-            }]}
+          <AppButton
+            title="Upload Image"
+            variant="primary"
+            size="sm"
+            icon={<Ionicons name="cloud-upload-outline" size={20} color={theme.onPrimary} />}
             onPress={pickMedia}
             disabled={uploading || isGeneratingImage}
-          >
-            {uploading ? <ActivityIndicator color="#fff" size="small" /> : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
-                <Text style={styles.uploadButtonText}>Upload Image</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.uploadButton, {
-              backgroundColor: "#E2B9FF20",
-              borderColor: "#A855F7",
-              borderWidth: 1,
-              flex: 1,
-              opacity: isGeneratingImage ? 0.7 : 1,
-            }]}
+            loading={uploading}
+            style={{ flex: 1 }}
+          />
+          <AppButton
+            title="Generate AI"
+            variant="secondary"
+            size="sm"
             onPress={handleGenerateImage}
             disabled={uploading || isGeneratingImage}
-          >
-            {isGeneratingImage ? <ActivityIndicator color="#A855F7" size="small" /> : (
-              <>
-                <Text style={{ fontSize: 18 }}>✨</Text>
-                <Text style={[styles.uploadButtonText, { color: "#A855F7", marginLeft: 4 }]}>Generate AI</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            loading={isGeneratingImage}
+            style={{ flex: 1, backgroundColor: theme.primarySoft, borderColor: theme.primary }}
+          />
         </View>
 
-        {/* Optional URL Input for external URLs */}
         <TextInput
           style={[styles.input, {
             backgroundColor: theme.background,
             color: theme.text,
             borderColor: theme.border,
+            borderRadius: theme.radius.sm,
             marginTop: 12,
           }]}
           placeholder="Or paste external URL..."
@@ -1440,7 +1339,7 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
         />
 
         <View style={styles.previewCenter}>
-          <View style={styles.phoneFrame}>
+          <View style={[styles.phoneFrame, theme.elevation('md'), { borderRadius: theme.radius.lg, backgroundColor: theme.background, borderColor: theme.borderSubtle }]}>
             {imageUrl
               ? (
                 <Image
@@ -1450,62 +1349,47 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                 />
               )
               : (
-                <View style={styles.emptyFrame}>
+                <View style={[styles.emptyFrame, { borderColor: theme.borderSubtle, borderRadius: theme.radius.md }]}>
                   <Ionicons
                     name="camera-outline"
                     size={32}
                     color={theme.textSecondary}
                   />
-                  <Text
-                    style={{
-                      color: theme.textSecondary,
-                      fontSize: 10,
-                      marginTop: 8,
-                    }}
-                  >
+                  <AppText variant="caption" color="secondary" style={{ marginTop: 8 }}>
                     9:16 PORTRAIT
-                  </Text>
+                  </AppText>
                 </View>
               )}
-            <View style={styles.frameOverlay}>
-              <Text style={styles.frameQuestion} numberOfLines={2}>
+            <View style={[styles.frameOverlay, { backgroundColor: theme.overlay }]}>
+              <AppText variant="caption" color="onPrimary" numberOfLines={2}>
                 {question || "Your question..."}
-              </Text>
+              </AppText>
             </View>
           </View>
-          <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+          <AppText variant="caption" color="secondary" style={{ marginTop: 12 }}>
             Portrait background (Phone dimensions)
-          </Text>
+          </AppText>
           {imageUrl && (
-            <TouchableOpacity
+            <AppButton
+              title="Remove Media"
+              variant="ghost"
+              size="sm"
               onPress={() => setImageUrl("")}
               style={{ marginTop: 8 }}
-            >
-              <Text style={{ color: theme.error, fontSize: 13 }}>
-                Remove Media
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
       </View>
 
-      {/* Create Button */}
-      <TouchableOpacity
-        style={[styles.createButton, {
-          backgroundColor: theme.primary,
-          opacity: creating ? 0.7 : 1,
-        }]}
+      <AppButton
+        title={editingMarketId ? "Update Market" : "Create Public Market"}
+        variant="primary"
+        size="md"
         onPress={handleSave}
         disabled={creating}
-      >
-        {creating
-          ? <ActivityIndicator color="#fff" />
-          : (
-            <Text style={styles.createButtonText}>
-              {editingMarketId ? "Update Market" : "Create Public Market"}
-            </Text>
-          )}
-      </TouchableOpacity>
+        loading={creating}
+        style={{ marginTop: 24 }}
+      />
     </ScrollView>
   );
 
@@ -1533,18 +1417,14 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                 {
                   backgroundColor: active ? theme.primarySoft : theme.surface,
                   borderColor: active ? theme.primary : theme.border,
+                  borderRadius: theme.radius.pill,
                 },
               ]}
               onPress={() => setManageStatusFilter(filter.id)}
             >
-              <Text
-                style={{
-                  color: active ? theme.primary : theme.textSecondary,
-                  fontWeight: "400",
-                }}
-              >
+              <AppText variant="body" color={active ? 'primary' : 'secondary'}>
                 {filter.label}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           );
         })}
@@ -1563,12 +1443,13 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
         style={[styles.container, { backgroundColor: theme.background }]}
       >
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.title, { color: theme.text }]}>
-            Feed Manager (Admin)
-          </Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
+          <AppText variant="title2">Feed Manager (Admin)</AppText>
+          <AppIconButton
+            accessibilityLabel="Close feed manager"
+            variant="ghost"
+            onPress={onClose}
+            icon={<Ionicons name="close" size={24} color={theme.text} />}
+          />
         </View>
 
         {/* Tabs */}
@@ -1581,15 +1462,9 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             ]}
             onPress={() => setActiveTab("suggestions")}
           >
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === "suggestions"
-                  ? theme.primary
-                  : theme.textSecondary,
-              }]}
-            >
+            <AppText variant="body" color={activeTab === "suggestions" ? 'primary' : 'secondary'}>
               Suggestions
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1600,15 +1475,9 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             ]}
             onPress={() => setActiveTab("promote")}
           >
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === "promote"
-                  ? theme.primary
-                  : theme.textSecondary,
-              }]}
-            >
+            <AppText variant="body" color={activeTab === "promote" ? 'primary' : 'secondary'}>
               Promote
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1619,34 +1488,22 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             ]}
             onPress={() => setActiveTab("manage")}
           >
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === "manage"
-                  ? theme.primary
-                  : theme.textSecondary,
-              }]}
-            >
+            <AppText variant="body" color={activeTab === "manage" ? 'primary' : 'secondary'}>
               Manage
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.tab,
               activeTab === "resolve" &&
-              { borderBottomColor: "#34C759", borderBottomWidth: 2 },
+              { borderBottomColor: theme.success, borderBottomWidth: 2 },
             ]}
             onPress={() => setActiveTab("resolve")}
           >
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === "resolve"
-                  ? "#34C759"
-                  : theme.textSecondary,
-              }]}
-            >
+            <AppText variant="body" style={{ color: activeTab === "resolve" ? theme.success : theme.textSecondary }}>
               Resolve
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1657,15 +1514,9 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
             ]}
             onPress={() => setActiveTab("create")}
           >
-            <Text
-              style={[styles.tabText, {
-                color: activeTab === "create"
-                  ? theme.primary
-                  : theme.textSecondary,
-              }]}
-            >
+            <AppText variant="body" color={activeTab === "create" ? 'primary' : 'secondary'}>
               {editingMarketId ? "Edit" : "Create"}
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
 
@@ -1705,11 +1556,11 @@ export function AdminFeedManager({ visible, onClose, initialTab = "suggestions" 
                 : undefined}
               ListEmptyComponent={
                 <View style={styles.center}>
-                  <Text style={{ color: theme.textSecondary }}>
+                  <AppText variant="body" color="secondary">
                     {activeTab === "manage"
                       ? "No public markets match this filter"
                       : "No candidates found"}
-                  </Text>
+                  </AppText>
                 </View>
               }
             />
@@ -1730,13 +1581,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  closeBtn: {
-    padding: 4,
-  },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1745,10 +1589,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: "center",
-  },
-  tabText: {
-    fontSize: 15,
-    fontWeight: '400',
   },
   center: {
     flex: 1,
@@ -1768,41 +1608,18 @@ const styles = StyleSheet.create({
   manageFilterChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
     borderWidth: 1,
   },
   itemContainer: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    borderRadius: 12,
     borderWidth: 1,
   },
   itemInfo: {
     flex: 1,
     marginRight: 12,
   },
-  itemQuestion: {
-    fontSize: 16,
-    fontWeight: '400',
-    marginBottom: 4,
-  },
-  itemMeta: {
-    fontSize: 12,
-  },
-  promoteButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 80,
-    alignItems: "center",
-  },
-  promoteText: {
-    color: "#fff",
-    fontWeight: '400',
-    fontSize: 13,
-  },
-  // Create form styles
   formContainer: {
     flex: 1,
   },
@@ -1813,21 +1630,13 @@ const styles = StyleSheet.create({
   editBanner: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     marginBottom: 16,
-    borderRadius: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '400',
-    marginBottom: 8,
-    marginTop: 16,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 10,
     padding: 12,
-    fontSize: 16,
     minHeight: 48,
   },
   categoryRow: {
@@ -1838,7 +1647,6 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
     borderWidth: 1,
   },
   marketTypeRow: {
@@ -1848,7 +1656,6 @@ const styles = StyleSheet.create({
   marketTypeButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
   },
@@ -1860,49 +1667,17 @@ const styles = StyleSheet.create({
   optionInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 10,
     padding: 12,
-    fontSize: 16,
-  },
-  removeBtn: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  addOptionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderRadius: 10,
-    borderStyle: "dashed",
-    marginTop: 4,
   },
   dateButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
     padding: 12,
     gap: 8,
   },
-  dateText: {
-    fontSize: 16,
-  },
-  createButton: {
-    marginTop: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  createButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: '400',
-  },
   imageManagementCard: {
     padding: 16,
-    borderRadius: 16,
     borderWidth: 1,
     marginTop: 4,
   },
@@ -1913,17 +1688,9 @@ const styles = StyleSheet.create({
   phoneFrame: {
     width: 120,
     aspectRatio: 9 / 16,
-    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#000",
     borderWidth: 2,
-    borderColor: "#333",
     position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   fullImage: {
     width: "100%",
@@ -1935,9 +1702,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderStyle: "dashed",
     borderWidth: 1,
-    borderColor: "#444",
     margin: 4,
-    borderRadius: 12,
   },
   frameOverlay: {
     position: "absolute",
@@ -1945,60 +1710,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "50%",
-    backgroundColor: "rgba(0,0,0,0.6)",
     padding: 8,
     justifyContent: "flex-end",
   },
-  frameQuestion: {
-    color: "#fff",
-    fontSize: 8,
-    fontWeight: '400',
-  },
-  uploadButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 10,
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: '400',
-  },
-  helperText: {
-    fontSize: 11,
-    marginTop: 12,
-    fontWeight: "400",
-  },
-  // Resolve styles
   backButton: {
     flexDirection: "row",
     alignItems: "center",
   },
   resolveHeader: {
     padding: 16,
-    borderRadius: 12,
     borderWidth: 1,
     marginBottom: 24,
-  },
-  resolveQuestion: {
-    fontSize: 18,
-    fontWeight: '400',
-    marginBottom: 12,
   },
   resolveStats: {
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  resolveStat: {
-    fontSize: 13,
-  },
-  resolveHint: {
-    fontSize: 13,
-    marginBottom: 16,
-    marginLeft: 4,
   },
   optionsContainer: {
     gap: 12,
@@ -2008,7 +1734,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    borderRadius: 12,
     borderWidth: 2,
   },
   resolveOptionLeft: {
@@ -2019,7 +1744,6 @@ const styles = StyleSheet.create({
   radioButton: {
     width: 24,
     height: 24,
-    borderRadius: 12,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
@@ -2028,47 +1752,9 @@ const styles = StyleSheet.create({
   radioButtonInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
-    backgroundColor: "#34C759",
-  },
-  resolveOptionLabel: {
-    fontSize: 16,
-    fontWeight: '400',
-    flex: 1,
   },
   resolveOptionRight: {
     alignItems: "flex-end",
-  },
-  resolveOptionPool: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  resolveOptionPercent: {
-    fontSize: 12,
-    fontWeight: '400',
-    marginTop: 2,
-  },
-  resolveButton: {
-    marginTop: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  resolveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: '400',
-  },
-  warningText: {
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  emptyText: {
-    fontSize: 15,
-    textAlign: "center",
-    paddingHorizontal: 24,
   },
   suggestionsList: {
     padding: 16,
@@ -2077,13 +1763,8 @@ const styles = StyleSheet.create({
   suggestionGroup: {
     gap: 12,
   },
-  suggestionGroupTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   suggestionCard: {
     borderWidth: 1,
-    borderRadius: 12,
     padding: 14,
     gap: 8,
   },
@@ -2092,49 +1773,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  suggestionCategory: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  suggestionChip: {
-    fontSize: 12,
-  },
-  suggestionSubject: {
-    fontSize: 13,
-  },
-  suggestionQuestion: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  suggestionOptions: {
-    fontSize: 13,
-  },
-  suggestionMeta: {
-    fontSize: 12,
-  },
-  suggestionRationale: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  suggestionSources: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
   suggestionActions: {
     flexDirection: "row",
     gap: 8,
     marginTop: 4,
-  },
-  suggestionActionBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  suggestionActionText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "500",
   },
 });

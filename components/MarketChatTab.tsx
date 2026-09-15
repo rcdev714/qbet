@@ -139,35 +139,39 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
                 </Text>
             </TouchableOpacity>
           )}
-          <Text style={[
-            styles.messageText, 
-            { color: isMe ? "#fff" : theme.text },
-            isBetNotification && { fontStyle: 'italic', fontWeight: '400' }
-          ]}>
-            {isBetNotification && "💸 "}
-            {isBetNotification && (
-              <Text style={{ fontWeight: '400' }}>@{displayName}: </Text>
-            )}
-            {item.content}
-          </Text>
-          <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.7)" : theme.textSecondary }]}>
-            {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-          {!isMe && !isBetNotification && !isOptimistic ? (
-            <ReportContentButton
-              targetType="market_chat_message"
-              targetId={item.id}
-              targetUserId={item.user_id}
-              label={t("chatReport")}
-              theme={{
-                text: theme.text,
-                textSecondary: theme.textSecondary,
-                surface: theme.surface,
-                border: theme.border,
-                primary: theme.primary,
-              }}
-            />
-          ) : null}
+          <View style={styles.messageContent}>
+            <Text style={[
+              styles.messageText, 
+              { color: isMe ? "#fff" : theme.text },
+              isBetNotification && { fontStyle: 'italic', fontWeight: '400' }
+            ]}>
+              {isBetNotification && "💸 "}
+              {isBetNotification && (
+                <Text style={{ fontWeight: '400' }}>@{displayName}: </Text>
+              )}
+              {item.content}
+            </Text>
+            <View style={styles.messageMeta}>
+              <Text style={[styles.messageTime, { color: isMe ? "rgba(255,255,255,0.55)" : theme.textSecondary }]}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              {!isMe && !isBetNotification && !isOptimistic ? (
+                <ReportContentButton
+                  targetType="market_chat_message"
+                  targetId={item.id}
+                  targetUserId={item.user_id}
+                  label={t("chatReport")}
+                  theme={{
+                    text: theme.text,
+                    textSecondary: theme.textSecondary,
+                    surface: theme.surface,
+                    border: theme.border,
+                    primary: theme.primary,
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -299,7 +303,8 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 6,
+    paddingBottom: 5,
     borderRadius: 18,
     minWidth: 60,
     maxWidth: "85%",
@@ -312,14 +317,27 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     marginLeft: 2,
   },
+  messageContent: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-end",
+    columnGap: 6,
+    rowGap: 1,
+  },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
+  messageMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginLeft: "auto",
+    paddingBottom: 1,
+  },
   messageTime: {
     fontSize: 10,
-    alignSelf: "flex-end",
-    marginTop: 4,
+    lineHeight: 13,
   },
   inputContainer: {
     flexDirection: "row",

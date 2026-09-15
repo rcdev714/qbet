@@ -32,9 +32,9 @@ export function GroupsSettingsSection({ theme }: GroupsSettingsSectionProps) {
         subtitle={t("manageGroupsHelper")}
         chevron
         leading={<IconSymbol name="person.3.fill" size={22} color={appTheme.primary} />}
-        onPress={() => router.push("/(tabs)/index" as any)}
+        onPress={() => router.push("/manage/groups" as any)}
       />
-      <JoinGroupPanel collapsible={false} onJoined={() => router.push("/(tabs)/index" as any)} />
+      <JoinGroupPanel collapsible={false} onJoined={() => router.push("/(tabs)/groups" as any)} />
     </View>
   );
 }

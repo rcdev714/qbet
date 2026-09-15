@@ -51,14 +51,14 @@ export function AdminShell({ children, title, badge }: AdminShellProps) {
   const isTransactions = currentPath.includes("admin/transactions");
   const isReports = currentPath.includes("admin/reports");
 
-  const navItems: Array<{
+  const navItems: {
     key: string;
     label: string;
     href: string;
     icon: "chart.bar" | "arrow.left.arrow.right" | "doc.text" | "person.2" | "house";
     active: boolean;
     params?: Record<string, string>;
-  }> = [
+  }[] = [
     {
       key: "overview",
       label: t("overview"),

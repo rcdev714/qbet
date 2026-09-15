@@ -1,5 +1,6 @@
 import { isSportsMarketCategory } from "@/lib/compliance/market-category";
 import { scanMarketTextForSports } from "@/lib/compliance/sports-content";
+import { MARKET_WITH_CREATOR_SELECT } from "@/lib/supabase-embeds";
 import { createPostgresChannel } from "@/lib/supabase-realtime";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
@@ -171,7 +172,7 @@ export const feedService = {
             const jurisdiction = await getViewerJurisdiction();
             const { data: markets, error } = await supabase
                 .from("markets")
-                .select("*, creator:users(username, avatar_url)")
+                .select(MARKET_WITH_CREATOR_SELECT)
                 .eq("is_public", true)
                 .eq("status", "open")
                 .eq("public_feed_allowed", true)
@@ -211,7 +212,7 @@ export const feedService = {
             const jurisdiction = await getViewerJurisdiction();
             const { data: markets, error } = await supabase
                 .from("markets")
-                .select("*, creator:users(username, avatar_url)")
+                .select(MARKET_WITH_CREATOR_SELECT)
                 .eq("is_public", true)
                 .eq("status", "open")
                 .eq("public_feed_allowed", true)
@@ -520,7 +521,7 @@ export const feedService = {
             // Get market
             const { data: market, error } = await supabase
                 .from("markets")
-                .select("*, creator:users(username, avatar_url)")
+                .select(MARKET_WITH_CREATOR_SELECT)
                 .eq("id", marketId)
                 .eq("is_public", true)
                 .single();

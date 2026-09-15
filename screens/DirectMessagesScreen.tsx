@@ -1,7 +1,8 @@
+import { buildTradingSummary, GroupListRow } from "@/components/groups/GroupListRow";
 import { AppButton, AppText, StaggerGroup } from "@/components/ui";
+import { DESKTOP_SPLIT_HEADER_HEIGHT } from "@/constants/layout";
 import { Brand } from "@/constants/theme";
 import { showAppAlertRaw } from "@/lib/ui/feedback";
-import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,11 +10,9 @@ import {
     FlatList,
     Keyboard,
     Platform,
-    Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View
 } from "react-native";
@@ -28,8 +27,8 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useGroups } from "../hooks/useGroups";
+import { useGroupNavigation } from "../hooks/useGroupNavigation";
 import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
-import { formatCurrency } from "../lib/parimutuel";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { messageService } from "../services/message.service";
@@ -72,9 +71,19 @@ type GroupMarketStats = {
   totalPool: number;
 };
 
-export function DirectMessagesScreen() {
+export type DirectMessagesScreenProps = {
+  layout?: "standalone" | "list-pane";
+  selectedGroupId?: string;
+};
+
+export function DirectMessagesScreen({
+  layout = "standalone",
+  selectedGroupId,
+}: DirectMessagesScreenProps) {
   const router = useRouter();
   const { navigate } = usePremiumNavigation();
+  const { openGroup } = useGroupNavigation();
+  const isListPane = layout === "list-pane";
   const { groups, loading: groupsLoading, createGroup, joinGroup, refresh } = useGroups();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
@@ -109,10 +118,7 @@ export function DirectMessagesScreen() {
       if (error) throw error;
       setCreateModalVisible(false);
       if (isFirstGroup && group?.id) {
-        navigate({
-          pathname: "/group/[id]",
-          params: { id: group.id, onboarding: "first-bet" },
-        } as any, { message: "Opening your group..." });
+        openGroup(group.id, { onboarding: "first-bet", message: "Opening your group..." });
       }
     } catch (error) {
        const errorMessage = error instanceof Error ? error.message : "An error occurred";
@@ -273,179 +279,48 @@ export function DirectMessagesScreen() {
     }, [handleFocusRefresh])
   );
 
-  const getTradingSummary = (stats?: GroupMarketStats) => {
-    const isLive = Boolean(stats && stats.activeMarkets > 0);
-    if (!stats || stats.totalMarkets === 0) {
-      return { primary: "No markets", secondary: "Create one", isLive };
-    }
-    if (stats.activeMarkets > 0) {
-      return {
-        primary: `${stats.activeMarkets} live`,
-        secondary: stats.totalPool > 0 ? formatCurrency(stats.totalPool) : "No pool yet",
-        isLive,
-      };
-    }
-    return {
-      primary: `${stats.totalMarkets} total`,
-      secondary: "Settled",
-      isLive,
-    };
-  };
+  const renderGroup = ({ item }: { item: GroupSummary }) => (
+    <GroupListRow
+      group={item}
+      lastMessage={lastMessages[item.id]}
+      unreadCount={unreadCounts[item.id] || 0}
+      tradingSummary={buildTradingSummary(groupMarketStats[item.id])}
+      selected={isListPane && selectedGroupId === item.id}
+      currentUserId={user?.id}
+      onPress={() => openGroup(item.id, { message: "Opening your group..." })}
+    />
+  );
 
-  const renderGroup = ({ item }: { item: GroupSummary }) => {
-    const lastMessage = lastMessages[item.id];
-    const unreadCount = unreadCounts[item.id] || 0;
-
-    const getSenderName = () => {
-      if (!lastMessage) return null;
-      if (lastMessage.user?.username) return lastMessage.user.username;
-      if (lastMessage.user?.email) {
-        const emailParts = lastMessage.user.email.split('@');
-        return emailParts[0] || "User";
-      }
-      return "User";
-    };
-
-    const senderName = getSenderName();
-    const isMyMessage = lastMessage?.user_id === user?.id;
-
-    const getPreviewText = () => {
-      if (!lastMessage) return "No messages yet";
-      if (lastMessage.message_type === "market") {
-        return `${isMyMessage ? "You" : senderName} started a prediction`;
-      }
-      if (lastMessage.message_type === "shared_group") {
-        return `${isMyMessage ? "You" : senderName} shared a group`;
-      }
-      if (lastMessage.message_type === "shared_profile") {
-        return `${isMyMessage ? "You" : senderName} shared a profile`;
-      }
-      if (lastMessage.message_type === "shared_bet") {
-        return `${isMyMessage ? "You" : senderName} shared a bet`;
-      }
-      return lastMessage.content || "Message";
-    };
-
-    const previewText = getPreviewText();
-    const tradingSummary = getTradingSummary(groupMarketStats[item.id]);
-    const messageTime = lastMessage
-      ? new Date(lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : new Date(item.created_at || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.groupItem,
-          { backgroundColor: theme.background },
-          pressed && styles.groupItemPressed,
-        ]}
-        onPress={() => navigate(`/group/${item.id}`, { message: "Opening your group..." })}
+  const listHeaderActions = (
+    <View style={styles.headerButtons}>
+      {!isListPane && !isDesktopWebNav ? <NotificationBell /> : null}
+      {!isListPane && !isDesktopWebNav ? (
+        <TouchableOpacity
+          style={[styles.headerButton, { marginRight: 8 }]}
+          onPress={() => router.push("/discover" as any)}
+          accessibilityRole="button"
+          accessibilityLabel={tSocial("openDiscover")}
+        >
+          <IconSymbol name="magnifyingglass" size={22} color={theme.text} />
+        </TouchableOpacity>
+      ) : null}
+      <TouchableOpacity
+        style={[styles.headerButton, { marginRight: 8 }]}
+        onPress={() => {
+          setShowJoinInput(!showJoinInput);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={tSocial("joinGroup")}
       >
-        <View style={styles.groupIconContainer}>
-          {item.avatar_url ? (
-            <Image
-              source={{ uri: item.avatar_url }}
-              style={styles.groupIcon}
-              contentFit="cover"
-            />
-          ) : (
-            <View style={[
-              styles.groupIconPlaceholder,
-              {
-                backgroundColor: theme.background,
-                borderColor: theme.border,
-                borderWidth: StyleSheet.hairlineWidth
-              }
-            ]}>
-              <AppText variant="title3" style={{ color: isDark ? theme.text : "#8E8E93" }}>
-                {(item.name || "G").substring(0, 1).toUpperCase()}
-              </AppText>
-            </View>
-          )}
-          {unreadCount > 0 && (
-            <View style={[styles.badge, { borderColor: theme.background }]}>
-              <AppText variant="caption" color="onPrimary" style={styles.badgeText}>
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </AppText>
-            </View>
-          )}
-        </View>
-        <View style={styles.groupInfo}>
-          <View style={styles.groupHeaderRow}>
-            <AppText variant="body" style={{ fontWeight: '400', flex: 1 }} numberOfLines={1}>{item.name}</AppText>
-            <Text style={[styles.groupTime, { color: theme.textSecondary }]}>{messageTime}</Text>
-            {tradingSummary.isLive ? (
-              <View style={[styles.liveDot, { backgroundColor: theme.primary }]} />
-            ) : null}
-          </View>
-          <View style={styles.previewRow}>
-            {!isMyMessage && (
-              <Text style={[styles.previewText, { color: theme.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-                {senderName && <Text style={[styles.senderName, { color: theme.text }]}>{senderName}: </Text>}
-                {previewText}
-              </Text>
-            )}
-            {isMyMessage && (
-              <Text style={[styles.previewText, { color: theme.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-                <Text style={[styles.senderName, { color: theme.textSecondary }]}>You: </Text>
-                {previewText}
-              </Text>
-            )}
-          </View>
-        </View>
-      </Pressable>
-    );
-  };
+        <IconSymbol name="link" size={24} color={theme.text} />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.headerButton} onPress={() => openModal()}>
+        <IconSymbol name="plus" size={24} color={theme.text} />
+      </TouchableOpacity>
+    </View>
+  );
 
-  if (groupsLoading) {
-    return <AnymarktLoader message="Opening your groups..." />;
-  }
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      <GlobalHeader
-        showToggle={!isDesktopWebNav}
-        right={
-          <View style={styles.headerButtons}>
-            {!isDesktopWebNav ? <NotificationBell /> : null}
-            {!isDesktopWebNav ? (
-              <TouchableOpacity
-                style={[styles.headerButton, { marginRight: 8 }]}
-                onPress={() => router.push("/discover" as any)}
-                accessibilityRole="button"
-                accessibilityLabel={tSocial("openDiscover")}
-              >
-                <IconSymbol name="magnifyingglass" size={22} color={theme.text} />
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              style={[styles.headerButton, { marginRight: 8 }]}
-              onPress={() => {
-                setShowJoinInput(!showJoinInput);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={tSocial("joinGroup")}
-            >
-              <IconSymbol name="link" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={() => openModal()}>
-              <IconSymbol name="plus" size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-        }
-      />
-      <WebContentColumn variant="social" style={styles.socialColumn}>
-      <View style={styles.pageTitle}>
-        <View style={styles.headerLeft}>
-          <AppText variant="title3">Groups</AppText>
-          <AppText variant="caption" color="secondary">
-            {groups.length} groups{totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
-          </AppText>
-        </View>
-      </View>
-
-      {groups.length === 0 ? (
+  const groupsListBody = groups.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.onboardingScroll}
           showsVerticalScrollIndicator={false}
@@ -535,28 +410,70 @@ export function DirectMessagesScreen() {
               </View>
             ) : null
           }
-          ItemSeparatorComponent={() => (
-            <View style={[styles.groupSeparator, { backgroundColor: theme.border }]} />
-          )}
-          getItemLayout={(_, index) => ({
-            length: GROUP_ROW_HEIGHT + StyleSheet.hairlineWidth,
-            offset: (GROUP_ROW_HEIGHT + StyleSheet.hairlineWidth) * index,
-            index,
-          })}
+          ItemSeparatorComponent={
+            isListPane
+              ? undefined
+              : () => <View style={[styles.groupSeparator, { backgroundColor: theme.border }]} />
+          }
+          getItemLayout={(_, index) => {
+            const rowHeight = isListPane ? 72 : GROUP_ROW_HEIGHT;
+            return {
+              length: rowHeight + StyleSheet.hairlineWidth,
+              offset: (rowHeight + StyleSheet.hairlineWidth) * index,
+              index,
+            };
+          }}
           removeClippedSubviews={Platform.OS !== "web"}
         />
-      )}
+      );
 
-      <CreateGroupModal
-        visible={isCreateModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onCreate={handleCreateGroup}
-        onJoin={handleJoinGroup}
-        loading={createLoading}
-      />
+  if (groupsLoading) {
+    return <AnymarktLoader message="Opening your groups..." />;
+  }
 
+  const pageTitleBlock = (
+    <View style={[styles.pageTitle, isListPane && styles.pageTitleListPane]}>
+      <View style={styles.headerLeft}>
+        <AppText variant="title3">Groups</AppText>
+        <AppText variant="caption" color="secondary">
+          {groups.length} groups{totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
+        </AppText>
+      </View>
+    </View>
+  );
+
+  const createModal = (
+    <CreateGroupModal
+      visible={isCreateModalVisible}
+      onClose={() => setCreateModalVisible(false)}
+      onCreate={handleCreateGroup}
+      onJoin={handleJoinGroup}
+      loading={createLoading}
+    />
+  );
+
+  if (isListPane) {
+    return (
+      <View style={[styles.listPaneContainer, { backgroundColor: theme.background }]}>
+        <View style={[styles.listPaneHeader, { borderBottomColor: theme.border }]}>
+          {pageTitleBlock}
+          <View style={styles.listPaneHeaderActions}>{listHeaderActions}</View>
+        </View>
+        {groupsListBody}
+        {createModal}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <GlobalHeader showToggle={!isDesktopWebNav} right={listHeaderActions} />
+      <WebContentColumn variant="social" style={styles.socialColumn}>
+        {pageTitleBlock}
+        {groupsListBody}
+        {createModal}
       </WebContentColumn>
-
     </View>
   );
 }
@@ -565,6 +482,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000000",
+  },
+  listPaneContainer: {
+    flex: 1,
+    minHeight: 0,
+  },
+  listPaneHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: DESKTOP_SPLIT_HEADER_HEIGHT,
+    paddingRight: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  listPaneHeaderActions: {
+    flexShrink: 0,
   },
   socialColumn: {
     flex: 1,
@@ -579,6 +511,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 12,
+  },
+  pageTitleListPane: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   headerLeft: {
     flex: 1,

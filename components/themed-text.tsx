@@ -3,6 +3,10 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 import { FontWeight } from '@/constants/typography';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+/**
+ * @deprecated Use AppText from @/components/ui instead. See docs/ui-system.md
+ */
+
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;

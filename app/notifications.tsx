@@ -17,6 +17,7 @@ import { AppText } from "@/components/ui/AppText";
 import { FilterChipBar } from "@/components/ui/FilterChipBar";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Notification } from "@/services/notification.service";
 
@@ -57,6 +58,7 @@ function filterNotifications(items: Notification[], filter: NotificationFilter):
 export default function NotificationsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { openGroup } = useGroupNavigation();
   const { t } = useTranslation("social");
   const { notifications, loading, refresh, markAsRead, markAllAsRead, unreadCount } =
     useNotifications();
@@ -115,10 +117,18 @@ export default function NotificationsScreen() {
       if (!notification.read_at) {
         await markAsRead(notification.id);
       }
+      const data = notification.data ?? {};
+      if (
+        (notification.type === "group_invite" || notification.type === "group_invite_accepted") &&
+        data.group_id
+      ) {
+        openGroup(String(data.group_id));
+        return;
+      }
       const route = getNotificationRoute(notification);
       if (route) router.push(route as any);
     },
-    [markAsRead, router],
+    [markAsRead, openGroup, router],
   );
 
   const handleOpenSettings = useCallback(() => {

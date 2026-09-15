@@ -3,6 +3,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { showAppAlertRaw } from "@/lib/ui/feedback";
 import * as Haptics from "expo-haptics";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +24,7 @@ import { StatsView } from "../components/profile/StatsView";
 import { UserGroupsSection } from "../components/profile/UserGroupsSection";
 import { SEO } from "../components/SEO";
 import { useAuthContext } from "../contexts/AuthContext";
+import { useSocialFollow } from "../contexts/SocialFollowContext";
 import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
@@ -52,7 +54,9 @@ import { SocialShareProfileCard } from "../components/profile/SocialShareProfile
 
 export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   const router = useRouter();
+  const { openGroup } = useGroupNavigation();
   const { user: currentUser, refreshUser } = useAuthContext();
+  const { onFollowToggled } = useSocialFollow();
   const { theme, isDark } = useTheme();
   const { t: tTabs } = useTranslation('tabs');
   const isDesktopWebNav = useIsDesktopWebNav();
@@ -225,14 +229,25 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   const handleToggleFollow = async () => {
       if (!targetUserId || isOwnProfile) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
+
+      const wasFollowing = viewedUser?.is_following ?? false;
+      const nextFollowing = !wasFollowing;
+      if (viewedUser) {
+          setViewedUser({ ...viewedUser, is_following: nextFollowing });
+      }
+      onFollowToggled(nextFollowing);
+
       const { isFollowing, error } = await socialService.toggleFollow(targetUserId);
       if (error) {
           showAppAlertRaw("Error", "Could not update follow status");
-      } else {
-          // Update local state
           if (viewedUser) {
-              setViewedUser({ ...viewedUser, is_following: isFollowing });
+              setViewedUser({ ...viewedUser, is_following: wasFollowing });
+          }
+          onFollowToggled(wasFollowing);
+      } else if (viewedUser) {
+          setViewedUser({ ...viewedUser, is_following: isFollowing });
+          if (isFollowing !== nextFollowing) {
+              onFollowToggled(isFollowing);
           }
       }
   };
@@ -268,7 +283,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       try {
         const { groupId, error } = await socialService.findOrCreateDmGroup(targetUserId);
         if (error || !groupId) throw error || new Error("Failed to start chat");
-        router.push(`/group/${groupId}`);
+        openGroup(groupId);
       } catch (err: any) {
           showAppAlertRaw("Error", err.message || "Failed to start chat");
       }

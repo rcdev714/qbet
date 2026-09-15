@@ -4,8 +4,6 @@ export const THEME_MODE_KEY = "anymarket.themeMode";
 
 export type ThemeMode = "light" | "dark" | "system";
 
-const VALID_MODES = new Set<ThemeMode>(["light", "dark", "system"]);
-
 function parseThemeMode(value: string | null | undefined): ThemeMode | null {
   if (value === "light" || value === "dark" || value === "system") {
     return value;

@@ -29,6 +29,9 @@ interface WalletContextType {
   sendFunds: (input: TransferFundsInput) => Promise<{ success: true; senderBalance?: number } | { success: false; error: string }>;
   lastBetTime: number;
   notifyBetPlaced: () => void;
+  pendingIncoming: number;
+  pendingIncomingItems: import("../lib/settlement/payout-hold-constants").PendingSettlementPayoutItem[];
+  loadPendingIncoming: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);

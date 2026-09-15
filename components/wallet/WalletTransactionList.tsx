@@ -1,9 +1,11 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import { AppSkeleton } from "@/components/ui";
+import { AppButton, AppSkeleton, AppText } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/parimutuel";
+import { formatIncomingReleaseDate } from "@/lib/settlement/payout-hold-constants";
 
 import { WalletTransactionRow } from "./WalletTransactionRow";
 
@@ -18,6 +20,29 @@ function formatDateHeader(iso: string): string {
   if (txDay.getTime() === startOfToday.getTime()) return "Today";
   if (txDay.getTime() === startOfYesterday.getTime()) return "Yesterday";
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function txStatusLabel(
+  tx: { status?: string; metadata?: Record<string, unknown> | null },
+  t: (key: string, opts?: Record<string, string>) => string,
+  intlLocale: string,
+): string {
+  if (
+    tx.status === "pending" &&
+    tx.metadata &&
+    (tx.metadata as { pending_settlement?: boolean }).pending_settlement
+  ) {
+    const releasesAt = (tx.metadata as { releases_at?: string }).releases_at;
+    const date = releasesAt
+      ? formatIncomingReleaseDate(releasesAt, intlLocale)
+      : "";
+    return date
+      ? t("incomingAvailableAround", { date })
+      : t("payoutPending");
+  }
+  if (tx.status === "cancelled") return t("payoutCancelled");
+  if (tx.status === "pending") return t("payoutPending");
+  return t("payoutReleased");
 }
 
 function txTitle(type: string, t: (key: string) => string): string {
@@ -49,14 +74,6 @@ interface WalletTransactionListProps {
   onLoadMore: () => void;
   intlLocale: string;
   t: (key: string) => string;
-  theme: {
-    text: string;
-    textSecondary: string;
-    success: string;
-    border: string;
-    primary: string;
-    surface: string;
-  };
 }
 
 export function WalletTransactionList({
@@ -67,8 +84,9 @@ export function WalletTransactionList({
   onLoadMore,
   intlLocale,
   t,
-  theme,
 }: WalletTransactionListProps) {
+  const { theme } = useTheme();
+
   const grouped = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const tx of transactions) {
@@ -92,7 +110,9 @@ export function WalletTransactionList({
     <View>
       {grouped.map(([header, rows]) => (
         <View key={header} style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>{header}</Text>
+          <AppText variant="caption" color="secondary" style={styles.sectionHeader}>
+            {header}
+          </AppText>
           {rows.map((tx, index) => {
             const isPositive = Number(tx.amount) > 0;
             const direction =
@@ -105,16 +125,19 @@ export function WalletTransactionList({
               hour: "numeric",
               minute: "2-digit",
             });
+            const isPendingSettlement =
+              tx.status === "pending" &&
+              Boolean(tx.metadata?.pending_settlement);
             return (
               <WalletTransactionRow
                 key={tx.id}
                 title={txTitle(tx.type, t)}
                 subtitle={direction ? `${direction} · ${time}` : time}
                 amountLabel={`${isPositive ? "+" : ""}${formatCurrency(Number(tx.amount || 0), "USD", intlLocale)}`}
-                statusLabel={(tx.status || "completed").toUpperCase()}
+                statusLabel={txStatusLabel(tx, t, intlLocale)}
                 isPositive={isPositive}
+                isPending={isPendingSettlement}
                 isLast={index === rows.length - 1}
-                theme={theme}
               />
             );
           })}
@@ -122,14 +145,14 @@ export function WalletTransactionList({
       ))}
 
       {totalCount > visibleCount ? (
-        <TouchableOpacity
-          style={[styles.moreButton, { borderTopColor: theme.border }]}
-          onPress={onLoadMore}
-        >
-          <Text style={[styles.moreButtonText, { color: theme.primary }]}>
-            See more ({Math.min(visibleCount, totalCount)} of {totalCount})
-          </Text>
-        </TouchableOpacity>
+        <View style={[styles.moreButton, { borderTopColor: theme.border }]}>
+          <AppButton
+            title={`See more (${Math.min(visibleCount, totalCount)} of ${totalCount})`}
+            variant="ghost"
+            size="sm"
+            onPress={onLoadMore}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -145,21 +168,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionHeader: {
-    fontSize: 12,
-    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 0.4,
     marginBottom: 4,
     marginTop: 8,
   },
   moreButton: {
-    paddingVertical: 14,
-    alignItems: "center",
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: 4,
-  },
-  moreButtonText: {
-    fontSize: 14,
-    fontWeight: '400',
+    alignItems: "center",
   },
 });

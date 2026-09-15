@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { formatCurrency } from "@/lib/parimutuel";
 import type { MentionBetCard, MentionGroupCard, MentionProfileCard } from "@/types/mention";
 import { Image } from "expo-image";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +34,7 @@ type ChatEntityMentionCardProps =
 export function ChatEntityMentionCard(props: ChatEntityMentionCardProps) {
   const { theme } = useTheme();
   const router = useRouter();
+  const { openGroup: navigateToGroup } = useGroupNavigation();
   const { t } = useTranslation("groups");
 
   if (props.loading || !props.data) {
@@ -41,7 +43,7 @@ export function ChatEntityMentionCard(props: ChatEntityMentionCardProps) {
 
   if (props.variant === "group") {
     const data = props.data;
-    const openGroup = () => router.push(`/group/${data.group_id}` as any);
+    const openGroup = () => navigateToGroup(data.group_id);
 
     return (
       <Pressable

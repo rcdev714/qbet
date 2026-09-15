@@ -8,9 +8,9 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { groupService, ProfileGroup } from "@/services/group.service";
 import { socialService, UserProfile } from "@/services/social.service";
-import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,7 +26,7 @@ type DiscoverSegment = "people" | "groups";
 
 export default function DiscoverScreen() {
   const { theme } = useTheme();
-  const router = useRouter();
+  const { openGroup } = useGroupNavigation();
   const { user } = useAuthContext();
   const { t } = useTranslation("social");
   const [segment, setSegment] = useState<DiscoverSegment>("people");
@@ -158,7 +158,7 @@ export default function DiscoverScreen() {
             renderItem={({ item }) => (
               <Pressable
                 style={[styles.groupRow, { borderBottomColor: theme.border }]}
-                onPress={() => router.push(`/group/${item.group_id}` as any)}
+                onPress={() => openGroup(item.group_id)}
               >
                 <UserAvatar uri={item.avatar_url} username={item.name ?? "G"} size={48} />
                 <View style={styles.groupMeta}>

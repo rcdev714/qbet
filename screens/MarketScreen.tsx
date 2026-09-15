@@ -1,7 +1,37 @@
-import { AppButton, AppInput, AppText, ErrorBanner } from "@/components/ui";
+import { AnymarktLoader } from "@/components/AnymarktLoader";
+import { GlobalHeader } from "@/components/GlobalHeader";
+import { MarketChatTab } from "@/components/MarketChatTab";
+import { MarketProbabilityChart } from "@/components/MarketProbabilityChart";
+import { MarketTradePanel } from "@/components/markets/MarketTradePanel";
+import { SEO } from "@/components/SEO";
+import { SocialShareMarketCard } from "@/components/SocialShareMarketCard";
+import { SettlementFeedbackFlow } from "@/components/group-member/SettlementFeedbackFlow";
+import { SettlementPayoutBanner } from "@/components/group-member/SettlementPayoutBanner";
+import {
+  AppButton,
+  AppIconButton,
+  AppInput,
+  AppScreen,
+  AppText,
+  ErrorBanner,
+} from "@/components/ui";
 import { DESKTOP_BREAKPOINT } from "@/constants/layout";
-import { Brand } from "@/constants/theme";
+import { useAppLocale } from "@/contexts/LocaleContext";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useWalletContext } from "@/contexts/WalletContext";
+import { useMarket } from "@/hooks/useMarket";
+import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
+import { useSettlementFeedbackPrompt } from "@/hooks/useSettlementFeedbackPrompt";
+import { alertBetPlacedWithContract } from "@/lib/bet-contract-ui";
+import { scanMarketTextForSports } from "@/lib/compliance/sports-content";
+import { getBinaryOptions, isBinaryMarket } from "@/lib/market-utils";
+import { calculateYesNoPayout, formatCurrency } from "@/lib/parimutuel";
+import { getParamString } from "@/lib/route-params";
+import { betService } from "@/services/bet.service";
+import { shareService } from "@/services/share.service";
 import { addAppBreadcrumb, captureUiError, showAppAlertRaw } from "@/lib/ui/feedback";
+import type { MarketWithStats } from "@/types/market";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -9,27 +39,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Dimensions, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
-import { AnymarktLoader } from "../components/AnymarktLoader";
-import { GlobalHeader } from "../components/GlobalHeader";
-import { MarketChatTab } from "../components/MarketChatTab";
-import { MarketProbabilityChart } from "../components/MarketProbabilityChart";
-import { MarketTradePanel } from "../components/markets/MarketTradePanel";
-import { SEO } from "../components/SEO";
-import { SocialShareMarketCard } from "../components/SocialShareMarketCard";
-import { useAppLocale } from "../contexts/LocaleContext";
-import { useTheme } from "../contexts/ThemeContext";
-import { useWalletContext } from "../contexts/WalletContext";
-import { useMarket } from "../hooks/useMarket";
-import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
-import { alertBetPlacedWithContract } from "../lib/bet-contract-ui";
-import { scanMarketTextForSports } from "../lib/compliance/sports-content";
-import { getBinaryOptions, isBinaryMarket } from "../lib/market-utils";
-import { calculateYesNoPayout, formatCurrency } from "../lib/parimutuel";
-import { getParamString } from "../lib/route-params";
-import { betService } from "../services/bet.service";
-import { shareService } from "../services/share.service";
-import type { MarketWithStats } from "../types/market";
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
 
 // Responsive layout constants
@@ -46,6 +68,13 @@ export function MarketScreen() {
   const params = useLocalSearchParams<{ id: string; optionId?: string; previewAmount?: string; side?: string; tab?: string }>();
   const marketId = getParamString(params.id) ?? null;
   const { market, options, userBets, loading, refresh } = useMarket(marketId);
+  const { user } = useAuthContext();
+  const settlementFeedback = useSettlementFeedbackPrompt({
+    market: market ?? null,
+    userId: user?.id,
+    enabled: !loading && !!market?.group_id && market.status === "resolved",
+    userHasBet: (userBets?.length ?? 0) > 0,
+  });
   const { balance, isPlayMode, refresh: refreshWallet, notifyBetPlaced } = useWalletContext();
   const { theme, isDark } = useTheme();
   const { locale, residence } = useAppLocale();
@@ -145,14 +174,17 @@ export function MarketScreen() {
 
   if (!market) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.background, flex: 1 }]}>
-        <Text style={[styles.errorText, { color: theme.text }]}>
+      <AppScreen columnVariant="standard" style={styles.centerContainer}>
+        <AppText variant="body" color="destructive" style={styles.errorText}>
           This market could not be found. Go back and choose another prediction.
-        </Text>
-        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.back()}>
-          <Text style={{ color: theme.primary, fontWeight: '400' }}>Go back</Text>
-        </TouchableOpacity>
-      </View>
+        </AppText>
+        <AppButton
+          title="Go back"
+          variant="ghost"
+          onPress={() => router.back()}
+          style={{ marginTop: theme.spacing.lg }}
+        />
+      </AppScreen>
     );
   }
 
@@ -288,7 +320,7 @@ export function MarketScreen() {
             transition={300}
           />
         ) : (
-          <View style={[styles.headerImage, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]} />
+          <View style={[styles.headerImage, { backgroundColor: theme.muted }]} />
         )}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent', theme.background]}
@@ -309,42 +341,37 @@ export function MarketScreen() {
           transparent={!isDesktopWeb}
           ignoreTopInset={!isDesktopWeb}
           left={
-            <TouchableOpacity 
-              onPress={() => router.back()} 
-              style={[
-                styles.backButton, 
-                { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 }
-              ]}
-            >
-              <Text style={[styles.backButtonText, { color: '#fff' }]}>←</Text>
-            </TouchableOpacity>
+            <AppIconButton
+              variant="onDark"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              style={{ backgroundColor: theme.overlay, borderColor: theme.borderSubtle }}
+              icon={<Ionicons name="chevron-back" size={22} color={theme.onPrimary} />}
+            />
           }
           right={
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <TouchableOpacity 
-                onPress={handleShare} 
-                style={[
-                    styles.iconButton, 
-                    { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.2)' }
-                ]}
-              >
-                 <Ionicons name="share-outline" size={20} color="#fff" />
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <AppIconButton
+                variant="onDark"
+                accessibilityLabel="Share market"
+                onPress={handleShare}
+                style={{ backgroundColor: theme.overlay, borderColor: theme.borderSubtle }}
+                icon={<Ionicons name="share-outline" size={20} color={theme.onPrimary} />}
+              />
               <View style={styles.headerContent}>
-                <Text style={[
-                  styles.statusBadge,
-                  market.status === 'open' ? styles.statusOpen : styles.statusClosed,
-                   { 
-                     backgroundColor: 'rgba(0,0,0,0.5)', 
-                     paddingHorizontal: 8, 
-                     paddingVertical: 4, 
-                     borderRadius: 12,
-                     overflow: 'hidden',
-                     color: '#fff'
-                   }
-                ]}>
-                  {(market.status || 'open').toUpperCase()}
-                </Text>
+                <View
+                  style={{
+                    backgroundColor: theme.overlay,
+                    paddingHorizontal: theme.spacing.sm,
+                    paddingVertical: theme.spacing.xs,
+                    borderRadius: theme.radius.pill,
+                    overflow: "hidden",
+                  }}
+                >
+                  <AppText variant="caption" color="onPrimary" style={{ letterSpacing: 0.5 }}>
+                    {(market.status || "open").toUpperCase()}
+                  </AppText>
+                </View>
               </View>
             </View>
           }
@@ -359,50 +386,75 @@ export function MarketScreen() {
           }
         ]}>
           <AppText variant="title1" style={styles.question}>{market.question}</AppText>
+          {market.group_id && market.status === "resolved" ? (
+            <SettlementPayoutBanner
+              payoutStatus={(market as { payout_status?: string }).payout_status}
+              payoutReleaseAt={(market as { payout_release_at?: string }).payout_release_at}
+              overrideStatus={(market as { settlement_override_status?: string }).settlement_override_status}
+              locale={locale === "es" ? "es-EC" : "en-US"}
+            />
+          ) : null}
           {market.description && (
-            <Text style={[styles.description, { color: theme.textSecondary }]}>{market.description}</Text>
+            <AppText variant="body" color="secondary" style={styles.description}>
+              {market.description}
+            </AppText>
           )}
-          <TouchableOpacity
+          <Pressable
             style={styles.poolContainer}
             onPress={() => navigate(`/bet/${resolvedMarketId}`, { message: "Loading market activity..." })}
-            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="View pool distribution"
           >
             <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.poolLabel, { color: theme.textSecondary }]}>Pool: </Text>
-                <Text style={[styles.poolValue, { color: theme.text }]}>{formatCurrency(totalPool)}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <AppText variant="caption" color="secondary" style={styles.poolLabel}>
+                  Pool:{" "}
+                </AppText>
+                <AppText variant="title3">{formatCurrency(totalPool)}</AppText>
               </View>
-              <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>
+              <AppText variant="caption" color="secondary" style={{ marginTop: 4 }}>
                 Fees apply. Click for distribution.
-              </Text>
+              </AppText>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <View style={isDesktopWeb ? styles.desktopBody : undefined}>
         <View style={isDesktopWeb ? styles.desktopMain : { flex: 1 }}>
 
         <View style={[styles.tabContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-          <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'predict' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab('predict')}
+          <Pressable
+            style={[styles.tabButton, activeTab === "predict" && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab("predict")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === "predict" }}
           >
-            <Text style={[styles.tabText, { color: activeTab === 'predict' ? theme.primary : theme.textSecondary }]}>Predict</Text>
-          </TouchableOpacity>
+            <AppText variant="bodySm" color={activeTab === "predict" ? "primary" : "secondary"}>
+              Predict
+            </AppText>
+          </Pressable>
           {market.is_public && (
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'chat' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-              onPress={() => setActiveTab('chat')}
+            <Pressable
+              style={[styles.tabButton, activeTab === "chat" && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+              onPress={() => setActiveTab("chat")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === "chat" }}
             >
-              <Text style={[styles.tabText, { color: activeTab === 'chat' ? theme.primary : theme.textSecondary }]}>Live Chat</Text>
-            </TouchableOpacity>
+              <AppText variant="bodySm" color={activeTab === "chat" ? "primary" : "secondary"}>
+                Live Chat
+              </AppText>
+            </Pressable>
           )}
-          <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'chart' && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab('chart')}
+          <Pressable
+            style={[styles.tabButton, activeTab === "chart" && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab("chart")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === "chart" }}
           >
-            <Text style={[styles.tabText, { color: activeTab === 'chart' ? theme.primary : theme.textSecondary }]}>Chart</Text>
-          </TouchableOpacity>
+            <AppText variant="bodySm" color={activeTab === "chart" ? "primary" : "secondary"}>
+              Chart
+            </AppText>
+          </Pressable>
         </View>
 
         {/* Chat tab renders directly (has its own FlatList) - avoids VirtualizedList nesting */}
@@ -414,26 +466,51 @@ export function MarketScreen() {
         {activeTab !== 'chat' && (
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {isEcSportsBlocked && (
-              <View style={[styles.sportsBlockBanner, { backgroundColor: "rgba(255, 59, 48, 0.12)", borderColor: theme.error }]}>
-                <Text style={[styles.sportsBlockTitle, { color: theme.error }]}>{t("sportsMarketBlockedTitle")}</Text>
-                <Text style={[styles.sportsBlockBody, { color: theme.textSecondary }]}>{t("sportsMarketBlockedBody")}</Text>
+              <View
+                style={[
+                  styles.sportsBlockBanner,
+                  {
+                    backgroundColor: `${theme.error}1F`,
+                    borderColor: theme.error,
+                    borderRadius: theme.radius.md,
+                  },
+                ]}
+              >
+                <AppText variant="body" color="destructive">
+                  {t("sportsMarketBlockedTitle")}
+                </AppText>
+                <AppText variant="bodySm" color="secondary">
+                  {t("sportsMarketBlockedBody")}
+                </AppText>
                 {isPlayMode ? (
-                  <Text style={[styles.sportsBlockNote, { color: theme.textSecondary }]}>{t("sportsMarketPracticeNote")}</Text>
+                  <AppText variant="caption" color="secondary" style={{ marginTop: 2 }}>
+                    {t("sportsMarketPracticeNote")}
+                  </AppText>
                 ) : null}
               </View>
             )}
             {activeTab === 'predict' && (
               <View style={styles.optionsContainer}>
-                <View style={[styles.beginnerGuideCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <View style={[styles.modePill, { backgroundColor: isPlayMode ? theme.primarySoft : "rgba(52, 199, 89, 0.16)" }]}>
-                    <Text style={[styles.modePillText, { color: isPlayMode ? theme.primary : theme.success }]}>
+                <View style={[styles.beginnerGuideCard, { backgroundColor: theme.surface, borderColor: theme.border, borderRadius: theme.radius.lg }]}>
+                  <View
+                    style={[
+                      styles.modePill,
+                      {
+                        backgroundColor: isPlayMode ? theme.primarySoft : theme.muted,
+                        borderRadius: theme.radius.pill,
+                      },
+                    ]}
+                  >
+                    <AppText variant="caption" color={isPlayMode ? "primary" : "success"}>
                       {isPlayMode ? "Practice mode" : "Live mode"}
-                    </Text>
+                    </AppText>
                   </View>
-                  <AppText variant="title2" style={styles.guideTitle}>Place your first prediction in 3 steps</AppText>
-                  <Text style={[styles.guideText, { color: theme.textSecondary }]}>
+                  <AppText variant="title2" style={styles.guideTitle}>
+                    Place your first prediction in 3 steps
+                  </AppText>
+                  <AppText variant="bodySm" color="secondary">
                     Choose an outcome, pick an amount, then review the possible payout before confirming.
-                  </Text>
+                  </AppText>
                 </View>
 
                 <AppText variant="label" color="secondary" style={styles.sectionTitle}>1. Choose an outcome</AppText>
@@ -467,91 +544,141 @@ export function MarketScreen() {
                   return (
                     <>
                       {/* Yes Option */}
-                      <TouchableOpacity
+                      <Pressable
                         style={[
                           styles.binaryOptionCard,
-                          { 
-                            backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
-                            borderColor: isYesSelected ? theme.primary : (isDark ? 'rgba(212, 175, 55, 0.3)' : `${theme.primary}33`)
+                          {
+                            backgroundColor: isDark ? theme.surfaceElevated : theme.surface,
+                            borderColor: isYesSelected ? theme.primary : theme.borderSubtle,
+                            borderRadius: theme.radius.md,
                           },
-                          isYesSelected && styles.optionSelected
+                          isYesSelected && styles.optionSelected,
                         ]}
                         onPress={() => {
                           setSelectedOption(yesOption.id);
                           setSelectedSide("yes");
                           Haptics.selectionAsync();
                         }}
-                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isYesSelected }}
                       >
-                        <View style={[
-                          styles.progressBarContainer,
-                          { width: `${yesPercent}%`, backgroundColor: theme.primary, opacity: isDark ? 0.3 : 0.1 }
-                        ]} />
+                        <View
+                          style={[
+                            styles.progressBarContainer,
+                            {
+                              width: `${yesPercent}%`,
+                              backgroundColor: theme.primary,
+                              opacity: isDark ? 0.3 : 0.1,
+                            },
+                          ]}
+                        />
                         <View style={styles.binaryOptionContent}>
-                          <Text style={[styles.binaryOptionLabel, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '400' }]}>
+                          <AppText
+                            variant="title2"
+                            color={isYesSelected ? (isDark ? "onPrimary" : "primary") : "default"}
+                            style={styles.binaryOptionLabel}
+                          >
                             Yes
-                          </Text>
-                          <Text style={[styles.binaryOptionPrice, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.text, fontWeight: '400' }]}>
+                          </AppText>
+                          <AppText
+                            variant="title3"
+                            color={isYesSelected ? (isDark ? "onPrimary" : "primary") : "default"}
+                            style={styles.binaryOptionPrice}
+                          >
                             {yesCents}¢
-                          </Text>
-                          <Text style={[styles.binaryOptionPercent, { color: isYesSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: '400' }]}>
+                          </AppText>
+                          <AppText
+                            variant="bodySm"
+                            color={isYesSelected ? (isDark ? "onPrimary" : "primary") : "secondary"}
+                          >
                             {Math.round(yesPercent)}%
-                          </Text>
+                          </AppText>
                         </View>
-                      </TouchableOpacity>
+                      </Pressable>
 
                       {/* No Option */}
-                      <TouchableOpacity
+                      <Pressable
                         style={[
                           styles.binaryOptionCard,
-                          { 
-                            backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)',
-                            borderColor: isNoSelected ? theme.error : (isDark ? 'rgba(212, 175, 55, 0.3)' : `${theme.primary}33`)
+                          {
+                            backgroundColor: isDark ? theme.surfaceElevated : theme.surface,
+                            borderColor: isNoSelected ? theme.error : theme.borderSubtle,
+                            borderRadius: theme.radius.md,
                           },
-                          isNoSelected && styles.optionSelected
+                          isNoSelected && styles.optionSelected,
                         ]}
                         onPress={() => {
                           setSelectedOption(noOption.id);
                           setSelectedSide("yes");
                           Haptics.selectionAsync();
                         }}
-                        activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isNoSelected }}
                       >
-                        <View style={[
-                          styles.progressBarContainer,
-                          { width: `${noPercent}%`, backgroundColor: theme.error, opacity: 0.3 }
-                        ]} />
+                        <View
+                          style={[
+                            styles.progressBarContainer,
+                            { width: `${noPercent}%`, backgroundColor: theme.error, opacity: 0.3 },
+                          ]}
+                        />
                         <View style={styles.binaryOptionContent}>
-                          <Text style={[styles.binaryOptionLabel, { color: isNoSelected ? theme.error : theme.text }]}>
+                          <AppText variant="title2" color={isNoSelected ? "destructive" : "default"} style={styles.binaryOptionLabel}>
                             No
-                          </Text>
-                          <Text style={[styles.binaryOptionPrice, { color: theme.error }]}>
+                          </AppText>
+                          <AppText variant="title3" color="destructive" style={styles.binaryOptionPrice}>
                             {noCents}¢
-                          </Text>
-                          <Text style={[styles.binaryOptionPercent, { color: isNoSelected ? theme.error : theme.textSecondary }]}>
+                          </AppText>
+                          <AppText variant="bodySm" color={isNoSelected ? "destructive" : "secondary"}>
                             {Math.round(noPercent)}%
-                          </Text>
+                          </AppText>
                         </View>
-                      </TouchableOpacity>
+                      </Pressable>
 
                       {/* Payout Preview for Binary */}
                       {potentialPayout && (isYesSelected || isNoSelected) && (
-                        <View style={[styles.payoutContainerStandalone, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)', borderColor: theme.border }]}>
+                        <View
+                          style={[
+                            styles.payoutContainerStandalone,
+                            {
+                              backgroundColor: isDark ? theme.surfaceElevated : theme.surface,
+                              borderColor: theme.border,
+                              borderRadius: theme.radius.md,
+                            },
+                          ]}
+                        >
                           <View style={styles.payoutRow}>
-                            <Text style={styles.payoutLabel}>Your Bet</Text>
-                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.userBet)}</Text>
+                            <AppText variant="caption" color="secondary">
+                              Your Bet
+                            </AppText>
+                            <AppText variant="caption">{formatCurrency(potentialPayout.userBet)}</AppText>
                           </View>
                           <View style={styles.payoutRow}>
-                            <Text style={styles.payoutLabel}>If You Win, You Get Back</Text>
-                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.netPayout)}</Text>
+                            <AppText variant="caption" color="secondary">
+                              If You Win, You Get Back
+                            </AppText>
+                            <AppText variant="caption">{formatCurrency(potentialPayout.netPayout)}</AppText>
                           </View>
-                          <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-                            <Text style={[styles.payoutLabel, { fontWeight: '400' }]}>Net Profit</Text>
-                            <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
+                          <View
+                            style={[
+                              styles.payoutRow,
+                              {
+                                marginTop: 4,
+                                paddingTop: 4,
+                                borderTopWidth: StyleSheet.hairlineWidth,
+                                borderTopColor: theme.border,
+                              },
+                            ]}
+                          >
+                            <AppText variant="caption" color="secondary">
+                              Net Profit
+                            </AppText>
+                            <AppText variant="label" color="success">
+                              +{formatCurrency(potentialPayout.potentialProfit)}
+                            </AppText>
                           </View>
-                          <Text style={styles.payoutNote}>
+                          <AppText variant="caption" color="secondary" style={styles.payoutNote}>
                             After fee: {(1 - 0.0795) * 100}% payout
-                          </Text>
+                          </AppText>
                         </View>
                       )}
                     </>
@@ -596,93 +723,129 @@ export function MarketScreen() {
                       key={option.id}
                       style={[
                         styles.optionCard,
-                        { 
-                          backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : '#ffffff',
-                          borderColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')
+                        {
+                          backgroundColor: isDark ? theme.surfaceElevated : theme.surface,
+                          borderColor: isSelected ? accentColor : theme.borderSubtle,
+                          borderRadius: theme.radius.md,
                         },
-                        isSelected && styles.optionSelected
+                        isSelected && styles.optionSelected,
                       ]}
                     >
                       {/* Percentage fill background - transparent blue for all */}
-                      <View style={[
-                        styles.progressBarContainer,
-                        {
-                          width: `${percent}%`,
-                          backgroundColor: accentColor,
-                          opacity: 0.15
-                        }
-                      ]} />
+                      <View
+                        style={[
+                          styles.progressBarContainer,
+                          {
+                            width: `${percent}%`,
+                            backgroundColor: accentColor,
+                            opacity: 0.15,
+                          },
+                        ]}
+                      />
 
                       <View style={styles.optionHeader}>
                         <View style={styles.optionLeft}>
-                          <View style={[styles.optionDot, { backgroundColor: isSelected ? accentColor : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)') }]} />
-                          <Text style={[styles.optionLabel, { color: theme.text, fontWeight: '400' }, isSelected && { color: isDark ? theme.onPrimary : theme.primary }]}>
+                          <View
+                            style={[
+                              styles.optionDot,
+                              {
+                                backgroundColor: isSelected
+                                  ? accentColor
+                                  : theme.borderSubtle,
+                                borderRadius: theme.radius.pill,
+                              },
+                            ]}
+                          />
+                          <AppText
+                            variant="label"
+                            color={isSelected ? (isDark ? "onPrimary" : "primary") : "default"}
+                            style={styles.optionLabel}
+                          >
                             {option.label}
-                          </Text>
+                          </AppText>
                         </View>
-                        <Text style={[styles.optionPercentText, { color: isSelected ? (isDark ? theme.onPrimary : theme.primary) : theme.textSecondary, fontWeight: '400' }]}>
+                        <AppText
+                          variant="caption"
+                          color={isSelected ? (isDark ? "onPrimary" : "primary") : "secondary"}
+                        >
                           {Math.round(percent)}%
-                        </Text>
+                        </AppText>
                       </View>
 
                       <View style={styles.binaryButtons}>
-                        <TouchableOpacity
-                          style={[
-                            styles.binaryButton,
-                            {
-                              backgroundColor: isYesSelected 
-                                ? (isDark ? 'rgba(1, 22, 39, 0.8)' : theme.primarySoft)
-                                : (isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}0D`),
-                              borderColor: isYesSelected ? theme.primary : (isDark ? 'rgba(255,255,255,0.08)' : theme.primary),
-                              borderWidth: isYesSelected ? 2 : 1,
-                            },
-                          ]}
+                        <AppButton
+                          title={`YES ${yesCents}¢`}
+                          size="sm"
+                          variant={isYesSelected ? "primary" : "secondary"}
                           onPress={() => {
                             setSelectedOption(option.id);
                             setSelectedSide("yes");
+                            Haptics.selectionAsync();
                           }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={[styles.binaryButtonLabel, { color: isDark ? theme.onPrimary : theme.primary }]}>YES {yesCents}¢</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
                           style={[
                             styles.binaryButton,
                             {
-                              backgroundColor: isNoSelected 
-                                ? (isDark ? 'rgba(255,59,48,0.35)' : '#FFC2C7')
-                                : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,59,48,0.05)'),
-                              borderColor: isNoSelected ? theme.error : (isDark ? 'rgba(255,255,255,0.08)' : theme.error),
-                              borderWidth: isNoSelected ? 2 : 1,
+                              borderRadius: theme.radius.sm,
+                              borderColor: isYesSelected ? theme.primary : theme.border,
+                              borderWidth: isYesSelected ? 2 : 1,
                             },
                           ]}
+                        />
+                        <AppButton
+                          title={`NO ${noCents}¢`}
+                          size="sm"
+                          variant={isNoSelected ? "destructive" : "secondary"}
                           onPress={() => {
                             setSelectedOption(option.id);
                             setSelectedSide("no");
+                            Haptics.selectionAsync();
                           }}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={[styles.binaryButtonLabel, { color: theme.error }]}>NO {noCents}¢</Text>
-                        </TouchableOpacity>
+                          style={[
+                            styles.binaryButton,
+                            {
+                              borderRadius: theme.radius.sm,
+                              borderColor: isNoSelected ? theme.error : theme.border,
+                              borderWidth: isNoSelected ? 2 : 1,
+                            },
+                          ]}
+                        />
                       </View>
 
                       {potentialPayout && (isYesSelected || isNoSelected) && (
                         <View style={[styles.payoutContainer, { borderTopColor: theme.border }]}>
                           <View style={styles.payoutRow}>
-                            <Text style={styles.payoutLabel}>Your Bet</Text>
-                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.userBet)}</Text>
+                            <AppText variant="caption" color="secondary">
+                              Your Bet
+                            </AppText>
+                            <AppText variant="caption">{formatCurrency(potentialPayout.userBet)}</AppText>
                           </View>
                           <View style={styles.payoutRow}>
-                            <Text style={styles.payoutLabel}>If You Win, You Get Back</Text>
-                            <Text style={[styles.payoutValue, { color: theme.text }]}>{formatCurrency(potentialPayout.netPayout)}</Text>
+                            <AppText variant="caption" color="secondary">
+                              If You Win, You Get Back
+                            </AppText>
+                            <AppText variant="caption">{formatCurrency(potentialPayout.netPayout)}</AppText>
                           </View>
-                          <View style={[styles.payoutRow, { marginTop: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-                            <Text style={[styles.payoutLabel, { fontWeight: '400' }]}>Net Profit</Text>
-                            <Text style={[styles.profitValue, { color: theme.success }]}>+{formatCurrency(potentialPayout.potentialProfit)}</Text>
+                          <View
+                            style={[
+                              styles.payoutRow,
+                              {
+                                marginTop: 4,
+                                paddingTop: 4,
+                                borderTopWidth: StyleSheet.hairlineWidth,
+                                borderTopColor: theme.border,
+                              },
+                            ]}
+                          >
+                            <AppText variant="caption" color="secondary">
+                              Net Profit
+                            </AppText>
+                            <AppText variant="label" color="success">
+                              +{formatCurrency(potentialPayout.potentialProfit)}
+                            </AppText>
                           </View>
-                          <Text style={styles.payoutNote}>
+                          <AppText variant="caption" color="secondary" style={styles.payoutNote}>
                             After fee: {(1 - 0.0795) * 100}% payout
-                          </Text>
+                          </AppText>
                         </View>
                       )}
                     </View>
@@ -691,9 +854,9 @@ export function MarketScreen() {
               </View>
             )}
             
-            {activeTab === 'chart' && (
-               <View style={styles.positionSection}>
-                 <View style={styles.chartContainer}>
+            {activeTab === "chart" && (
+              <View style={styles.positionSection}>
+                <View style={[styles.chartContainer, { borderRadius: theme.radius.lg, backgroundColor: theme.muted }]}>
                   <MarketProbabilityChart
                     marketId={resolvedMarketId}
                     options={options}
@@ -728,114 +891,142 @@ export function MarketScreen() {
           ]}>
             <View style={styles.guidedBetHeader}>
               <View>
-                <Text style={[styles.guidedStepLabel, { color: theme.textSecondary }]}>2. Choose amount</Text>
+                <AppText variant="caption" color="secondary" style={styles.guidedStepLabel}>
+                  2. Choose amount
+                </AppText>
                 <AppText variant="title2" style={styles.guidedStepTitle}>
                   {isPlayMode ? "Practice bet" : "Live bet"}
                 </AppText>
               </View>
-              <View style={[styles.reviewBadge, { backgroundColor: isPlayMode ? theme.primarySoft : "rgba(52, 199, 89, 0.16)" }]}>
-                <Text style={[styles.reviewBadgeText, { color: isPlayMode ? theme.primary : theme.success }]}>
+              <View
+                style={[
+                  styles.reviewBadge,
+                  {
+                    backgroundColor: isPlayMode ? theme.primarySoft : theme.muted,
+                    borderRadius: theme.radius.pill,
+                  },
+                ]}
+              >
+                <AppText variant="caption" color={isPlayMode ? "primary" : "success"}>
                   Review before confirm
-                </Text>
+                </AppText>
               </View>
             </View>
             <View style={styles.balanceRow}>
               <View style={styles.balanceContainer}>
-                <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>Funds Available</Text>
-                <Text style={[styles.balanceValue, { color: theme.text }]}>{formatCurrency(balance)}</Text>
+                <AppText variant="label" color="secondary">
+                  Funds Available
+                </AppText>
+                <AppText variant="label">{formatCurrency(balance)}</AppText>
               </View>
 
               <View style={styles.oneTapToggleRow}>
-                <TouchableOpacity 
+                <AppIconButton
+                  variant="ghost"
+                  accessibilityLabel="One-tap bet help"
                   onPress={() => setShowOneTapHint(!showOneTapHint)}
-                  style={styles.helpIcon}
-                >
-                  <Ionicons name="help-circle-outline" size={16} color={theme.textSecondary} />
-                </TouchableOpacity>
-                <Text style={[styles.oneTapLabel, { color: theme.textSecondary }]}>Advanced one-tap</Text>
+                  style={{ width: 32, height: 32 }}
+                  icon={<Ionicons name="help-circle-outline" size={16} color={theme.textSecondary} />}
+                />
+                <AppText variant="caption" color="secondary">
+                  Advanced one-tap
+                </AppText>
                 <Switch
                   value={oneTapBetEnabled}
                   onValueChange={setOneTapBetEnabled}
-                  ios_backgroundColor={isDark ? "#333" : "#E5E5EA"}
-                  trackColor={{ false: isDark ? "#333" : "#E5E5EA", true: theme.primary }}
+                  ios_backgroundColor={theme.muted}
+                  trackColor={{ false: theme.muted, true: theme.primary }}
                   style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                 />
               </View>
             </View>
 
             {showOneTapHint && (
-              <View style={[styles.hintContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,122,255,0.05)' }]}>
-                <Text style={[styles.hintText, { color: theme.textSecondary }]}>
+              <View
+                style={[
+                  styles.hintContainer,
+                  {
+                    backgroundColor: theme.primarySoft,
+                    borderRadius: theme.radius.sm,
+                    borderLeftColor: theme.primary,
+                  },
+                ]}
+              >
+                <AppText variant="caption" color="secondary">
                   Advanced mode places the bet as soon as you tap an amount.
-                </Text>
+                </AppText>
               </View>
             )}
 
             <View style={styles.quickBetContainer}>
-                {[0.10, 0.50, 1.00, 5.00].map((amt) => (
-                  <TouchableOpacity
-                    key={amt}
-                    style={[styles.quickBetChip, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      // Set amount for UI responsiveness
-                      setBettingAmount(amt.toFixed(2));
-                      setError(null);
-                      
-                      // Auto-place if valid
-                      if (oneTapBetEnabled && selectedOption && selectedSide && !isPlacingBet && amt <= balance) {
-                          // We need to pass the amount directly since state update might be slow
-                          const placeAutoBet = async () => {
-                              setIsPlacingBet(true);
-                              setError(null);
-                              
-                              const { bet, error: betError, contractPipeline } = await betService.placeBet({
-                                marketId: resolvedMarketId,
-                                optionId: selectedOption,
-                                amount: amt,
-                                side: selectedSide,
-                                isPlayMode,
-                              });
-                          
-                              setIsPlacingBet(false);
-                          
-                              if (betError) {
-                                const errorMessage = betError.message || "We couldn't place your one-tap bet. Try again.";
-                                setError(errorMessage);
-                                captureUiError(betError, "MarketScreen", "oneTapPlaceBet");
-                                showAppAlertRaw("Bet wasn't placed", errorMessage);
-                              } else {
-                                addAppBreadcrumb("bet", "One-tap bet placed", {
-                                  marketId: resolvedMarketId,
-                                  amount: amt,
-                                  side: selectedSide,
-                                  isPlayMode,
-                                });
-                                setBettingAmount("");
-                                setSelectedOption(null);
-                                setSelectedSide(null);
-                                // Success Feedback
-                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                refreshWallet();
-                                refresh();
-                                notifyBetPlaced();
-                                alertBetPlacedWithContract({
-                                  router,
-                                  betId: bet?.id,
-                                  isPlayMode,
-                                  contractPipeline,
-                                });
-                              }
-                          };
-                          placeAutoBet();
-                      } else if (!selectedOption || !selectedSide) {
-                          setError("Choose YES or NO before using one-tap amounts.");
-                      }
-                    }}
-                  >
-                    <Text style={[styles.quickBetText, { color: theme.text }]}>${amt.toFixed(2)}</Text>
-                  </TouchableOpacity>
-                ))}
+              {[0.1, 0.5, 1.0, 5.0].map((amt) => (
+                <AppButton
+                  key={amt}
+                  title={`$${amt.toFixed(2)}`}
+                  size="sm"
+                  variant="secondary"
+                  style={[
+                    styles.quickBetChip,
+                    {
+                      backgroundColor: theme.muted,
+                      borderRadius: theme.radius.pill,
+                    },
+                  ]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setBettingAmount(amt.toFixed(2));
+                    setError(null);
+
+                    if (oneTapBetEnabled && selectedOption && selectedSide && !isPlacingBet && amt <= balance) {
+                      const placeAutoBet = async () => {
+                        setIsPlacingBet(true);
+                        setError(null);
+
+                        const { bet, error: betError, contractPipeline } = await betService.placeBet({
+                          marketId: resolvedMarketId,
+                          optionId: selectedOption,
+                          amount: amt,
+                          side: selectedSide,
+                          isPlayMode,
+                        });
+
+                        setIsPlacingBet(false);
+
+                        if (betError) {
+                          const errorMessage =
+                            betError.message || "We couldn't place your one-tap bet. Try again.";
+                          setError(errorMessage);
+                          captureUiError(betError, "MarketScreen", "oneTapPlaceBet");
+                          showAppAlertRaw("Bet wasn't placed", errorMessage);
+                        } else {
+                          addAppBreadcrumb("bet", "One-tap bet placed", {
+                            marketId: resolvedMarketId,
+                            amount: amt,
+                            side: selectedSide,
+                            isPlayMode,
+                          });
+                          setBettingAmount("");
+                          setSelectedOption(null);
+                          setSelectedSide(null);
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          refreshWallet();
+                          refresh();
+                          notifyBetPlaced();
+                          alertBetPlacedWithContract({
+                            router,
+                            betId: bet?.id,
+                            isPlayMode,
+                            contractPipeline,
+                          });
+                        }
+                      };
+                      placeAutoBet();
+                    } else if (!selectedOption || !selectedSide) {
+                      setError("Choose YES or NO before using one-tap amounts.");
+                    }
+                  }}
+                />
+              ))}
             </View>
 
             <View style={styles.betInputContainer}>
@@ -885,26 +1076,26 @@ export function MarketScreen() {
           onShare={triggerSystemShare}
         />
       )}
+
+      {settlementFeedback.promptMarket ? (
+        <SettlementFeedbackFlow
+          visible={settlementFeedback.visible}
+          marketId={settlementFeedback.promptMarket.id}
+          marketQuestion={settlementFeedback.promptMarket.question}
+          onSkip={() => void settlementFeedback.dismiss()}
+          onNotSure={settlementFeedback.closeWithoutPersist}
+          onSubmit={settlementFeedback.submitRating}
+        />
+      ) : null}
       </SafeAreaView>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7", // iOS background
   },
   centerContainer: {
     flex: 1,
@@ -914,91 +1105,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 120,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 40 : 16,
-    paddingBottom: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#C6C6C8",
-  },
-  backButton: {
-    padding: 8,
-    marginLeft: -8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: Brand.primary,
-    fontWeight: "400",
-  },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 8,
     gap: 12,
   },
-  statusBadge: {
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.5,
-  },
-  statusOpen: { color: Brand.success },
-  statusClosed: { color: "#8E8E93" },
-  headerDate: {
-    fontSize: 13,
-    color: "#8E8E93",
-  },
   questionContainer: {
     padding: 20,
-    backgroundColor: "#fff",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#C6C6C8",
   },
   question: {
-    fontSize: 24,
-    fontWeight: '400',
     marginBottom: 8,
     letterSpacing: -1,
-    lineHeight: 30,
   },
   description: {
-    fontSize: 15,
-    color: "#8E8E93",
     marginBottom: 20,
-    lineHeight: 22,
   },
   poolContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   poolLabel: {
-    fontSize: 12,
-    fontWeight: "400",
-    color: "#8E8E93",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  poolValue: {
-    fontSize: 17,
-    fontWeight: '400',
-  },
   chartContainer: {
     marginBottom: 24,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    borderRadius: 16,
+    alignItems: "center",
     paddingVertical: 16,
-  },
-  arrow: {
-    width: 6,
-    height: 6,
-    borderTopWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderColor: "#C7C7CC",
-    transform: [{ rotate: "45deg" }],
-    marginLeft: 8,
   },
   optionsContainer: {
     marginTop: 24,
@@ -1006,64 +1141,36 @@ const styles = StyleSheet.create({
   },
   beginnerGuideCard: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
     padding: 16,
     marginBottom: 18,
   },
   sportsBlockBanner: {
-    borderRadius: 14,
     borderWidth: 1,
     padding: 14,
     gap: 6,
     marginBottom: 12,
-  },
-  sportsBlockTitle: {
-    fontSize: 15,
-    fontWeight: "400",
-  },
-  sportsBlockBody: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  sportsBlockNote: {
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 2,
+    marginHorizontal: 16,
+    marginTop: 12,
   },
   modePill: {
     alignSelf: "flex-start",
-    borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginBottom: 10,
   },
-  modePillText: {
-    fontSize: 12,
-    fontWeight: '400',
-  },
   guideTitle: {
-    fontSize: 18,
-    fontWeight: '400',
     marginBottom: 6,
-  },
-  guideText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   positionSection: {
     marginTop: 24,
     paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "400",
-    color: "#8E8E93",
     textTransform: "uppercase",
     marginBottom: 12,
     letterSpacing: 0.5,
   },
   optionCard: {
-    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 1,
@@ -1081,7 +1188,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   binaryOptionCard: {
-    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 10,
@@ -1095,21 +1201,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   binaryOptionLabel: {
-    fontSize: 18,
-    fontWeight: '400',
     flex: 1,
   },
   binaryOptionPrice: {
-    fontSize: 16,
-    fontWeight: '400',
     marginRight: 12,
   },
-  binaryOptionPercent: {
-    fontSize: 14,
-    fontWeight: "400",
-  },
   payoutContainerStandalone: {
-    borderRadius: 14,
     padding: 14,
     marginTop: 10,
     borderWidth: 1,
@@ -1128,21 +1225,9 @@ const styles = StyleSheet.create({
   optionDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
   },
   optionLabel: {
-    fontSize: 13,
-    fontWeight: "400",
     flex: 1,
-  },
-  rightInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  optionPercentText: {
-    fontSize: 12,
-    fontWeight: '400',
   },
   binaryButtons: {
     flexDirection: "row",
@@ -1151,53 +1236,18 @@ const styles = StyleSheet.create({
   },
   binaryButton: {
     flex: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  binaryButtonLabel: {
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.3,
-  },
-  profitBadge: {
-    backgroundColor: 'rgba(52, 199, 89, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  profitText: {
-    fontSize: 12,
-    fontWeight: '400',
   },
   payoutContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#C6C6C8",
   },
   payoutRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 4,
   },
-  payoutLabel: {
-    fontSize: 12,
-    color: "#8E8E93",
-  },
-  payoutValue: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  profitValue: {
-    fontSize: 13,
-    fontWeight: '400',
-    letterSpacing: 0.2,
-  },
   payoutNote: {
-    fontSize: 10,
-    color: "#8E8E93",
     marginTop: 8,
     fontStyle: "italic",
   },
@@ -1210,56 +1260,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  desktopTradePanel: {
-    width: 320,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    ...(Platform.OS === "web"
-      ? ({ position: "sticky", top: 0, alignSelf: "flex-start", maxHeight: "100vh" } as any)
-      : {}),
-  },
-  desktopTradeTitle: {
-    fontSize: 18,
-    fontWeight: "400",
-    letterSpacing: -0.3,
-    marginBottom: 8,
-  },
-  desktopTradeBalance: {
-    fontSize: 14,
-    fontWeight: '400',
-    marginBottom: 4,
-  },
-  desktopTradePool: {
-    fontSize: 12,
-    marginBottom: 16,
-  },
-  desktopTradeHint: {
-    marginTop: 8,
-  },
-  desktopTradeHintText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  desktopBettingBar: {
-    ...(Platform.OS === "web"
-      ? ({
-          position: "absolute",
-          right: 0,
-          bottom: 0,
-          width: 320,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderLeftWidth: StyleSheet.hairlineWidth,
-        } as any)
-      : {}),
-  },
   bettingBar: {
-    backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    paddingBottom: Platform.OS === "ios" ? 20 : 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#C6C6C8",
   },
   guidedBetHeader: {
     flexDirection: "row",
@@ -1269,24 +1274,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   guidedStepLabel: {
-    fontSize: 12,
-    fontWeight: '400',
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   guidedStepTitle: {
     marginTop: 2,
-    fontSize: 18,
-    fontWeight: '400',
   },
   reviewBadge: {
-    borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-  },
-  reviewBadgeText: {
-    fontSize: 11,
-    fontWeight: '400',
   },
   balanceRow: {
     flexDirection: "row",
@@ -1304,31 +1300,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  oneTapLabel: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
-  helpIcon: {
-    padding: 2,
-  },
   hintContainer: {
     marginBottom: 12,
     padding: 8,
-    borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: Brand.primary,
-  },
-  hintText: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  balanceLabel: {
-    fontSize: 13,
-    color: "#8E8E93",
-  },
-  balanceValue: {
-    fontSize: 13,
-    fontWeight: '400',
   },
   betInputContainer: {
     flexDirection: "row",
@@ -1342,63 +1317,32 @@ const styles = StyleSheet.create({
     minWidth: 148,
   },
   errorText: {
-    color: "#FF3B30",
-    fontSize: 16,
+    textAlign: "center",
+    paddingHorizontal: 24,
   },
-  positionCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#C6C6C8',
-    marginBottom: 12
-  },
-  positionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  positionLabel: { fontSize: 16, fontWeight: '400' },
-  positionStatus: { fontSize: 11, fontWeight: '400', letterSpacing: 0.5 },
-  positionMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  positionText: { fontSize: 13, color: '#8E8E93' },
   quickBetContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 12,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   quickBetChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
     minWidth: 50,
-    alignItems: 'center',
-  },
-  quickBetText: {
-    fontSize: 13,
-    fontWeight: '400',
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#C6C6C8',
-    backgroundColor: '#fff',
   },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  emptyState: {
-    alignItems: 'center',
-    padding: 32,
+    borderBottomColor: "transparent",
   },
   headerImageContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -1406,8 +1350,8 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   headerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   headerGradient: {
     ...StyleSheet.absoluteFillObject,

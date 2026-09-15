@@ -329,6 +329,9 @@ verify_jwt = true
 [functions.update-connect-account]
 verify_jwt = true
 
+[functions.create-payout-setup]
+verify_jwt = true
+
 # Legacy payout disabled in favor of stripe-withdrawal; stub remains deployed for stale clients.
 # [functions.payout]
 # verify_jwt = true

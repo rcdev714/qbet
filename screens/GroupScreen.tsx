@@ -1,75 +1,66 @@
-import { AppText, ErrorBanner } from "@/components/ui";
-import { Brand } from "@/constants/theme";
+import { AnymarktLoader } from "@/components/AnymarktLoader";
+import { GroupInfoModal } from "@/components/GroupInfoModal";
+import { ActiveBetsTab } from "@/components/group-chat/ActiveBetsTab";
+import { ChatTab } from "@/components/group-chat/ChatTab";
+import { GroupAttachSheet } from "@/components/group-chat/GroupAttachSheet";
+import type { GroupTab } from "@/components/group-chat/GroupTabBar";
+import { GroupTabBar } from "@/components/group-chat/GroupTabBar";
+import { HistoryTab } from "@/components/group-chat/HistoryTab";
+import { RankingsTab } from "@/components/group-chat/RankingsTab";
+import { CreatePredictionModal } from "@/components/group/CreatePredictionModal";
+import { GroupMembersModal } from "@/components/group/GroupMembersModal";
+import { GroupScreenHeader } from "@/components/group/GroupScreenHeader";
+import { QuickBetModal } from "@/components/group/QuickBetModal";
+import { SettlementFeedbackFlow } from "@/components/group-member/SettlementFeedbackFlow";
+import { PublicBetPickerModal } from "@/components/PublicBetPickerModal";
+import { AppScreen, AppText, EmptyState } from "@/components/ui";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useAppLocale } from "@/contexts/LocaleContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useWalletContext } from "@/contexts/WalletContext";
+import { useGroup, useGroupMembers } from "@/hooks/useGroups";
+import { useGroupMarkets } from "@/hooks/useMarket";
+import { useMessages } from "@/hooks/useMessages";
+import { usePremiumNavigation } from "@/hooks/usePremiumNavigation";
+import { useSettlementFeedbackPrompt } from "@/hooks/useSettlementFeedbackPrompt";
+import { alertBetPlacedWithContract } from "@/lib/bet-contract-ui";
+import { getSportsBlockMessage, scanMarketTextForSports } from "@/lib/compliance/sports-content";
 import { logger } from "@/lib/logger";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { decode } from "base64-arraybuffer";
-import * as Clipboard from 'expo-clipboard';
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import {
-    ActionSheetIOS,
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    Share,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
-
+import { getParamString } from "@/lib/route-params";
+import { supabase } from "@/lib/supabase";
+import { betService } from "@/services/bet.service";
+import { complianceService } from "@/services/compliance.service";
+import { groupService } from "@/services/group.service";
+import { marketService } from "@/services/market.service";
 import { mentionService } from "@/services/mention.service";
 import { shareService } from "@/services/share.service";
+import type { Market, MarketOption } from "@/types/market";
 import type { MentionEmbedPayload } from "@/types/mention";
+import type { Message } from "@/types/message";
+import { decode } from "base64-arraybuffer";
+import * as Clipboard from "expo-clipboard";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnymarktLoader } from "../components/AnymarktLoader";
-import { GlobalHeader } from "../components/GlobalHeader";
-import { ActiveBetsTab } from "../components/group-chat/ActiveBetsTab";
-import { ChatTab } from "../components/group-chat/ChatTab";
-import { GroupAttachSheet } from "../components/group-chat/GroupAttachSheet";
-import type { GroupTab } from "../components/group-chat/GroupTabBar";
-import { GroupTabBar } from "../components/group-chat/GroupTabBar";
-import { HistoryTab } from "../components/group-chat/HistoryTab";
-import { RankingsTab } from "../components/group-chat/RankingsTab";
-import { GroupInfoModal } from "../components/GroupInfoModal";
-import { PlayModeToggle } from "../components/PlayModeToggle";
-import { PublicBetPickerModal } from "../components/PublicBetPickerModal";
-import { IconSymbol } from "../components/ui/icon-symbol";
-import { useAuthContext } from "../contexts/AuthContext";
-import { useAppLocale } from "../contexts/LocaleContext";
-import { useTheme } from "../contexts/ThemeContext";
-import { useWalletContext } from "../contexts/WalletContext";
-import { useGroup, useGroupMembers } from "../hooks/useGroups";
-import { useGroupMarkets } from "../hooks/useMarket";
-import { useMessages } from "../hooks/useMessages";
-import { usePremiumNavigation } from "../hooks/usePremiumNavigation";
-import { alertBetPlacedWithContract } from "../lib/bet-contract-ui";
-import { getSportsBlockMessage, scanMarketTextForSports } from "../lib/compliance/sports-content";
-import { formatCurrency } from "../lib/parimutuel";
-import { getParamString } from "../lib/route-params";
-import { supabase } from "../lib/supabase";
-import { betService } from "../services/bet.service";
-import { complianceService } from "../services/compliance.service";
-import { groupService } from "../services/group.service";
-import { marketService } from "../services/market.service";
-import type { Market, MarketOption } from "../types/market";
-import type { Message } from "../types/message";
+import {
+  ActionSheetIOS,
+  Alert,
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  Share,
+  StatusBar,
+  StyleSheet,
+  View,
+} from "react-native";
 
 function actionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function GroupScreen() {
+export function GroupScreen({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const { t } = useTranslation("group");
   const { locale } = useAppLocale();
@@ -130,6 +121,15 @@ export function GroupScreen() {
 
   const openMarkets = markets.filter((m: any) => m.status === "open");
   const closedMarkets = markets.filter((m: any) => m.status !== "open");
+  const resolvedGroupMarkets = useMemo(
+    () => markets.filter((m) => m.status === "resolved" && m.group_id),
+    [markets],
+  );
+  const settlementFeedback = useSettlementFeedbackPrompt({
+    markets: resolvedGroupMarkets,
+    userId: user?.id,
+    enabled: activeTab === "history" && !!groupId,
+  });
   const isFirstBetOnboarding = onboarding === "first-bet";
 
   // ─── Effects ─────────────────────────────────────────────────────────────
@@ -572,93 +572,82 @@ export function GroupScreen() {
   };
 
   // ─── Loading state ───────────────────────────────────────────────────────
-  if (groupLoading) {
+  if (groupLoading && !embedded) {
     return <AnymarktLoader message="Opening your group..." />;
   }
 
-  if (!groupId || !group) {
+  if (groupLoading && embedded) {
     return (
-      <SafeAreaView style={[styles.container, styles.centeredFallback, { backgroundColor: theme.background }]}>
-        <Text style={[styles.fallbackTitle, { color: theme.text }]}>Group not found</Text>
-        <Text style={[styles.fallbackBody, { color: theme.textSecondary }]}>
-          This group may have been deleted or you may not have access.
-        </Text>
-        <TouchableOpacity style={[styles.fallbackButton, { backgroundColor: theme.primary }]} onPress={() => router.back()}>
-          <Text style={[styles.fallbackButtonText, { color: theme.onPrimary }]}>Go back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <View style={[styles.embeddedRoot, { backgroundColor: theme.surface }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!groupId || !group) {
+    const notFound = (
+      <EmptyState
+        icon="people-outline"
+        title="Group not found"
+        description="This group may have been deleted or you may not have access."
+        actionLabel="Go back"
+        onAction={() => router.back()}
+      />
+    );
+
+    if (embedded) {
+      return (
+        <View style={[styles.embeddedRoot, styles.centerContainer, { backgroundColor: theme.background }]}>
+          {notFound}
+        </View>
+      );
+    }
+
+    return (
+      <AppScreen columnVariant="social" style={styles.centerContainer}>
+        {notFound}
+      </AppScreen>
     );
   }
 
   const activeGroupId = group.id;
 
-  // ─── Render ──────────────────────────────────────────────────────────────
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
+  const screenContent = (
+    <View style={styles.screenRoot}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <GlobalHeader
-        ignoreTopInset
-        left={
-          <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={[styles.backButton, Platform.OS === "web" && ({ cursor: "pointer" } as any)]}
-          >
-            <Text style={[styles.backButtonText, { color: theme.text }]}>←</Text>
-          </TouchableOpacity>
-        }
-        center={
-          <TouchableOpacity 
-            style={[styles.headerInfo, { flexDirection: 'row', alignItems: 'center' }, Platform.OS === "web" && ({ cursor: "pointer" } as any)]} 
-            onPress={() => setGroupInfoVisible(true)}
-            activeOpacity={0.7}
-          >
-            {group?.avatar_url ? (
-              <Image source={{ uri: group.avatar_url }} style={styles.groupHeaderAvatar} contentFit="cover" />
-            ) : (
-              <View style={[styles.groupHeaderAvatarPlaceholder, { backgroundColor: theme.primary + "20" }]}>
-                <Text style={[styles.groupHeaderAvatarInitials, { color: theme.primary }]}>{group?.name?.[0]?.toUpperCase() || "G"}</Text>
-              </View>
-            )}
-            <View style={{ marginLeft: 8, alignItems: 'center' }}>
-              <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{group?.name || "Group"}</Text>
-              <Text style={styles.headerSubtitle}>Tap for Info</Text>
-            </View>
-          </TouchableOpacity>
-        }
-        right={
-          <View style={styles.headerActions}>
-            <PlayModeToggle compact />
-            <TouchableOpacity 
-              style={[styles.headerCreateAction, { backgroundColor: theme.primary }, Platform.OS === "web" && ({ cursor: "pointer" } as any)]} 
-              onPress={() => setCreateModalVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Create prediction"
-              activeOpacity={0.85}
-            >
-              <IconSymbol name="plus" size={18} color={theme.onPrimary} />
-              <Text style={[styles.headerCreateActionText, { color: theme.onPrimary }]}>Create prediction</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.headerInfoAction, { borderColor: theme.border, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F7F8FA" }, Platform.OS === "web" && ({ cursor: "pointer" } as any)]} 
-              onPress={() => setGroupInfoVisible(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Group info"
-              activeOpacity={0.8}
-            >
-              <IconSymbol name="info.circle" size={20} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
+      <GroupScreenHeader
+        groupName={group?.name || "Group"}
+        avatarUrl={group?.avatar_url}
+        variant={embedded ? "split" : "stack"}
+        isAdmin={isAdmin}
+        onBack={() => router.back()}
+        onOpenInfo={() => setGroupInfoVisible(true)}
+        onCreatePrediction={() => setCreateModalVisible(true)}
+        onManage={
+          isAdmin
+            ? () => router.push(`/manage/groups/${activeGroupId}` as never)
+            : undefined
         }
       />
 
-      {statusBanner && (
-        <View style={[styles.statusBanner, { backgroundColor: isDark ? "rgba(52,199,89,0.18)" : "#EAF8EF", borderColor: isDark ? "rgba(52,199,89,0.35)" : "#BFE8CC" }]}>
-          <IconSymbol name="checkmark" size={16} color={theme.primary} />
-          <Text style={[styles.statusBannerText, { color: theme.text }]}>{statusBanner}</Text>
+      {statusBanner ? (
+        <View
+          style={[
+            styles.statusBanner,
+            {
+              backgroundColor: theme.primarySoft,
+              borderColor: theme.primary,
+              borderRadius: theme.radius.md,
+            },
+          ]}
+        >
+          <IconSymbol name="checkmark" size={16} color={theme.success} />
+          <AppText variant="bodySm" style={{ flex: 1 }}>
+            {statusBanner}
+          </AppText>
         </View>
-      )}
+      ) : null}
 
       {/* ── Tab Bar ─────────────────────────────────────────────────── */}
       <GroupTabBar
@@ -668,6 +657,7 @@ export function GroupScreen() {
       />
 
       {/* ── Tab Content ─────────────────────────────────────────────── */}
+      <View style={styles.tabContent}>
       {activeTab === "chat" && (
         <ChatTab
           messages={messages}
@@ -686,6 +676,7 @@ export function GroupScreen() {
           onSendMention={handleSendMention}
           onBet={handleOpenBet}
           onResolve={handleResolveMarket}
+          embedded={embedded}
         />
       )}
 
@@ -718,6 +709,7 @@ export function GroupScreen() {
           currentUserId={user?.id}
         />
       )}
+      </View>
 
       {/* ═══════════════════════════════════════════════════════════════
           MODALS — kept here because they interact with top-level state
@@ -760,185 +752,29 @@ export function GroupScreen() {
         }}
       />
 
-      {/* ── Create Prediction Modal ────────────────────────────────── */}
-      <Modal visible={isCreateModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setCreateModalVisible(false)}
-        >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"} 
-            style={styles.modalKeyboardAvoiding}
-            pointerEvents="box-none"
-          >
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={(e) => e.stopPropagation()} 
-              style={[styles.modalContent, { maxHeight: "90%", backgroundColor: theme.surface, borderColor: theme.border }]}
-            >
-              <View style={[styles.modalHeader, { borderBottomWidth: 0 }]}>
-                <TouchableOpacity 
-                  onPress={() => setCreateModalVisible(false)} 
-                  style={{ padding: 4 }}
-                >
-                  <Text style={{ fontSize: 24, color: theme.text }}>←</Text>
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Create Prediction</Text>
-                <TouchableOpacity onPress={() => setCreateModalVisible(false)} style={styles.modalCloseButton}>
-                  <IconSymbol name="xmark.circle.fill" size={28} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
-                keyboardShouldPersistTaps="always"
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={{ gap: 20 }}>
-                  {isFirstBetOnboarding && (
-                    <View style={[styles.firstBetGuideCard, { backgroundColor: `${theme.primary}14`, borderColor: `${theme.primary}45` }]}>
-                      <View style={styles.firstBetGuideHeader}>
-                        <View style={[styles.firstBetGuideIcon, { backgroundColor: `${theme.primary}22` }]}>
-                          <IconSymbol name="sparkles" size={18} color={theme.primary} />
-                        </View>
-                        <Text style={[styles.firstBetGuideLabel, { color: theme.primary }]}>STEP 2 OF 2</Text>
-                      </View>
-                      <AppText variant="title1" style={styles.firstBetGuideTitle}>Create your first group bet</AppText>
-                      <Text style={[styles.firstBetGuideBody, { color: theme.textSecondary }]}>
-                        Ask a simple yes/no question, keep the starter outcomes, then launch it. We preselected a small first bet when your balance allows it.
-                      </Text>
-                    </View>
-                  )}
-
-                  <TouchableOpacity
-                    onPress={pickMarketImage}
-                    style={[styles.imagePickerButton, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderWidth: 1, borderColor: theme.border, height: 160, borderRadius: 20 }]}
-                  >
-                    {marketImage ? (
-                      <Image source={{ uri: marketImage.uri }} style={styles.selectedImage} contentFit="cover" />
-                    ) : (
-                      <View style={styles.imagePickerPlaceholder}>
-                        <IconSymbol name="photo.fill" size={32} color={theme.primary} />
-                        <Text style={[styles.imagePickerText, { color: theme.primary, marginTop: 8 }]}>Add Cover Image</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-
-                  <View style={styles.modalSection}>
-                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>What are you predicting?</AppText>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", color: theme.text, height: undefined, minHeight: 60, paddingTop: 12, paddingBottom: 12, borderRadius: 16, textAlignVertical: "top" }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-                      placeholder="e.g. Will bitcoin hit $100k by 2026?"
-                      placeholderTextColor={theme.textSecondary}
-                      value={newQuestion}
-                      onChangeText={setNewQuestion}
-                      multiline
-                    />
-                  </View>
-
-                  <View style={styles.modalSection}>
-                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Available Outcomes</AppText>
-                    {newOptions.map((item, index) => (
-                      <View 
-                        key={index} 
-                        style={[styles.optionInputRow, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: selectedInitialOption === index ? theme.primary : "transparent", borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10, flexDirection: "row", alignItems: "center" }]}
-                      >
-                        <TouchableOpacity
-                          style={[styles.optionCheck, { borderColor: theme.border, borderWidth: 2, borderRadius: 12, width: 24, height: 24, justifyContent: "center", alignItems: "center" }, selectedInitialOption === index && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                          onPress={() => setSelectedInitialOption(index)}
-                        >
-                          {selectedInitialOption === index && <IconSymbol name="checkmark" size={14} color="#FFF" />}
-                        </TouchableOpacity>
-                        <TextInput
-                          style={[styles.optionInput, { color: theme.text, flex: 1, marginLeft: 10, height: 40 }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-                          placeholder={`Outcome ${index + 1}`}
-                          placeholderTextColor={theme.textSecondary}
-                          value={item}
-                          onChangeText={(text: string) => updateOption(text, index)}
-                        />
-                        {newOptions.length > 2 && (
-                          <TouchableOpacity onPress={() => removeOption(index)} style={{ padding: 8 }}>
-                            <IconSymbol name="minus.circle.fill" size={20} color="#FF3B30" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={{ gap: 24, marginTop: 10 }}>
-                  <TouchableOpacity style={[styles.addOptionBtn, { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: theme.primary }]} onPress={addOption}>
-                    <IconSymbol name="plus.circle.fill" size={20} color={theme.primary} />
-                    <Text style={[styles.addOptionBtnText, { color: theme.primary, marginLeft: 8 }]}>Add another outcome</Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.modalSection}>
-                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Closing Date</AppText>
-                    {Platform.OS === "web" ? (
-                      <View style={[styles.dateButton, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 12, height: 60, justifyContent: "center" }]}>
-                        {React.createElement('input', {
-                          type: 'datetime-local',
-                          value: new Date(closesAt.getTime() - (closesAt.getTimezoneOffset() * 60000)).toISOString().slice(0, 16),
-                          onChange: (e: any) => {
-                            const date = new Date(e.target.value);
-                            if (!isNaN(date.getTime())) {
-                              setClosesAt(date);
-                            }
-                          },
-                          style: {
-                            fontSize: 16,
-                            color: theme.text,
-                            height: '100%',
-                            width: '100%',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            outline: 'none',
-                            fontFamily: 'System',
-                          }
-                        })}
-                      </View>
-                    ) : (
-                      <>
-                        <TouchableOpacity style={[styles.dateButton, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]} onPress={() => setShowDatePicker(true)}>
-                          <Text style={[styles.dateText, { color: theme.text, fontWeight: '400' }]}>{closesAt.toLocaleDateString()} at {closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
-                          <IconSymbol name="calendar" size={20} color={theme.primary} />
-                        </TouchableOpacity>
-                        {showDatePicker && (
-                          <DateTimePicker value={closesAt} mode="datetime" display={Platform.OS === "ios" ? "spinner" : "default"} onChange={(_event: any, date?: Date) => { setShowDatePicker(Platform.OS === "ios"); if (date) setClosesAt(date); }} minimumDate={new Date()} textColor={isDark ? "#FFFFFF" : "#000000"} />
-                        )}
-                      </>
-                    )}
-                  </View>
-
-                  <View style={styles.modalSection}>
-                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Initial Prediction Amount (Optional)</AppText>
-                    <View style={[styles.initialBetInputRow, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: theme.border }]}>
-                      <Text style={[styles.currencyPrefix, { color: theme.text, fontSize: 18, fontWeight: '400' }]}>$</Text>
-                      <TextInput
-                        style={[styles.initialBetInput, { color: theme.text, flex: 1, marginLeft: 8, fontSize: 18, fontWeight: '400' }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-                        placeholder="0.00" placeholderTextColor={theme.textSecondary}
-                        value={initialBetAmount} onChangeText={setInitialBetAmount} keyboardType="numeric"
-                      />
-                    </View>
-                    {selectedInitialOption === null && initialBetAmount !== "" && (
-                      <ErrorBanner message="Select one above outcome to place this initial amount" />
-                    )}
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.createButton, { backgroundColor: theme.primary, height: 56, borderRadius: 16, justifyContent: "center", alignItems: "center", marginTop: 10 }, createLoading && { opacity: 0.5 }]}
-                    onPress={handleCreateMarket} disabled={createLoading}
-                  >
-                    {createLoading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.createButtonText, { color: theme.onPrimary, fontSize: 17, fontWeight: '400' }]}>Launch Now</Text>}
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </TouchableOpacity>
-      </Modal>
+      <CreatePredictionModal
+        visible={isCreateModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        isFirstBetOnboarding={isFirstBetOnboarding}
+        newQuestion={newQuestion}
+        onQuestionChange={setNewQuestion}
+        newOptions={newOptions}
+        onUpdateOption={updateOption}
+        onRemoveOption={removeOption}
+        onAddOption={addOption}
+        selectedInitialOption={selectedInitialOption}
+        onSelectInitialOption={setSelectedInitialOption}
+        closesAt={closesAt}
+        onClosesAtChange={setClosesAt}
+        showDatePicker={showDatePicker}
+        onShowDatePickerChange={setShowDatePicker}
+        initialBetAmount={initialBetAmount}
+        onInitialBetAmountChange={setInitialBetAmount}
+        marketImage={marketImage}
+        onPickMarketImage={pickMarketImage}
+        createLoading={createLoading}
+        onCreate={handleCreateMarket}
+      />
 
       <PublicBetPickerModal
         visible={isPublicBetPickerVisible}
@@ -958,327 +794,98 @@ export function GroupScreen() {
         }}
       />
 
-      {/* ── Group Info / Members Modal ─────────────────────────────── */}
-      <Modal visible={isMembersModalVisible} transparent animationType="slide" onRequestClose={() => setMembersModalVisible(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setMembersModalVisible(false)}
-        >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"} 
-            style={styles.modalKeyboardAvoiding}
-            pointerEvents="box-none"
-          >
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={(e) => e.stopPropagation()} 
-              style={[styles.modalContent, { flex: 1, maxHeight: "90%", backgroundColor: theme.surface, borderColor: theme.border }]}
-            >
-              <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-                <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '400', color: theme.text }}>{group?.name}</Text>
-                <TouchableOpacity onPress={() => setGroupInfoVisible(true)}>
-                   <IconSymbol name="info.circle" size={24} color={theme.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setMembersModalVisible(false)} style={styles.modalCloseButton}>
-                  <IconSymbol name="xmark.circle.fill" size={28} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
+      <GroupMembersModal
+        visible={isMembersModalVisible}
+        onClose={() => setMembersModalVisible(false)}
+        group={group}
+        members={members}
+        isAdmin={isAdmin}
+        currentUserId={user?.id}
+        shareCode={shareCode}
+        editedName={editedName}
+        onEditedNameChange={setEditedName}
+        editedDescription={editedDescription}
+        onEditedDescriptionChange={setEditedDescription}
+        onUpdateGroupName={handleUpdateGroupName}
+        onUpdateDescription={handleUpdateDescription}
+        onPickGroupImage={pickGroupImage}
+        isUploadingGroupAvatar={isUploadingGroupAvatar}
+        onOpenGroupInfo={() => setGroupInfoVisible(true)}
+        openMarkets={openMarkets}
+        closedMarkets={closedMarkets}
+        marketsLoading={marketsLoading}
+        openExpanded={openExpanded}
+        onOpenExpandedChange={setOpenExpanded}
+        closedExpanded={closedExpanded}
+        onClosedExpandedChange={setClosedExpanded}
+        formatClosesAt={formatClosesAt}
+        onMarketPress={(marketId) => navigate(`/market/${marketId}`, { message: "Preparing the market..." })}
+        onPromoteToAdmin={promoteToAdmin}
+        onRemoveMember={handleRemoveMember}
+        onDeleteGroup={handleDeleteGroup}
+      />
 
-              <FlatList
-                ListHeaderComponent={
-                  <>
-                    <View style={styles.modalGroupAvatarContainer}>
-                      <TouchableOpacity onPress={pickGroupImage} disabled={!isAdmin || isUploadingGroupAvatar}>
-                        {group?.avatar_url ? (
-                          <Image source={{ uri: group.avatar_url }} style={styles.modalGroupAvatar} contentFit="cover" />
-                        ) : (
-                          <View style={[styles.modalGroupAvatarPlaceholder, { backgroundColor: theme.primary + "20" }]}>
-                            <Text style={[styles.modalGroupAvatarInitials, { color: theme.primary }]}>{group?.name?.[0]?.toUpperCase() || "G"}</Text>
-                          </View>
-                        )}
-                        {isUploadingGroupAvatar && (
-                          <View style={styles.uploadProgressOverlay}><ActivityIndicator color="#fff" /></View>
-                        )}
-                        {isAdmin && !isUploadingGroupAvatar && (
-                          <View style={[styles.uploadProgressOverlay, { backgroundColor: "transparent" }]}>
-                            <Text style={{ color: "#fff", fontSize: 10, fontWeight: '400', textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 2 }}>EDIT</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    </View>
+      <QuickBetModal
+        visible={betModalVisible}
+        onClose={() => setBetModalVisible(false)}
+        selectedMarket={selectedMarket}
+        selectedSide={selectedSide}
+        balance={balance}
+        betAmount={betAmount}
+        onBetAmountChange={setBetAmount}
+        isPlacingBet={isPlacingBet}
+        onPlaceBet={handlePlaceBet}
+      />
 
-                    {isAdmin ? (
-                      <View style={[styles.shareCodeSection, { backgroundColor: isDark ? theme.background : "#F8F9FA" }]}>
-                        <Text style={[styles.shareCodeLabel, { color: theme.textSecondary }]}>Invite code (admin only):</Text>
-                        <View style={[styles.shareCodeBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                          <Text style={[styles.shareCodeText, { color: theme.text }]}>{shareCode ?? "…"}</Text>
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={styles.shareCodeSection}>
-                        <Text style={styles.shareCodeLabel}>Invite code</Text>
-                        <Text style={styles.descriptionText}>Only admins can view the invite code.</Text>
-                      </View>
-                    )}
+      {settlementFeedback.promptMarket ? (
+        <SettlementFeedbackFlow
+          visible={settlementFeedback.visible}
+          marketId={settlementFeedback.promptMarket.id}
+          marketQuestion={settlementFeedback.promptMarket.question}
+          onSkip={() => void settlementFeedback.dismiss()}
+          onNotSure={settlementFeedback.closeWithoutPersist}
+          onSubmit={settlementFeedback.submitRating}
+        />
+      ) : null}
+    </View>
+  );
 
-                    <View style={styles.descriptionInfoSection}>
-                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Group Name</AppText>
-                      {isAdmin ? (
-                        <View style={[styles.descriptionEditBox, { backgroundColor: isDark ? theme.background : "#F8F9FA", borderColor: theme.border }]}>
-                          <TextInput style={[styles.descriptionInput, { color: theme.text, minHeight: 40 }, Platform.OS === "web" && ({ cursor: "text" } as any)]} value={editedName} onChangeText={setEditedName} placeholder="Group Name" placeholderTextColor={theme.textSecondary} />
-                          {editedName !== group?.name && (
-                            <TouchableOpacity style={styles.saveDescriptionBtn} onPress={handleUpdateGroupName}>
-                              <Text style={styles.saveDescriptionBtnText}>Save</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      ) : (
-                        <Text style={[styles.modalTitle, { color: theme.text, marginHorizontal: 0, marginBottom: 12 }]}>{group?.name}</Text>
-                      )}
+  if (embedded) {
+    return (
+      <View style={[styles.embeddedRoot, { backgroundColor: theme.surface }]}>
+        {screenContent}
+      </View>
+    );
+  }
 
-                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Description</AppText>
-                      {isAdmin ? (
-                        <View style={[styles.descriptionEditBox, { backgroundColor: isDark ? theme.background : "#F8F9FA", borderColor: theme.border }]}>
-                          <TextInput style={[styles.descriptionInput, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text" } as any)]} value={editedDescription} onChangeText={setEditedDescription} placeholder="Add a group description..." placeholderTextColor={theme.textSecondary} multiline />
-                          {editedDescription !== group?.description && (
-                            <TouchableOpacity style={styles.saveDescriptionBtn} onPress={handleUpdateDescription}>
-                              <Text style={styles.saveDescriptionBtnText}>Save</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      ) : (
-                        <Text style={[styles.descriptionText, { color: theme.text }]}>{group?.description || "No description set."}</Text>
-                      )}
-                    </View>
-
-                    {/* Predictions Summary */}
-                    <View style={styles.predictionsSection}>
-                      <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Predictions</AppText>
-                      <TouchableOpacity style={[styles.accordionHeader, { backgroundColor: isDark ? theme.background : "#F2F2F7", borderColor: theme.border }]} onPress={() => setOpenExpanded((v) => !v)} activeOpacity={0.8}>
-                        <Text style={[styles.accordionTitle, { color: theme.text }]}>Open</Text>
-                        <View style={styles.accordionRight}>
-                          <Text style={styles.accordionCount}>{openMarkets.length}</Text>
-                          <Text style={styles.accordionChevron}>{openExpanded ? "▾" : "▸"}</Text>
-                        </View>
-                      </TouchableOpacity>
-                      {openExpanded && (
-                        <View style={styles.accordionBody}>
-                          {marketsLoading ? <ActivityIndicator size="small" color="#999" style={{ marginVertical: 8 }} /> : openMarkets.length === 0 ? <Text style={styles.accordionEmpty}>No open predictions.</Text> : (
-                            openMarkets.map((m: any) => (
-                              <TouchableOpacity key={m.id} style={styles.marketRow} onPress={() => navigate(`/market/${m.id}`, { message: "Preparing the market..." })} activeOpacity={0.8}>
-                                <View style={styles.marketRowLeft}>
-                                  <Text style={styles.marketRowTitle} numberOfLines={2}>{m.question}</Text>
-                                  <Text style={styles.marketRowMeta}>Closes: {formatClosesAt(m.closes_at)}</Text>
-                                </View>
-                                <Text style={[styles.marketStatusPill, styles.marketStatusOpen]}>OPEN</Text>
-                              </TouchableOpacity>
-                            ))
-                          )}
-                        </View>
-                      )}
-
-                      <TouchableOpacity style={[styles.accordionHeader, { marginTop: 10, backgroundColor: isDark ? theme.background : "#F2F2F7", borderColor: theme.border }]} onPress={() => setClosedExpanded((v) => !v)} activeOpacity={0.8}>
-                        <Text style={[styles.accordionTitle, { color: theme.text }]}>Closed</Text>
-                        <View style={styles.accordionRight}>
-                          <Text style={[styles.accordionCount, { color: theme.textSecondary }]}>{closedMarkets.length}</Text>
-                          <Text style={[styles.accordionChevron, { color: theme.textSecondary }]}>{closedExpanded ? "▾" : "▸"}</Text>
-                        </View>
-                      </TouchableOpacity>
-                      {closedExpanded && (
-                        <View style={styles.accordionBody}>
-                          {marketsLoading ? <ActivityIndicator size="small" color="#999" style={{ marginVertical: 8 }} /> : closedMarkets.length === 0 ? <Text style={styles.accordionEmpty}>No closed predictions.</Text> : (
-                            closedMarkets.map((m: any) => (
-                              <TouchableOpacity key={m.id} style={styles.marketRow} onPress={() => navigate(`/market/${m.id}`, { message: "Preparing the market..." })} activeOpacity={0.8}>
-                                <View style={styles.marketRowLeft}>
-                                  <Text style={styles.marketRowTitle} numberOfLines={2}>{m.question}</Text>
-                                  <Text style={styles.marketRowMeta}>Closed: {formatClosesAt(m.closes_at)}</Text>
-                                </View>
-                                <Text style={[styles.marketStatusPill, styles.marketStatusClosed]}>CLOSED</Text>
-                              </TouchableOpacity>
-                            ))
-                          )}
-                        </View>
-                      )}
-                    </View>
-
-                    <AppText variant="label" color="secondary" style={styles.modalSectionTitle}>Members</AppText>
-                  </>
-                }
-                ListHeaderComponentStyle={{ paddingBottom: 16 }}
-                data={members}
-                keyExtractor={(item: any) => item.user_id}
-                renderItem={({ item }: { item: any }) => (
-                  <View style={[styles.memberRow, { borderBottomColor: theme.border }]}>
-                    <View style={styles.memberInfo}>
-                      <Text style={[styles.memberName, { color: theme.text }]}>
-                        {item.users?.email || item.users?.username || "Anonymous User"}
-                        {item.user_id === user?.id && " (You)"}
-                      </Text>
-                      <Text style={styles.memberRole}>{item.role.toUpperCase()}</Text>
-                    </View>
-                    {isAdmin && item.role !== "admin" && (
-                      <View style={{ flexDirection: "row", gap: 8 }}>
-                        <TouchableOpacity style={styles.promoteBtn} onPress={() => promoteToAdmin(item.user_id)}>
-                          <Text style={styles.promoteBtnText}>Make Admin</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.removeMemberBtn} onPress={() => handleRemoveMember(item.user_id)}>
-                          <Text style={styles.removeMemberBtnText}>Remove</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                )}
-                ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border, marginLeft: 0 }]} />}
-                ListFooterComponent={
-                  isAdmin ? (
-                    <View style={[styles.adminDangerZone, { marginTop: 40, paddingBottom: 40 }]}>
-                      <TouchableOpacity style={styles.deleteGroupBtnFlat} onPress={handleDeleteGroup}>
-                        <Text style={styles.deleteGroupBtnTextFlat}>Delete Group</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : <View style={{ height: 40 }} />
-                }
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: Platform.OS === "ios" ? 40 : 20 }}
-                showsVerticalScrollIndicator={false}
-              />
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* ── Quick Bet Modal ────────────────────────────────────────── */}
-      <Modal visible={betModalVisible} transparent animationType="slide" onRequestClose={() => setBetModalVisible(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setBetModalVisible(false)}
-        >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"} 
-            style={styles.modalKeyboardAvoiding}
-            pointerEvents="box-none"
-          >
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={(e) => e.stopPropagation()} 
-              style={[styles.modalContent, { backgroundColor: theme.surface, borderColor: theme.border, minHeight: 200 }]}
-            >
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Place Bet</Text>
-                <TouchableOpacity onPress={() => setBetModalVisible(false)} style={styles.modalCloseButton}>
-                  <IconSymbol name="xmark.circle.fill" size={28} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              {selectedMarket && (
-                <View style={[styles.betContext, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderRadius: 12, margin: 20, marginBottom: 10 }]}>
-                  <Text style={[styles.betQuestion, { color: theme.text }]}>{selectedMarket.question}</Text>
-                  <View style={styles.betMeta}>
-                    <Text style={[styles.betBalance, { color: theme.textSecondary }]}>Balance: {formatCurrency(balance)}</Text>
-                    <Text style={[styles.betSide, { color: selectedSide === "yes" ? theme.primary : "#EF4444", fontWeight: '400' }]}>
-                      Predicting: {selectedSide?.toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <View style={styles.quickAmounts}>
-                {[10, 25, 50, 100].map((amt) => (
-                  <TouchableOpacity key={amt} style={[styles.quickChip, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#E5E5EA" }]} onPress={() => setBetAmount(amt.toString())}>
-                    <Text style={[styles.quickChipText, { color: theme.text }]}>${amt}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={[styles.betInputWrapper, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F2F2F7", borderColor: theme.border, borderWidth: 1 }]}>
-                <Text style={[styles.currencyPrefix, { color: theme.text }]}>$</Text>
-                <TextInput
-                  testID="bet-amount"
-                  style={[styles.betInput, { color: theme.text, backgroundColor: "transparent" }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
-                  placeholder="0.00" placeholderTextColor={theme.textSecondary}
-                  value={betAmount} onChangeText={setBetAmount} keyboardType="numeric" autoFocus
-                />
-              </View>
-
-              {(() => {
-                const amt = parseFloat(betAmount);
-                if (isNaN(amt) || amt <= 0) return null;
-                return (
-                  <View style={styles.payoutPreview}>
-                    <Text style={[styles.payoutLabel, { color: theme.textSecondary }]}>Potential Payout</Text>
-                    <Text style={[styles.payoutValue, { color: theme.primary }]}>{formatCurrency(amt * 1.85)}</Text>
-                  </View>
-                );
-              })()}
-
-              <TouchableOpacity
-                testID="bet-place"
-                style={[styles.betButton, { backgroundColor: theme.primary }, (isPlacingBet || !betAmount) && { opacity: 0.5 }]}
-                onPress={handlePlaceBet} disabled={isPlacingBet || !betAmount}
-              >
-                {isPlacingBet ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={[styles.betButtonText, { color: theme.onPrimary }]}>Confirm Prediction</Text>}
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </TouchableOpacity>
-      </Modal>
-    </SafeAreaView>
+  return (
+    <AppScreen
+      columnVariant="social"
+      style={{ flex: 1, paddingTop: 0, paddingHorizontal: 0, paddingBottom: 0, backgroundColor: theme.surface }}
+    >
+      {screenContent}
+    </AppScreen>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES — kept at end of file per user preference
-// ═══════════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F2F2F7" },
-  centeredFallback: { justifyContent: "center", alignItems: "center", padding: 24 },
-  fallbackTitle: { fontSize: 20, fontWeight: '400', marginBottom: 8, textAlign: "center" },
-  fallbackBody: { fontSize: 15, textAlign: "center", marginBottom: 20, lineHeight: 22 },
-  fallbackButton: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
-  fallbackButtonText: { fontSize: 16, fontWeight: '400' },
+  screenRoot: {
+    flex: 1,
+    minHeight: 0,
+  },
+  embeddedRoot: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+  },
+  tabContent: {
+    flex: 1,
+    minHeight: 0,
+  },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: { padding: 8, marginLeft: -8 },
-  backButtonText: { fontSize: 17, color: Brand.primary, marginLeft: 4 },
-  headerTitle: { fontSize: 17, fontWeight: '400' },
-  headerSubtitle: { fontSize: 12, color: "#8E8E93" },
-  headerInfo: { alignItems: "center", flexDirection: "row" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerCreateAction: {
-    minHeight: 38,
-    borderRadius: 19,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  headerCreateActionText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: '400',
-  },
-  headerInfoAction: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerActionText: { fontSize: 17, color: Brand.primary, fontWeight: '400' },
-  groupHeaderAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
-  groupHeaderAvatarPlaceholder: { width: 36, height: 36, borderRadius: 18, marginRight: 10, alignItems: "center", justifyContent: "center" },
-  groupHeaderAvatarInitials: { fontSize: 14, fontWeight: '400' },
   statusBanner: {
     marginHorizontal: 14,
     marginBottom: 8,
-    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1286,132 +893,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  statusBannerText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '400',
-  },
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalKeyboardAvoiding: { justifyContent: "flex-end" },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: StyleSheet.hairlineWidth },
-  modalTitle: { fontSize: 18, fontWeight: '400' },
-  modalCloseButton: { padding: 4 },
-  closeModalText: { fontSize: 17, color: Brand.primary },
-  modalSection: { gap: 8 },
-  modalSectionTitle: { fontSize: 13, fontWeight: '400', color: "#8E8E93", textTransform: "uppercase", letterSpacing: 0.3 },
-  modalInput: { fontSize: 16, padding: 16, borderRadius: 12 },
-  optionInputRow: {},
-  optionCheck: {},
-  optionInput: { fontSize: 16 },
-  addOptionBtn: {},
-  addOptionBtnText: { fontSize: 15, fontWeight: '400' },
-  firstBetGuideCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-  },
-  firstBetGuideHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  firstBetGuideIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  firstBetGuideLabel: {
-    fontSize: 12,
-    fontWeight: '400',
-    letterSpacing: 0.8,
-  },
-  firstBetGuideTitle: {
-    fontSize: 20,
-    fontWeight: '400',
-    letterSpacing: -0.3,
-  },
-  firstBetGuideBody: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  dateButton: {},
-  dateText: { fontSize: 16 },
-  initialBetInputRow: {},
-  currencyPrefix: { fontSize: 16, fontWeight: '400' },
-  initialBetInput: { fontSize: 16 },
-  betWarningText: { fontSize: 12 },
-  createButton: {},
-  createButtonText: { fontSize: 17, fontWeight: '400' },
-  imagePickerButton: { justifyContent: "center", alignItems: "center", overflow: "hidden" },
-  selectedImage: { width: "100%", height: "100%", borderRadius: 20 },
-  imagePickerPlaceholder: { justifyContent: "center", alignItems: "center" },
-  imagePickerText: { fontSize: 15, fontWeight: '400' },
-
-  // Group Info Modal
-  modalGroupAvatarContainer: { alignItems: "center", marginVertical: 20 },
-  modalGroupAvatar: { width: 100, height: 100, borderRadius: 50 },
-  modalGroupAvatarPlaceholder: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center" },
-  modalGroupAvatarInitials: { fontSize: 32, fontWeight: '400' },
-  uploadProgressOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 50, alignItems: "center", justifyContent: "center" },
-  shareCodeSection: { padding: 20, borderRadius: 16, margin: 20, marginTop: 0 },
-  shareCodeLabel: { fontSize: 13, color: "#8E8E93", marginBottom: 8 },
-  shareCodeBox: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, alignItems: "center" },
-  shareCodeText: { fontSize: 20, fontWeight: '400', letterSpacing: 2 },
-  descriptionText: { fontSize: 15, color: "#8E8E93", lineHeight: 22 },
-  descriptionInfoSection: { paddingHorizontal: 20, gap: 12 },
-  descriptionEditBox: { padding: 12, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  descriptionInput: { fontSize: 15, minHeight: 60 },
-  saveDescriptionBtn: { marginTop: 8, alignSelf: "flex-end" },
-  saveDescriptionBtnText: { fontSize: 15, color: Brand.primary, fontWeight: '400' },
-  predictionsSection: { padding: 20, gap: 8 },
-  accordionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  accordionTitle: { fontSize: 16, fontWeight: '400' },
-  accordionRight: { flexDirection: "row", alignItems: "center", gap: 6 },
-  accordionCount: { fontSize: 14, fontWeight: '400', color: Brand.primary },
-  accordionChevron: { fontSize: 14, color: Brand.primary },
-  accordionBody: { paddingVertical: 8, gap: 8 },
-  accordionEmpty: { fontSize: 14, color: "#8E8E93", textAlign: "center", paddingVertical: 12 },
-  marketRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10 },
-  marketRowLeft: { flex: 1, marginRight: 12 },
-  marketRowTitle: { fontSize: 15, fontWeight: "400" },
-  marketRowMeta: { fontSize: 12, color: "#8E8E93", marginTop: 2 },
-  marketStatusPill: { fontSize: 10, fontWeight: '400', textTransform: "uppercase", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: "hidden" },
-  marketStatusOpen: { color: Brand.primary, backgroundColor: Brand.primarySoft },
-  marketStatusClosed: { color: "#8E8E93", backgroundColor: "#F2F2F7" },
-
-  // Members
-  memberRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5EA" },
-  memberInfo: { flex: 1 },
-  memberName: { fontSize: 16, fontWeight: "400" },
-  memberRole: { fontSize: 13, color: "#8E8E93" },
-  promoteBtn: { padding: 8 },
-  promoteBtnText: { fontSize: 14, color: Brand.primary, fontWeight: '400' },
-  removeMemberBtn: { padding: 8 },
-  removeMemberBtnText: { fontSize: 14, color: "#FF3B30", fontWeight: '400' },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: "#C6C6C8", marginVertical: 8 },
-  adminDangerZone: { marginTop: 32, marginBottom: 40, paddingHorizontal: 20 },
-  deleteGroupBtnFlat: { alignItems: "center", padding: 16 },
-  deleteGroupBtnTextFlat: { color: "#FF3B30", fontSize: 16, fontWeight: '400' },
-
-  // Bet Modal
-  betContext: { padding: 20, backgroundColor: "#F2F2F7", marginBottom: 10 },
-  betQuestion: { fontSize: 18, fontWeight: '400', marginBottom: 8 },
-  betMeta: { flexDirection: "row", justifyContent: "space-between" },
-  betBalance: { fontSize: 14, color: "#8E8E93" },
-  betSide: { fontSize: 14 },
-  betInputWrapper: { flexDirection: "row", alignItems: "center", marginHorizontal: 20, backgroundColor: "#F2F2F7", borderRadius: 12, padding: 16, marginVertical: 20 },
-  betInput: { flex: 1, fontSize: 18, fontWeight: '400', marginLeft: 8 },
-  betButton: { margin: 20, backgroundColor: Brand.primary, padding: 16, borderRadius: 16, alignItems: "center" },
-  betButtonText: { color: "#fff", fontSize: 17, fontWeight: '400' },
-  quickAmounts: { flexDirection: "row", gap: 8, marginHorizontal: 20, marginBottom: 16 },
-  quickChip: { flex: 1, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(142, 142, 147, 0.2)" },
-  quickChipText: { fontSize: 13, fontWeight: '400' },
-  payoutPreview: { marginHorizontal: 20, marginBottom: 16, padding: 12, borderRadius: 12, backgroundColor: "rgba(0, 122, 255, 0.05)", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  payoutLabel: { fontSize: 14, fontWeight: "400" },
-  payoutValue: { fontSize: 16, fontWeight: '400' },
 });

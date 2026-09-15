@@ -1,3 +1,4 @@
+import { MARKET_CHAT_MESSAGE_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import { createPostgresChannel } from "../lib/supabase-realtime";
 import type { MarketChatMessage, MarketChatMessageInsert } from "../types/marketChat";
@@ -13,15 +14,7 @@ export const marketChatService = {
         try {
             const { data, error } = await supabase
                 .from("market_chat_messages")
-                .select(`
-          *,
-          user:users (
-            id,
-            username,
-            email,
-            avatar_url
-          )
-        `)
+                .select(MARKET_CHAT_MESSAGE_SELECT)
                 .eq("market_id", marketId)
                 .order("created_at", { ascending: false })
                 .limit(limit);
@@ -56,15 +49,7 @@ export const marketChatService = {
                     content: content.trim(),
                     message_type: "text",
                 })
-                .select(`
-          *,
-          user:users (
-            id,
-            username,
-            email,
-            avatar_url
-          )
-        `)
+                .select(MARKET_CHAT_MESSAGE_SELECT)
                 .single();
 
             if (error) throw error;
@@ -97,15 +82,7 @@ export const marketChatService = {
                     referenced_user_id: data.referenced_user_id,
                     bet_id: data.bet_id,
                 })
-                .select(`
-          *,
-          user:users (
-            id,
-            username,
-            email,
-            avatar_url
-          )
-        `)
+                .select(MARKET_CHAT_MESSAGE_SELECT)
                 .single();
 
             if (error) throw error;

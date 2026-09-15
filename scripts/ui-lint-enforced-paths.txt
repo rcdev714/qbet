@@ -1,0 +1,24 @@
+# One path per line — migrated files that MUST pass UI lint. See docs/ui-system.md
+screens/HomeScreen.tsx
+screens/GroupScreen.tsx
+screens/MarketScreen.tsx
+screens/TopUpScreen.tsx
+screens/WalletScreen.tsx
+app/login.tsx
+components/CreateGroupModal.tsx
+components/profile/SettingsModal.tsx
+components/GroupInfoModal.tsx
+components/AdminFeedManager.tsx
+components/FeedMarketCard.tsx
+components/MarketCard.tsx
+components/PlayModeToggle.tsx
+components/groups/HomeGroupListRow.tsx
+components/group/CreatePredictionModal.tsx
+components/group/QuickBetModal.tsx
+components/group/GroupMembersModal.tsx
+components/group/GroupScreenHeader.tsx
+components/groups/GroupListRow.tsx
+components/groups/GroupsDetailPlaceholder.tsx
+components/group-chat/ChatComposer.tsx
+hooks/useGroupNavigation.ts
+app/(tabs)/groups/_layout.tsx
