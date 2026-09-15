@@ -533,6 +533,10 @@ $$;
 -- ============================================================================
 -- get_groups_administered (include promoted admins + stats)
 -- ============================================================================
+-- Postgres forbids changing RETURNS TABLE / OUT row type via CREATE OR REPLACE
+-- (42P13). Prior shape (20260629130000) omitted pending_dispute_count,
+-- avg_admin_score, and platform_override_active — drop before recreate.
+drop function if exists public.get_groups_administered();
 
 create or replace function public.get_groups_administered()
 returns table (
@@ -614,5 +618,6 @@ grant execute on function public.evaluate_settlement_reopen(uuid) to authenticat
 grant execute on function public.get_group_admin_disputes(uuid, text) to authenticated;
 grant execute on function public.get_group_admin_markets(uuid, text) to authenticated;
 grant execute on function public.report_admin_misconduct(uuid, uuid, uuid, text, text, text, text) to authenticated;
+grant execute on function public.get_groups_administered() to authenticated;
 
 commit;
