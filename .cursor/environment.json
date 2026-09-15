@@ -1,15 +1,21 @@
 {
-  "name": "Anymarkt (qbet) — Expo web + local Supabase",
+  "name": "Anymarkt (qbet) — Vite web + Expo + local Supabase",
   "install": "bash .cursor/install.sh",
   "start": "bash .cursor/start.sh",
   "terminals": [
     {
+      "name": "vite-web",
+      "command": "npm run web:vite",
+      "description": "Vite React SPA (apps/web) on http://localhost:5173 — primary web rewrite"
+    },
+    {
       "name": "expo-web",
       "command": "npm run web",
-      "description": "Expo Router web dev server (React Native Web) on http://localhost:8081"
+      "description": "Expo Router web (React Native Web, legacy) on http://localhost:8081"
     }
   ],
   "ports": [
+    { "name": "Vite web", "port": 5173 },
     { "name": "Expo web", "port": 8081 },
     { "name": "Supabase API", "port": 54321 },
     { "name": "Supabase Studio", "port": 54323 },
