@@ -3,7 +3,7 @@
 Checklist for attaching **https://anymarkt.com** to the Expo EAS-hosted web app and migrating email to `@anymarkt.com`.
 
 **Canonical URL:** `https://anymarkt.com` (apex)  
-**Deploy target:** Expo EAS Hosting only (not Vercel)
+**Deploy target:** Expo EAS Hosting for production today. Vite on Vercel is the cutover target — see [vercel-web-cutover.md](./vercel-web-cutover.md).
 
 ---
 

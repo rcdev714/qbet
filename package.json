@@ -43,7 +43,11 @@
     "test:e2e:ui": "playwright test",
     "test:beta-approval-sql": "bash scripts/test-beta-approval-sql.sh",
     "test:beta-approval-flow": "bash scripts/test-beta-approval-flow.sh",
-    "predeploy:prod": "bash scripts/predeploy-prod.sh"
+    "predeploy:prod": "bash scripts/predeploy-prod.sh",
+    "web:vite": "npm run dev -w @anymarkt/web",
+    "web:vite:build": "npm run build -w @anymarkt/web",
+    "typecheck:web": "npm run typecheck -w @anymarkt/web && npm run typecheck -w @anymarkt/shared",
+    "lint:web": "npm run lint -w @anymarkt/web && npm run lint -w @anymarkt/shared"
   },
   "dependencies": {
     "@expo-google-fonts/source-sans-3": "^0.4.1",
@@ -108,5 +112,9 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

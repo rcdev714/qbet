@@ -18,6 +18,7 @@ Central index for engineering, deploy, compliance, and product docs.
 | Doc | Audience | Purpose |
 |-----|----------|---------|
 | [local-dev-verification.md](./local-dev-verification.md) | Engineers | Local setup, env vars, migrations, health checks, beta flow testing |
+| [vercel-web-cutover.md](./vercel-web-cutover.md) | Engineers / release | Vite SPA on Vercel, env, SPA rewrites, DNS cutover from EAS |
 | [deploy-web-production.md](./deploy-web-production.md) | Engineers / release | EAS web deploy, GitHub auto-deploy, rollback |
 | [anymarkt-domain-setup.md](./anymarkt-domain-setup.md) | Engineers / release | Cloudflare DNS, EAS custom domain, Supabase auth, Resend |
 | [deploy-beta-approval-notify.md](./deploy-beta-approval-notify.md) | Engineers / release | Resend email, Supabase secrets, approval flow end-to-end |
