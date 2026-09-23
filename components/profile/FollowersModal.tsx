@@ -15,11 +15,13 @@ import {
 } from "react-native";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { socialHandle, socialLabel } from "../../lib/social/display-name";
 import { socialService } from "../../services/social.service";
 
 interface Follower {
   id: string;
   username: string;
+  display_name?: string | null;
   avatar_url: string;
   created_at: string;
 }
@@ -113,7 +115,13 @@ export function FollowersModal({ visible, onClose, userId }: FollowersModalProps
         />
         
         <View style={styles.userInfo}>
-          <Text style={[styles.username, { color: theme.text }]}>@{item.username}</Text>
+          <Text style={[styles.username, { color: theme.text }]}>
+            {socialLabel({ displayName: item.display_name, username: item.username })}
+          </Text>
+          {socialHandle(item.username) &&
+          socialLabel({ displayName: item.display_name, username: item.username }) !== item.username?.trim() ? (
+            <Text style={[styles.timestamp, { color: theme.textSecondary }]}>{socialHandle(item.username)}</Text>
+          ) : null}
           <Text style={[styles.timestamp, { color: theme.textSecondary }]}>
             Followed {new Date(item.created_at).toLocaleDateString()}
           </Text>

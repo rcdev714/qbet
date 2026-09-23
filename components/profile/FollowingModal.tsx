@@ -19,11 +19,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ModalHeader } from "@/components/ui/ModalHeader";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { socialHandle, socialLabel } from "../../lib/social/display-name";
 import { socialService } from "../../services/social.service";
 
 interface FollowingUser {
   id: string;
   username: string;
+  display_name?: string | null;
   avatar_url: string;
   followed_at: string;
 }
@@ -128,13 +130,21 @@ export function FollowingModal({ visible, onClose, userId }: FollowingModalProps
                   style={[styles.userRow, { borderBottomColor: theme.border }]}
                   onPress={() => handleUserPress(item.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={t("viewProfile", { username: item.username })}
+                  accessibilityLabel={t("viewProfile", { username: socialLabel({ displayName: item.display_name, username: item.username }) })}
                 >
-                  <UserAvatar uri={item.avatar_url} username={item.username} size={50} />
+                  <UserAvatar
+                    uri={item.avatar_url}
+                    username={socialLabel({ displayName: item.display_name, username: item.username })}
+                    size={50}
+                  />
                   <View style={styles.userInfo}>
                     <AppText variant="body" style={styles.username}>
-                      @{item.username}
+                      {socialLabel({ displayName: item.display_name, username: item.username })}
                     </AppText>
+                    {socialHandle(item.username) &&
+                    socialLabel({ displayName: item.display_name, username: item.username }) !== item.username?.trim() ? (
+                      <AppText variant="caption" color="secondary">{socialHandle(item.username)}</AppText>
+                    ) : null}
                     <AppText variant="caption" color="secondary">
                       {t("followingSince", {
                         date: new Date(item.followed_at).toLocaleDateString(),

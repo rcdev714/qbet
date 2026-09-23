@@ -270,6 +270,14 @@ export function GroupScreen({ embedded = false }: { embedded?: boolean }) {
     if (error) { Alert.alert("Message wasn't sent", "Your text is back in the composer. Check your connection and try again."); setInputText(text); }
   };
 
+  const handleSendSticker = async (content: string) => {
+    if (!user) return;
+    const { error } = await sendMessage({ user_id: user.id, content, message_type: "sticker" });
+    if (error) {
+      Alert.alert("Sticker wasn't sent", "Check your connection and try again.");
+    }
+  };
+
   const handleSendMention = async (payload: MentionEmbedPayload) => {
     if (!user || !groupId) return;
     if (Platform.OS !== "web") {
@@ -674,6 +682,7 @@ export function GroupScreen({ embedded = false }: { embedded?: boolean }) {
           isUploadingImage={isUploadingImage}
           groupId={activeGroupId ?? ""}
           onSendMention={handleSendMention}
+          onSendSticker={handleSendSticker}
           onBet={handleOpenBet}
           onResolve={handleResolveMarket}
           embedded={embedded}

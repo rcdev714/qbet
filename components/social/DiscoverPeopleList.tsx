@@ -19,7 +19,19 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSocialFollow } from "@/contexts/SocialFollowContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { socialHandle, socialLabel } from "@/lib/social/display-name";
 import { DiscoverableUser, socialService } from "@/services/social.service";
+
+function personLabel(item: DiscoverableUser): string {
+  return socialLabel({ displayName: item.display_name, username: item.username });
+}
+
+function personCaption(item: DiscoverableUser, subtitle: string): string {
+  const handle = socialHandle(item.username);
+  const label = personLabel(item);
+  if (handle && label !== item.username?.trim()) return `${handle} · ${subtitle}`;
+  return subtitle;
+}
 
 interface DiscoverPeopleListProps {
   embedded?: boolean;
@@ -155,15 +167,15 @@ export function DiscoverPeopleList({
           style={styles.sidebarMain}
           onPress={() => router.push(`/profile/${item.user_id}` as any)}
           accessibilityRole="button"
-          accessibilityLabel={t("viewProfile", { username: item.username })}
+          accessibilityLabel={t("viewProfile", { username: personLabel(item) })}
         >
-          <UserAvatar uri={item.avatar_url} username={item.username} size={44} />
+          <UserAvatar uri={item.avatar_url} username={personLabel(item)} size={44} />
           <View style={styles.sidebarInfo}>
             <AppText variant="bodySm" style={styles.username} numberOfLines={1}>
-              @{item.username}
+              {personLabel(item)}
             </AppText>
             <AppText variant="caption" color="secondary" numberOfLines={1}>
-              {formatSubtitle(item)}
+              {personCaption(item, formatSubtitle(item))}
             </AppText>
           </View>
         </Pressable>
@@ -192,18 +204,18 @@ export function DiscoverPeopleList({
           style={styles.suggestedCardMain}
           onPress={() => router.push(`/profile/${item.user_id}` as any)}
           accessibilityRole="button"
-          accessibilityLabel={t("viewProfile", { username: item.username })}
+          accessibilityLabel={t("viewProfile", { username: personLabel(item) })}
         >
-          <UserAvatar uri={item.avatar_url} username={item.username} size={embedded ? 40 : 44} />
+          <UserAvatar uri={item.avatar_url} username={personLabel(item)} size={embedded ? 40 : 44} />
           <View style={styles.suggestedCardInfo}>
             <View style={[styles.nameRow, styles.suggestedNameRow]}>
               <AppText variant="bodySm" style={styles.username} numberOfLines={1}>
-                @{item.username}
+                {personLabel(item)}
               </AppText>
               {item.win_rate != null ? <AuraBadge winRate={item.win_rate} compact /> : null}
             </View>
             <AppText variant="caption" color="secondary" numberOfLines={1}>
-              {formatSubtitle(item)}
+              {personCaption(item, formatSubtitle(item))}
             </AppText>
           </View>
         </Pressable>
@@ -236,18 +248,18 @@ export function DiscoverPeopleList({
           style={styles.userMain}
           onPress={() => router.push(`/profile/${item.user_id}` as any)}
           accessibilityRole="button"
-          accessibilityLabel={t("viewProfile", { username: item.username })}
+          accessibilityLabel={t("viewProfile", { username: personLabel(item) })}
         >
-          <UserAvatar uri={item.avatar_url} username={item.username} size={embedded ? 44 : 48} />
+          <UserAvatar uri={item.avatar_url} username={personLabel(item)} size={embedded ? 44 : 48} />
           <View style={styles.userInfo}>
             <View style={styles.nameRow}>
               <AppText variant="body" style={styles.username}>
-                @{item.username}
+                {personLabel(item)}
               </AppText>
               {item.win_rate != null ? <AuraBadge winRate={item.win_rate} compact /> : null}
             </View>
             <AppText variant="caption" color="secondary">
-              {formatSubtitle(item)}
+              {personCaption(item, formatSubtitle(item))}
             </AppText>
           </View>
         </Pressable>

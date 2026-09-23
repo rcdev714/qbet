@@ -2160,8 +2160,10 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           country_of_residence: string | null
           created_at: string
+          display_name: string | null
           email: string | null
           id: string
           is_admin: boolean | null
@@ -2173,8 +2175,10 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           country_of_residence?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id: string
           is_admin?: boolean | null
@@ -2186,8 +2190,10 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           country_of_residence?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id?: string
           is_admin?: boolean | null
@@ -2611,6 +2617,18 @@ export type Database = {
       insert_market_options: {
         Args: { p_labels: string[]; p_market_id: string }
         Returns: Database["public"]["Tables"]["options"]["Row"][]
+      }
+      preview_group_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          avatar_url: string | null
+          description: string | null
+          group_id: string
+          is_discoverable: boolean
+          is_member: boolean
+          member_count: number
+          name: string
+        }[]
       }
       join_group_by_code: {
         Args: { p_code: string }

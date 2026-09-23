@@ -1,3 +1,13 @@
+import { decode } from "base64-arraybuffer";
+
+import { isMissingRpcError } from "../lib/social/feed-visibility";
+import {
+  groupAvatarExtension,
+  parseGroupCodePreview,
+  privacyColumns,
+  type GroupCodePreview,
+  type GroupPrivacyChoice,
+} from "../lib/social/group-join";
 import { GROUP_MEMBERS_WITH_GROUP_SELECT, GROUP_MEMBERS_WITH_USER_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../types/database";
@@ -7,6 +17,26 @@ export interface CreateGroupData {
   name: string;
   description?: string;
   avatar_url?: string;
+}
+
+export interface GroupAvatarUpload {
+  base64: string;
+  mimeType?: string | null;
+  uri: string;
+}
+
+export interface CreateSocialGroupInput {
+  name: string;
+  description?: string;
+  privacy: GroupPrivacyChoice;
+  avatar?: GroupAvatarUpload | null;
+}
+
+export interface CreateSocialGroupResult {
+  group: GroupSummary | null;
+  error: Error | null;
+  privacyError: Error | null;
+  avatarError: Error | null;
 }
 
 export interface CreateInviteData {
@@ -104,6 +134,75 @@ export const groupService = {
   },
 
   /**
+   * Create a group, then apply the phone sheet's photo and privacy.
+   * The creator membership stays role admin. Invite-only clears both
+   * discoverable flags; profile listing leaves the column defaults.
+   */
+  async createSocialGroup(input: CreateSocialGroupInput): Promise<CreateSocialGroupResult> {
+    const name = input.name.trim();
+    if (!name) {
+      return { group: null, error: new Error("Name is required"), privacyError: null, avatarError: null };
+    }
+    const created = await groupService.createGroup({
+      name: input.name.trim(),
+      description: input.description?.trim() || undefined,
+    });
+    if (created.error || !created.group) {
+      return { group: null, error: created.error ?? new Error("Failed to create group"), privacyError: null, avatarError: null };
+    }
+
+    let group = created.group;
+    let privacyError: Error | null = null;
+    let avatarError: Error | null = null;
+    const flags = privacyColumns(input.privacy);
+
+    if (!flags.isDiscoverable || !flags.showOnProfile) {
+      const visibility = await groupService.updateGroupVisibility(group.id, {
+        is_discoverable: flags.isDiscoverable,
+        show_on_profile: flags.showOnProfile,
+      });
+      privacyError = visibility.error;
+    }
+
+    if (input.avatar?.base64) {
+      const uploaded = await groupService.uploadGroupAvatar(group.id, input.avatar);
+      if (uploaded.publicUrl) {
+        const saved = await groupService.updateGroup(group.id, { avatar_url: uploaded.publicUrl });
+        if (saved.error) {
+          avatarError = saved.error;
+        } else {
+          group = { ...group, avatar_url: uploaded.publicUrl };
+        }
+      } else {
+        avatarError = uploaded.error ?? new Error("Failed to upload group photo");
+      }
+    }
+
+    return { group, error: null, privacyError, avatarError };
+  },
+
+  async uploadGroupAvatar(
+    groupId: string,
+    asset: GroupAvatarUpload,
+  ): Promise<{ publicUrl: string | null; error: Error | null }> {
+    try {
+      if (!asset.base64) return { publicUrl: null, error: new Error("No image data found") };
+      const arrayBuffer = decode(asset.base64);
+      const ext = groupAvatarExtension(asset.uri, asset.mimeType);
+      const fileName = `group-avatars/${groupId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, arrayBuffer, {
+        contentType: asset.mimeType ?? "image/jpeg",
+        upsert: true,
+      });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      return { publicUrl, error: null };
+    } catch (error) {
+      return { publicUrl: null, error: error as Error };
+    }
+  },
+
+  /**
    * Update a group's info
    */
   async updateGroup(
@@ -165,7 +264,31 @@ export const groupService = {
   },
 
   /**
-   * Join a group using its unique 4-character share code
+   * Look up a group by its 6-character share code without joining.
+   * An unknown code is an empty preview, not an error. A missing RPC
+   * is reported separately so the sheet can still offer Join.
+   */
+  async previewGroupByCode(
+    code: string,
+  ): Promise<{ preview: GroupCodePreview | null; error: Error | null; missing: boolean }> {
+    try {
+      const { data, error } = await supabase.rpc("preview_group_by_code", {
+        p_code: code.trim().toUpperCase(),
+      });
+      if (error) {
+        if (isMissingRpcError(error)) return { preview: null, error: null, missing: true };
+        throw error;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      return { preview: parseGroupCodePreview(row), error: null, missing: false };
+    } catch (error) {
+      return { preview: null, error: error as Error, missing: false };
+    }
+  },
+
+  /**
+   * Join a group using its 6-character share code.
+   * An existing member is returned unchanged; the RPC does not demote admins.
    */
   async joinGroupByCode(
     code: string,

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useAuthContext } from "@/contexts/AuthContext";
+import { isMissingRpcError } from "@/lib/social/feed-visibility";
 import { supabase } from "@/lib/supabase";
 import { complianceService } from "@/services/compliance.service";
 
@@ -95,7 +96,17 @@ export function ProfileStatusSection({ theme }: ProfileStatusSectionProps) {
 
   const saveBio = async () => {
     if (!user?.id) return;
-    await (supabase as any).from("users").update({ bio: bio.trim() || null }).eq("id", user.id);
+    const nextBio = bio.trim();
+    if (nextBio === (user.bio ?? "")) return;
+    const { error } = await (supabase as any).rpc("update_own_profile", {
+      p_username: user.username ?? "",
+      p_display_name: user.display_name ?? "",
+      p_bio: nextBio,
+      p_avatar_url: user.avatar_url ?? "",
+    });
+    if (error && isMissingRpcError(error)) {
+      await (supabase as any).from("users").update({ bio: nextBio || null }).eq("id", user.id);
+    }
     await refreshUser();
   };
 

@@ -4,7 +4,8 @@ export type MarketChatMessageType =
   | "text"
   | "shared_group"
   | "shared_profile"
-  | "shared_bet";
+  | "shared_bet"
+  | "sticker";
 
 export type MentionEmbedPayload =
   | { type: "group"; groupId: string }

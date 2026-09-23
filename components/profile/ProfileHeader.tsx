@@ -2,14 +2,20 @@ import { Image } from "expo-image";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { AppText } from "@/components/ui/AppText";
+import { socialHandle, socialLabel } from "@/lib/social/display-name";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface ProfileHeaderProps {
   user: {
     username?: string | null;
-    email?: string | null;
+    display_name?: string | null;
     avatar_url?: string | null;
+    bio?: string | null;
   } | null;
+  /** Public signal only. Never a document or legal name. */
+  verifiedBadge?: boolean;
   stats: {
     totalBets: number;
     followersCount: number;
@@ -34,6 +40,7 @@ type StatKey = "bets" | "followers" | "following" | "groups" | "winRate";
 export function ProfileHeader({ 
     user, 
     stats, 
+    verifiedBadge = false,
     isOwnProfile = true,
     isFollowing = false,
     onFollow,
@@ -90,6 +97,13 @@ export function ProfileHeader({
   ];
 
   const isWeb = Platform.OS === "web";
+  const label = socialLabel({
+    displayName: user?.display_name,
+    username: user?.username,
+    fallback: t("someone"),
+  });
+  const handle = socialHandle(user?.username);
+  const showHandle = Boolean(handle && label !== user?.username?.trim());
 
   const headerStatItems = statItems.filter((item) => !(isWeb && item.key === "winRate"));
 
@@ -150,9 +164,33 @@ export function ProfileHeader({
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.username, { color: theme.text }]}>
-          {user?.username || "Anonymous"}
-        </Text>
+        <View style={styles.nameBlock}>
+        <View style={styles.nameRow}>
+          <Text style={[styles.username, { color: theme.text }]}>
+            {label}
+          </Text>
+          {verifiedBadge ? (
+            <View
+              testID="profile-verified-badge"
+              accessibilityLabel={t("verifiedBadge")}
+              style={[
+                styles.verifiedBadge,
+                { backgroundColor: theme.primarySoft, borderRadius: theme.radius.pill },
+              ]}
+            >
+              <AppText variant="caption">{t("verifiedBadge")}</AppText>
+            </View>
+          ) : null}
+        </View>
+        {showHandle ? (
+          <Text style={[styles.handle, { color: theme.textSecondary }]}>{handle}</Text>
+        ) : null}
+        </View>
+        {user?.bio ? (
+          <AppText variant="bodySm" color="secondary">
+            {user.bio}
+          </AppText>
+        ) : null}
         
         <View style={styles.actionButtons}>
           {!isOwnProfile && (
@@ -309,10 +347,29 @@ const styles = StyleSheet.create({
   infoContainer: {
     gap: 12,
   },
+  nameBlock: {
+    flexShrink: 1,
+    gap: 2,
+  },
+  handle: {
+    fontSize: 13,
+  },
+  nameRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   username: {
     fontSize: 18,
     fontWeight: '400',
     letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  verifiedBadge: {
+    minHeight: 28,
+    paddingHorizontal: 10,
+    justifyContent: "center",
   },
   actionButtons: {
     flexDirection: 'row',

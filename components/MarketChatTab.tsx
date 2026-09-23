@@ -1,5 +1,8 @@
 import { MentionMessage } from "@/components/chat/MentionMessage";
 import { MentionPicker } from "@/components/chat/MentionPicker";
+import { selectAndRememberSticker, StickerMessage, StickerTray } from "@/components/chat/StickerTray";
+import { AppIconButton } from "@/components/ui/AppIconButton";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ReportContentButton } from "@/components/moderation/ReportContentButton";
 import { Brand } from "@/constants/theme";
 import { detectMentionQuery, stripMentionTrigger } from "@/lib/mentions";
@@ -23,6 +26,7 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useMarketChat } from "../hooks/useMarketChat";
 import { getRandomColor } from "../lib/colors";
+import { socialLabel } from "../lib/social/display-name";
 import type { MarketChatMessage } from "../types/marketChat";
 
 export function MarketChatTab({ marketId }: { marketId: string }) {
@@ -30,8 +34,9 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
   const { t } = useTranslation("feed");
-  const { messages, loading, sendMessage, sendMentionMessage } = useMarketChat(marketId);
+  const { messages, loading, sendMessage, sendSticker, sendMentionMessage } = useMarketChat(marketId);
   const [inputText, setInputText] = useState("");
+  const [stickersOpen, setStickersOpen] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | undefined>(undefined);
   const flatListRef = useRef<FlatList<MarketChatMessage>>(null);
 
@@ -54,6 +59,11 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
     await sendMentionMessage(payload);
   };
 
+  const handleSendSticker = async (sticker: Parameters<typeof selectAndRememberSticker>[0]) => {
+    const content = await selectAndRememberSticker(sticker);
+    await sendSticker(content);
+  };
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -66,9 +76,11 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
     const isMe = item.user_id === user?.id;
     const isOptimistic = item.id.startsWith('temp-');
     
-    const displayName = item.user?.username || 
-                       item.user?.email?.split('@')[0] || 
-                       "User";
+    const displayName = socialLabel({
+      displayName: item.user?.display_name,
+      username: item.user?.username,
+      fallback: t("someone", { ns: "social", defaultValue: "Someone" }),
+    });
                        
     const Avatar = () => (
       <TouchableOpacity onPress={() => router.push(`/profile/${item.user_id}`)} disabled={isMe} style={Platform.OS === 'web' ? { cursor: 'pointer' } : {}}>
@@ -114,6 +126,23 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
         <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
           {!isMe && <Avatar />}
           <MentionMessage variant="bet" id={item.bet_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "sticker") {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <View>
+            {!isMe ? (
+              <Text style={[styles.senderName, { color: getRandomColor(displayName) }]}>
+                {displayName}
+              </Text>
+            ) : null}
+            <StickerMessage content={item.content} />
+          </View>
           {isMe && <Avatar />}
         </View>
       );
@@ -218,7 +247,18 @@ export function MarketChatTab({ marketId }: { marketId: string }) {
             onClose={() => undefined}
           />
         ) : null}
+        <StickerTray
+          visible={stickersOpen}
+          onClose={() => setStickersOpen(false)}
+          onSelect={(sticker) => void handleSendSticker(sticker)}
+        />
         <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+          <AppIconButton
+            accessibilityLabel={t("stickerTrayA11y")}
+            onPress={() => setStickersOpen((open) => !open)}
+            icon={<IconSymbol name="sparkles" size={22} color={theme.primary} />}
+            variant="ghost"
+          />
           <TextInput
             style={[styles.input, { backgroundColor: isDark ? theme.background : theme.input, color: theme.text }, Platform.OS === 'web' && { cursor: 'text' } as any]}
             placeholder={t("chatPlaceholder")}
@@ -357,8 +397,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sendButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 20,
     backgroundColor: Brand.primary,
     justifyContent: "center",

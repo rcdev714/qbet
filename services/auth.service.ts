@@ -1,6 +1,7 @@
 import * as Linking from "expo-linking";
 import { Platform } from "react-native";
 import { normalizeAuthEmail } from "../lib/auth-errors";
+import { isMissingRpcError } from "../lib/social/feed-visibility";
 import { supabase } from "../lib/supabase";
 import type { User } from "../types/user";
 import { walletService } from "./wallet.service";
@@ -39,14 +40,13 @@ export const authService = {
     data: SignUpData,
   ): Promise<{ user: User | null; error: Error | null }> {
     try {
+      const username = data.username?.trim();
       const { error: authError } = await supabase.auth.signUp({
         email: normalizeAuthEmail(data.email),
         password: data.password,
         options: {
           emailRedirectTo: getAuthRedirectUrl(),
-          data: {
-            username: data.username,
-          },
+          data: username ? { username } : {},
         },
       });
 
@@ -224,6 +224,24 @@ export const authService = {
           }
         };
 
+        const ensureSocialName = async (profile: User): Promise<User> => {
+          if (profile.username?.trim() && profile.display_name?.trim()) return profile;
+          const { error: ensureError } = await (supabase as any).rpc("ensure_social_display_name");
+          if (ensureError) {
+            if (!isMissingRpcError(ensureError)) {
+              console.warn("[AuthService] ensure social name failed:", ensureError);
+            }
+            return profile;
+          }
+          const { data: refreshed, error: refreshError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          if (refreshError || !refreshed) return profile;
+          return refreshed as User;
+        };
+
         const { data: user, error } = await supabase
           .from("users")
           .select("*")
@@ -243,14 +261,15 @@ export const authService = {
           // User exists in Auth but not in public table. Create them.
           console.log("User missing in public table, creating...");
           const metadata = session.user.user_metadata ?? {};
+          const metadataUsername = typeof metadata.username === "string"
+            ? metadata.username.trim()
+            : "";
           const { data: newUser, error: createError } = await supabase
             .from("users")
             .insert({
               id: session.user.id,
               email: session.user.email,
-              username: typeof metadata.username === "string"
-                ? metadata.username
-                : null,
+              username: metadataUsername || null,
               avatar_url: typeof metadata.avatar_url === "string"
                 ? metadata.avatar_url
                 : null,
@@ -266,13 +285,13 @@ export const authService = {
           // Ensure wallet existence in the background; auth should not block on it.
           void ensureWallet();
 
-          return newUser as User;
+          return ensureSocialName(newUser as User);
         }
 
         // Ensure wallet existence in the background; auth should not block on it.
         void ensureWallet();
 
-        return user as User;
+        return ensureSocialName(user as User);
       };
 
       const currentUser = await Promise.race([fetchUser(), timeoutPromise]);

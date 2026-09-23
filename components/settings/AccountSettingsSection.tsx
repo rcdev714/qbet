@@ -16,6 +16,8 @@ import {
 
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { DISPLAY_NAME_MAX, socialLabel, USERNAME_MAX } from "@/lib/social/display-name";
+import { isMissingRpcError } from "@/lib/social/feed-visibility";
 import { supabase } from "@/lib/supabase";
 
 type ThemeColors = {
@@ -37,12 +39,14 @@ export function AccountSettingsSection({ theme }: AccountSettingsSectionProps) {
   const { isDark } = useTheme();
   const { t } = useTranslation("settings");
   const [username, setUsername] = useState(user?.username ?? "");
+  const [displayName, setDisplayName] = useState(user?.display_name ?? "");
   const [saving, setSaving] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
 
   useEffect(() => {
     setUsername(user?.username ?? "");
-  }, [user?.username]);
+    setDisplayName(user?.display_name ?? "");
+  }, [user?.username, user?.display_name]);
 
   const pickImage = async () => {
     if (!user) return;
@@ -91,23 +95,51 @@ export function AccountSettingsSection({ theme }: AccountSettingsSectionProps) {
     }
   };
 
-  const saveUsername = async () => {
-    if (!user || username.trim() === user.username) return;
+  const saveProfile = async () => {
+    if (!user) return;
+    const nextUsername = username.trim();
+    const nextDisplayName = displayName.trim();
+    const usernameChanged = nextUsername !== (user.username ?? "");
+    const displayChanged = nextDisplayName !== (user.display_name ?? "");
+    if (!usernameChanged && !displayChanged) return;
 
     setSaving(true);
-    const { error } = await supabase
-      .from("users")
-      .update({ username: username.trim() })
-      .eq("id", user.id);
+    const { error } = await (supabase as any).rpc("update_own_profile", {
+      p_username: nextUsername,
+      p_display_name: nextDisplayName,
+      p_bio: user.bio ?? "",
+      p_avatar_url: user.avatar_url ?? "",
+    });
 
-    setSaving(false);
-
-    if (error) {
-      Alert.alert(t("usernameError"), t("usernameTaken"));
+    if (!error) {
+      setSaving(false);
+      await refreshUser();
       return;
     }
 
-    await refreshUser();
+    if (isMissingRpcError(error) && usernameChanged) {
+      const direct = await supabase
+        .from("users")
+        .update({ username: nextUsername })
+        .eq("id", user.id);
+      setSaving(false);
+      if (direct.error) {
+        Alert.alert(t("usernameError"), t("usernameTaken"));
+        return;
+      }
+      await refreshUser();
+      if (displayChanged) {
+        Alert.alert(t("displayNameError"), t("displayNameUnavailable"));
+      }
+      return;
+    }
+
+    setSaving(false);
+    const taken = /already taken|23505|duplicate/i.test(error.message ?? "");
+    Alert.alert(
+      taken ? t("usernameError") : t("displayNameError"),
+      taken ? t("usernameTaken") : (error.message ?? t("displayNameError")),
+    );
   };
 
   return (
@@ -129,7 +161,10 @@ export function AccountSettingsSection({ theme }: AccountSettingsSectionProps) {
               },
             ]}>
             <Text style={styles.avatarInitial}>
-              {user?.username?.substring(0, 2).toUpperCase() ?? "U"}
+              {socialLabel({
+                displayName: displayName || user?.display_name,
+                username: username || user?.username,
+              }).substring(0, 2).toUpperCase()}
             </Text>
           </View>
         )}
@@ -137,15 +172,35 @@ export function AccountSettingsSection({ theme }: AccountSettingsSectionProps) {
         {avatarLoading ? <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary} /> : null}
       </Pressable>
 
+      <View>
+        <View style={[styles.field, { borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>{t("displayName")}</Text>
+          <TextInput
+            style={[styles.input, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
+            value={displayName}
+            onChangeText={setDisplayName}
+            onBlur={() => void saveProfile()}
+            placeholder={t("displayName")}
+            autoCapitalize="words"
+            maxLength={DISPLAY_NAME_MAX}
+            accessibilityLabel={t("displayName")}
+          />
+        </View>
+        <Text style={[styles.helper, { color: theme.textSecondary }]}>{t("displayNameHelper")}</Text>
+      </View>
+
       <View style={[styles.field, { borderColor: theme.border }]}>
         <Text style={[styles.label, { color: theme.textSecondary }]}>{t("username")}</Text>
         <TextInput
           style={[styles.input, { color: theme.text }, Platform.OS === "web" && ({ cursor: "text" } as any)]}
           value={username}
           onChangeText={setUsername}
-          onBlur={saveUsername}
+          onBlur={() => void saveProfile()}
           placeholder={t("username")}
           autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={USERNAME_MAX}
+          accessibilityLabel={t("username")}
         />
       </View>
 
@@ -207,7 +262,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "500",
-    width: 88,
+    maxWidth: 128,
+    flexShrink: 1,
+  },
+  helper: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 6,
   },
   input: {
     flex: 1,

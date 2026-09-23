@@ -23,6 +23,7 @@ test("mapDiscoverableUser normalizes RPC row", () => {
         mapDiscoverableUser({
             user_id: "11111111-1111-1111-1111-111111111111",
             username: "alice",
+            display_name: "Alice",
             avatar_url: "https://example.com/a.png",
             created_at: "2026-01-01T00:00:00.000Z",
             total_bets: 3,
@@ -31,6 +32,7 @@ test("mapDiscoverableUser normalizes RPC row", () => {
         {
             user_id: "11111111-1111-1111-1111-111111111111",
             username: "alice",
+            display_name: "Alice",
             avatar_url: "https://example.com/a.png",
             created_at: "2026-01-01T00:00:00.000Z",
             total_bets: 3,
@@ -51,6 +53,7 @@ test("mapDiscoverableUser coerces null avatar and missing stats", () => {
         {
             user_id: "22222222-2222-2222-2222-222222222222",
             username: "bob",
+            display_name: null,
             avatar_url: null,
             created_at: "2026-02-01T00:00:00.000Z",
             total_bets: 0,

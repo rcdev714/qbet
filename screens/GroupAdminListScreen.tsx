@@ -1,6 +1,8 @@
-import { CreateGroupModal } from "@/components/CreateGroupModal";
+import { CreateGroupSheet } from "@/components/groups/CreateGroupSheet";
+import { JoinGroupSheet } from "@/components/groups/JoinGroupSheet";
 import { AppButton, AppCard, AppListRow, AppText } from "@/components/ui";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useGroups } from "@/hooks/useGroups";
 import type { GroupAdminConsoleGroup } from "@/types/settlement-governance";
 import { useRouter } from "expo-router";
@@ -34,8 +36,11 @@ export function GroupAdminListScreen({
   const { theme } = useTheme();
   const router = useRouter();
   const { t } = useTranslation("groupAdmin");
-  const { createGroup, joinGroup, loading: groupActionLoading } = useGroups();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { t: tGroups } = useTranslation("groups");
+  const { openGroup } = useGroupNavigation();
+  const { refresh } = useGroups();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const openManage = (groupId: string) => {
     router.push(`/manage/groups/${groupId}` as never);
@@ -52,7 +57,8 @@ export function GroupAdminListScreen({
         </View>
       ) : null}
 
-      <AppButton title={t("createGroup")} onPress={() => setModalVisible(true)} />
+      <AppButton title={t("createGroup")} onPress={() => setCreateOpen(true)} />
+      <AppButton title={t("joinWithCode")} variant="secondary" onPress={() => setJoinOpen(true)} />
 
       {loading ? (
         <ActivityIndicator color={theme.primary} style={styles.loader} />
@@ -78,23 +84,24 @@ export function GroupAdminListScreen({
         ))
       )}
 
-      <CreateGroupModal
-        visible={modalVisible}
-        loading={groupActionLoading}
-        onClose={() => setModalVisible(false)}
-        onCreate={async (name, description) => {
-          const { group, error } = await createGroup(name, description);
-          if (error || !group) return;
-          setModalVisible(false);
+      <CreateGroupSheet
+        visible={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(group) => {
+          setCreateOpen(false);
+          void refresh();
           onRefresh();
           openManage(group.id);
         }}
-        onJoin={async (code) => {
-          const { error } = await joinGroup(code);
-          if (!error) {
-            setModalVisible(false);
-            onRefresh();
-          }
+      />
+      <JoinGroupSheet
+        visible={joinOpen}
+        onClose={() => setJoinOpen(false)}
+        onJoined={(groupId) => {
+          setJoinOpen(false);
+          void refresh();
+          onRefresh();
+          openGroup(groupId, { message: tGroups("opening") });
         }}
       />
     </>

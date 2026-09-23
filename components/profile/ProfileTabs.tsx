@@ -3,23 +3,28 @@ import { useTranslation } from "react-i18next";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
-export type ProfileTab = "open" | "closed" | "stats" | "groups";
+export type ProfileTab = "activity" | "open" | "closed" | "stats" | "groups";
 
 interface ProfileTabsProps {
   activeTab: ProfileTab;
   onTabChange: (tab: ProfileTab) => void;
+  /** Omitted entirely. A hidden section is not a locked empty tab. */
+  hiddenTabs?: ProfileTab[];
 }
 
-export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
+export function ProfileTabs({ activeTab, onTabChange, hiddenTabs = [] }: ProfileTabsProps) {
   const { theme } = useTheme();
   const { t } = useTranslation("social");
 
-  const tabs: { key: ProfileTab; label: string }[] = [
-    { key: "stats", label: t("tabStats") },
-    { key: "groups", label: t("tabGroups") },
-    { key: "open", label: t("tabOpenBets") },
-    { key: "closed", label: t("tabHistory") },
-  ];
+  const tabs = (
+    [
+      { key: "activity" as const, label: t("tabActivity") },
+      { key: "stats" as const, label: t("tabStats") },
+      { key: "groups" as const, label: t("tabGroups") },
+      { key: "open" as const, label: t("tabOpenBets") },
+      { key: "closed" as const, label: t("tabHistory") },
+    ] satisfies { key: ProfileTab; label: string }[]
+  ).filter((tab) => !hiddenTabs.includes(tab.key));
 
   return (
     <View

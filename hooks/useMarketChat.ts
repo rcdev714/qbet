@@ -3,6 +3,7 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { teardownChannel } from "../lib/supabase-realtime";
 import { marketChatService } from "../services/marketChat.service";
 import { mentionService } from "../services/mention.service";
+import { socialLabel } from "../lib/social/display-name";
 import type { MarketChatMessage } from "../types/marketChat";
 import type { MentionEmbedPayload } from "../types/mention";
 
@@ -57,7 +58,12 @@ export function useMarketChat(marketId: string) {
             created_at: new Date().toISOString(),
             user: {
                 id: user.id,
-                username: user.username || user.email?.split("@")[0] || "You",
+                username: user.username,
+                display_name: socialLabel({
+                    displayName: user.display_name,
+                    username: user.username,
+                    fallback: "You",
+                }),
                 email: user.email || null,
                 avatar_url: user.avatar_url || null,
             },
@@ -87,6 +93,44 @@ export function useMarketChat(marketId: string) {
         return { error: null };
     };
 
+    const sendSticker = async (content: string) => {
+        if (!content.trim() || !user) return;
+
+        const tempId = `temp-sticker-${Date.now()}`;
+        const optimisticMessage: MarketChatMessage = {
+            id: tempId,
+            market_id: marketId,
+            user_id: user.id,
+            content,
+            message_type: "sticker",
+            created_at: new Date().toISOString(),
+            user: {
+                id: user.id,
+                username: user.username,
+                display_name: user.display_name,
+                email: user.email || null,
+                avatar_url: user.avatar_url || null,
+            },
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+        setSending(true);
+
+        const { message, error } = await marketChatService.sendSticker(marketId, content);
+        setSending(false);
+
+        if (error) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
+            return { error };
+        }
+
+        if (message) {
+            setMessages((prev) => prev.map((m) => (m.id === tempId ? message : m)));
+        }
+
+        return { error: null };
+    };
+
     const sendMentionMessage = async (payload: MentionEmbedPayload) => {
         if (!user) return { error: new Error("Not authenticated") };
 
@@ -103,7 +147,8 @@ export function useMarketChat(marketId: string) {
             created_at: new Date().toISOString(),
             user: {
                 id: user.id,
-                username: user.username || user.email?.split("@")[0] || "You",
+                username: user.username,
+                display_name: user.display_name,
                 email: user.email || null,
                 avatar_url: user.avatar_url || null,
             },
@@ -137,6 +182,7 @@ export function useMarketChat(marketId: string) {
         loading,
         sending,
         sendMessage,
+        sendSticker,
         sendMentionMessage,
         refresh: loadMessages,
     };
