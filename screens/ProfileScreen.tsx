@@ -22,6 +22,8 @@ import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileTab, ProfileTabs } from "../components/profile/ProfileTabs";
 import { StatsView } from "../components/profile/StatsView";
 import { UserGroupsSection } from "../components/profile/UserGroupsSection";
+import { ActivityFeed } from "../components/social/ActivityFeed";
+import { ActivitySharingToggle } from "../components/social/ActivitySharingToggle";
 import { SEO } from "../components/SEO";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useSocialFollow } from "../contexts/SocialFollowContext";
@@ -62,6 +64,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   const isDesktopWebNav = useIsDesktopWebNav();
   const { isPlayMode } = useWalletContext();
   const { t } = useTranslation("settings");
+  const { t: tSocial } = useTranslation("social");
 
   const [showShareOverlay, setShowShareOverlay] = useState(false);
 
@@ -84,7 +87,8 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
 
   // View State
   const [viewedUser, setViewedUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
+  const [activityVisible, setActivityVisible] = useState(!userIdProp);
   const [isAuraModalVisible, setIsAuraModalVisible] = useState(false);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followingModalVisible, setFollowingModalVisible] = useState(false);
@@ -142,8 +146,15 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
           }
       }
 
-      // 2. Fetch Bets
-      const userBets = await betService.getUserBetsWithDetails(targetUserId);
+      const activityIsVisible = isOwnProfile
+        ? true
+        : await socialService.isProfileActivityVisible(targetUserId);
+      setActivityVisible(activityIsVisible);
+
+      // 2. Fetch bets only when this profile shares activity (owner always can).
+      const userBets = activityIsVisible
+        ? await betService.getUserBetsWithDetails(targetUserId)
+        : [];
       setBets(userBets);
       
       // 3. Fetch Follow Stats
@@ -435,9 +446,24 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
               </TouchableOpacity>
             </View>
           ) : null}
+          {isOwnProfile ? (
+            <View style={styles.activityToggle}>
+              <ActivitySharingToggle />
+            </View>
+          ) : null}
           <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
-          {activeTab === "stats" ? (
+          {activeTab === "activity" ? (
+            activityVisible && targetUserId ? (
+              <ActivityFeed profileUserId={targetUserId} scrollEnabled={false} discoverPlacement="none" />
+            ) : (
+              <EmptyState
+                icon="lock-closed-outline"
+                title={tSocial("profileActivityPrivateTitle")}
+                description={tSocial("profileActivityPrivateDescription")}
+              />
+            )
+          ) : activeTab === "stats" ? (
             isPlayMode ? (
               <PlayStatsView userId={targetUserId} />
             ) : (
@@ -445,6 +471,12 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
             )
           ) : activeTab === "groups" ? (
             <UserGroupsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile} />
+          ) : !activityVisible ? (
+            <EmptyState
+              icon="lock-closed-outline"
+              title={tSocial("profileActivityPrivateTitle")}
+              description={tSocial("profileActivityPrivateDescription")}
+            />
           ) : getFilteredBets().length === 0 ? (
             <EmptyState icon="ticket-outline" title="No bets found." />
           ) : (
@@ -514,6 +546,10 @@ const styles = StyleSheet.create({
   accountActionLabel: {
     flex: 1,
     fontWeight: '400',
+  },
+  activityToggle: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   moderationRow: {
     flexDirection: 'row',

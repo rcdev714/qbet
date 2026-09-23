@@ -50,6 +50,8 @@ flowchart TD
 | Script | What it runs |
 |--------|----------------|
 | `npm run health` | typecheck, lint, unit tests, Deno email tests, policy hashes, hooks, SQL smoke (if Supabase local up) |
+
+Root `npm run typecheck` excludes `apps/web`. That Vite workspace uses its own path alias and `npm run typecheck:web`.
 | `npm run verify` | `check:web:prod` + unit tests + Deno email tests |
 | `npm run predeploy:prod` | `verify` + Supabase secrets/function/migration/Resend checks |
 | `npm run deploy:web:prod` | verify via EAS env + `eas deploy --prod` |
@@ -128,6 +130,14 @@ Apply production: `npx supabase db push`
 | [ec-uafe-sri-compliance-runbook.md](./ec-uafe-sri-compliance-runbook.md) | UAFE / AML runbook |
 | [ec-local-presence-requirements.md](./ec-local-presence-requirements.md) | Entity / domicile matrix |
 | [trust-and-safety-web.md](./trust-and-safety-web.md) | Safe Browsing, canonical URLs (EAS) |
+
+---
+
+## Social feed
+
+| Doc | Purpose |
+|-----|---------|
+| [social-feed.md](./social-feed.md) | Discover vs Following, activity sharing, phone QA |
 
 ---
 

@@ -17,6 +17,8 @@ interface SocialFollowContextValue {
   refreshFollowingCount: () => Promise<void>;
   /** Optimistic follow toggle — also triggers activity feed refresh listeners. */
   onFollowToggled: (isFollowing: boolean) => void;
+  /** Ask mounted feeds to reload after privacy or follow changes. */
+  refreshActivity: () => void;
   subscribeActivityRefresh: (listener: () => void) => () => void;
 }
 
@@ -65,9 +67,10 @@ export function SocialFollowProvider({ children }: { children: React.ReactNode }
       hasFollowing: followingCount > 0,
       refreshFollowingCount,
       onFollowToggled,
+      refreshActivity: notifyActivityRefresh,
       subscribeActivityRefresh,
     }),
-    [followingCount, onFollowToggled, refreshFollowingCount, subscribeActivityRefresh],
+    [followingCount, notifyActivityRefresh, onFollowToggled, refreshFollowingCount, subscribeActivityRefresh],
   );
 
   return <SocialFollowContext.Provider value={value}>{children}</SocialFollowContext.Provider>;

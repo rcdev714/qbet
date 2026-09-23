@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, StyleSheet, View } from "react-native";
 
 import { DeleteAccountSection } from "@/components/legal/DeleteAccountSection";
+import { ActivitySharingToggle } from "@/components/social/ActivitySharingToggle";
 import { ResidenceSettingsSection } from "@/components/profile/ResidenceSettingsSection";
 import { RulesModal } from "@/components/profile/RulesModal";
 import { SettingsScreenLayout } from "@/components/settings/SettingsScreenLayout";
@@ -21,6 +22,10 @@ export default function SettingsPrivacyScreen() {
   return (
     <View style={styles.root}>
       <SettingsScreenLayout title={t("privacyTitle")} showBack scrollProps={{ contentContainerStyle: styles.content }}>
+        <AppCard style={styles.listCard}>
+          <ActivitySharingToggle />
+        </AppCard>
+
         <ResidenceSettingsSection theme={theme} />
 
         <AppCard padded={false} style={styles.listCard}>

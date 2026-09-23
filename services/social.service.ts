@@ -1,11 +1,14 @@
 import { User } from "@supabase/supabase-js";
 import { USER_FOLLOWS_FOLLOWER_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
+import { isMissingRpcError } from "@/lib/social/feed-visibility";
 import { mapDiscoverableUsers, mapSuggestedUsers, parseToggleFollowResponse, type DiscoverableUser } from "./social.parsers";
 
 export interface UserProfile extends User {
     username?: string;
     avatar_url?: string;
+    bio?: string | null;
+    show_activity_on_feed?: boolean;
     stats?: {
         total_bets: number;
         total_wins: number;
@@ -110,13 +113,25 @@ export const socialService = {
     ): Promise<{ profile: UserProfile | null; error: Error | null }> {
         try {
             // 1. Get user details
-            const { data: userData, error: userError } = await (supabase as any)
+            const withFlag = await (supabase as any)
                 .from("users")
-                .select("id, username, avatar_url, bio")
+                .select("id, username, avatar_url, bio, show_activity_on_feed")
                 .eq("id", targetUserId)
                 .single();
 
-            if (userError) throw userError;
+            let userData = withFlag.data;
+            if (withFlag.error) {
+                if (!isMissingRpcError(withFlag.error) && !/show_activity_on_feed/i.test(withFlag.error.message ?? "")) {
+                    throw withFlag.error;
+                }
+                const basic = await (supabase as any)
+                    .from("users")
+                    .select("id, username, avatar_url, bio")
+                    .eq("id", targetUserId)
+                    .single();
+                if (basic.error) throw basic.error;
+                userData = { ...basic.data, show_activity_on_feed: true };
+            }
 
             // 2. Get stats
             const { data: statsData, error: statsError } = await supabase
@@ -339,6 +354,99 @@ export const socialService = {
         } catch (error) {
             console.error("Error getting market social proof:", error);
             return { followed_bettors: [], total_followed: 0 };
+        }
+    },
+
+    async getSocialFeed(
+        mode: "discover" | "following",
+        limit = 30,
+        offset = 0,
+    ): Promise<{ items: FollowingActivity[]; error: Error | null }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_social_feed", {
+                p_mode: mode,
+                p_limit: limit,
+                p_offset: offset,
+            });
+            if (error) {
+                if (isMissingRpcError(error) && mode === "following") {
+                    const items = await this.getFollowingActivity(limit, offset);
+                    return { items, error: null };
+                }
+                if (isMissingRpcError(error)) return { items: [], error: null };
+                throw error;
+            }
+            return { items: (data ?? []) as FollowingActivity[], error: null };
+        } catch (error) {
+            console.error("Error getting social feed:", error);
+            return { items: [], error: error as Error };
+        }
+    },
+
+    async getProfileActivity(
+        userId: string,
+        limit = 20,
+        offset = 0,
+    ): Promise<{ items: FollowingActivity[]; error: Error | null }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_profile_activity", {
+                p_user_id: userId,
+                p_limit: limit,
+                p_offset: offset,
+            });
+            if (error) {
+                if (isMissingRpcError(error)) return { items: [], error: null };
+                throw error;
+            }
+            return { items: (data ?? []) as FollowingActivity[], error: null };
+        } catch (error) {
+            console.error("Error getting profile activity:", error);
+            return { items: [], error: error as Error };
+        }
+    },
+
+    async isProfileActivityVisible(userId: string): Promise<boolean> {
+        try {
+            const { data: authData } = await supabase.auth.getUser();
+            if (authData.user?.id === userId) return true;
+            const { data, error } = await (supabase as any).rpc("profile_activity_is_visible", {
+                p_user_id: userId,
+            });
+            if (error) return isMissingRpcError(error);
+            return Boolean(data);
+        } catch {
+            return true;
+        }
+    },
+
+    async getShowActivityOnFeed(): Promise<boolean> {
+        try {
+            const { data: authData } = await supabase.auth.getUser();
+            if (!authData.user) return true;
+            const { data, error } = await (supabase as any)
+                .from("users")
+                .select("show_activity_on_feed")
+                .eq("id", authData.user.id)
+                .maybeSingle();
+            if (error || !data || data.show_activity_on_feed == null) return true;
+            return Boolean(data.show_activity_on_feed);
+        } catch {
+            return true;
+        }
+    },
+
+    async setShowActivityOnFeed(
+        enabled: boolean,
+    ): Promise<{ enabled: boolean; error: Error | null }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("set_show_activity_on_feed", {
+                p_enabled: enabled,
+            });
+            if (error) throw error;
+            return { enabled: Boolean(data), error: null };
+        } catch (error) {
+            console.error("Error updating activity sharing:", error);
+            return { enabled, error: error as Error };
         }
     },
 

@@ -100,6 +100,8 @@ One allowed value per property. No numeric literals for typography, radius, or b
 
 **Forbidden:** `SafeAreaView` + manual padding in screens.
 
+Home feed posts are `SocialPostCard` rows (avatar, handle, question, odds, like / comment / share / bet), not admin list cards. Semantics and phone widths are in [social-feed.md](./social-feed.md). Rows do not animate in.
+
 ---
 
 ## Design Principles

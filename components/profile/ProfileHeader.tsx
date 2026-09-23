@@ -2,6 +2,8 @@ import { Image } from "expo-image";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { AppText } from "@/components/ui/AppText";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface ProfileHeaderProps {
@@ -9,6 +11,7 @@ interface ProfileHeaderProps {
     username?: string | null;
     email?: string | null;
     avatar_url?: string | null;
+    bio?: string | null;
   } | null;
   stats: {
     totalBets: number;
@@ -151,8 +154,13 @@ export function ProfileHeader({
 
       <View style={styles.infoContainer}>
         <Text style={[styles.username, { color: theme.text }]}>
-          {user?.username || "Anonymous"}
+          {user?.username ? `@${user.username}` : "Anonymous"}
         </Text>
+        {user?.bio ? (
+          <AppText variant="bodySm" color="secondary">
+            {user.bio}
+          </AppText>
+        ) : null}
         
         <View style={styles.actionButtons}>
           {!isOwnProfile && (

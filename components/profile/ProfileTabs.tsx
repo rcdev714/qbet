@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
-export type ProfileTab = "open" | "closed" | "stats" | "groups";
+export type ProfileTab = "activity" | "open" | "closed" | "stats" | "groups";
 
 interface ProfileTabsProps {
   activeTab: ProfileTab;
@@ -15,6 +15,7 @@ export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
   const { t } = useTranslation("social");
 
   const tabs: { key: ProfileTab; label: string }[] = [
+    { key: "activity", label: t("tabActivity") },
     { key: "stats", label: t("tabStats") },
     { key: "groups", label: t("tabGroups") },
     { key: "open", label: t("tabOpenBets") },

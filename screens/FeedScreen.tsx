@@ -14,6 +14,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { DESKTOP_BREAKPOINT, MOBILE_TAB_BAR_HEIGHT } from "@/constants/layout";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useSocialFollow } from "@/contexts/SocialFollowContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { isAppAdmin } from "@/lib/admin";
 import { teardownChannel } from "@/lib/supabase-realtime";
@@ -49,6 +50,7 @@ import { useTranslation } from "react-i18next";
 export default function FeedScreen() {
   const { theme, isDark } = useTheme();
   const { user } = useAuthContext();
+  const { hasFollowing } = useSocialFollow();
   const router = useRouter();
   const params = useLocalSearchParams<{ adminFeed?: string | string[] }>();
   const { t } = useTranslation("feed");
@@ -67,7 +69,8 @@ export default function FeedScreen() {
   const [feedError, setFeedError] = useState<string | null>(null);
   const [pendingMarkets, setPendingMarkets] = useState<Market[] | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [feedTab, setFeedTab] = useState<"markets" | "following">("markets");
+  const [feedTab, setFeedTab] = useState<"discover" | "following" | "markets">(user ? "discover" : "markets");
+  const feedTabTouched = useRef(false);
   const marketIdsRef = useRef("");
   const useDesktopWebFeed = Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
   const gridColumnWidth =
@@ -291,13 +294,28 @@ export default function FeedScreen() {
     }, 100);
   }, []);
 
+  useEffect(() => {
+    if (feedTabTouched.current) return;
+    if (!user) {
+      setFeedTab("markets");
+      return;
+    }
+    setFeedTab(hasFollowing ? "following" : "discover");
+  }, [hasFollowing, user]);
+
   const feedTabSegments = [
-    { value: "markets" as const, label: t("tabMarkets") },
-    { value: "following" as const, label: t("tabFollowing") },
+    { value: "discover" as const, label: t("tabDiscover"), testID: "feed-tab-discover" },
+    { value: "following" as const, label: t("tabFollowing"), testID: "feed-tab-following" },
+    { value: "markets" as const, label: t("tabMarkets"), testID: "feed-tab-markets" },
   ];
 
+  const selectFeedTab = (value: "discover" | "following" | "markets") => {
+    feedTabTouched.current = true;
+    setFeedTab(value);
+  };
+
   const feedTabControl = (
-    <SegmentedControl compact value={feedTab} segments={feedTabSegments} onChange={setFeedTab} />
+    <SegmentedControl compact value={feedTab} segments={feedTabSegments} onChange={selectFeedTab} />
   );
 
   const headerRightActions = (
@@ -315,6 +333,8 @@ export default function FeedScreen() {
         <TouchableOpacity
           style={[styles.adminButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }]}
           onPress={() => openFeedManager("promote")}
+          accessibilityRole="button"
+          accessibilityLabel={t("feedManager")}
         >
           <IconSymbol name="gearshape" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -335,7 +355,7 @@ export default function FeedScreen() {
 
         <GlobalHeader right={headerRightActions} />
 
-        {feedTab === "following" ? (
+        {feedTab !== "markets" ? (
           <View style={styles.webFollowingContainer}>
             <View style={styles.followingSplit}>
               <View style={styles.followingMain}>
@@ -344,7 +364,12 @@ export default function FeedScreen() {
                 </WebContentColumn>
                 <View style={styles.followingFeedArea}>
                   <WebContentColumn variant="social">
-                    <ActivityFeed scrollEnabled discoverPlacement="none" />
+                    <ActivityFeed
+                      scrollEnabled
+                      mode={feedTab === "following" ? "following" : "discover"}
+                      discoverPlacement="none"
+                      onBrowseDiscover={() => selectFeedTab("discover")}
+                    />
                   </WebContentColumn>
                 </View>
               </View>
@@ -486,13 +511,23 @@ export default function FeedScreen() {
         />
       )}
 
-      {feedTab === "following" ? (
+      {feedTab !== "markets" ? (
         IS_WEB ? (
           <WebContentColumn variant="social">
-            <ActivityFeed scrollEnabled />
+            <ActivityFeed
+              scrollEnabled
+              mode={feedTab === "following" ? "following" : "discover"}
+              discoverPlacement="inline"
+              onBrowseDiscover={() => selectFeedTab("discover")}
+            />
           </WebContentColumn>
         ) : (
-          <ActivityFeed scrollEnabled />
+          <ActivityFeed
+            scrollEnabled
+            mode={feedTab === "following" ? "following" : "discover"}
+            discoverPlacement="inline"
+            onBrowseDiscover={() => selectFeedTab("discover")}
+          />
         )
       ) : loading && markets.length === 0 ? (
         <View style={styles.mobileContentState}>{renderMarketsContentState()}</View>
