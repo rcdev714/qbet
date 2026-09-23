@@ -9,10 +9,11 @@ import { useTheme } from "../../contexts/ThemeContext";
 interface ProfileHeaderProps {
   user: {
     username?: string | null;
-    email?: string | null;
     avatar_url?: string | null;
     bio?: string | null;
   } | null;
+  /** Public signal only. Never a document or legal name. */
+  verifiedBadge?: boolean;
   stats: {
     totalBets: number;
     followersCount: number;
@@ -37,6 +38,7 @@ type StatKey = "bets" | "followers" | "following" | "groups" | "winRate";
 export function ProfileHeader({ 
     user, 
     stats, 
+    verifiedBadge = false,
     isOwnProfile = true,
     isFollowing = false,
     onFollow,
@@ -153,9 +155,23 @@ export function ProfileHeader({
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.username, { color: theme.text }]}>
-          {user?.username ? `@${user.username}` : "Anonymous"}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.username, { color: theme.text }]}>
+            {user?.username ? `@${user.username}` : "Anonymous"}
+          </Text>
+          {verifiedBadge ? (
+            <View
+              testID="profile-verified-badge"
+              accessibilityLabel={t("verifiedBadge")}
+              style={[
+                styles.verifiedBadge,
+                { backgroundColor: theme.primarySoft, borderRadius: theme.radius.pill },
+              ]}
+            >
+              <AppText variant="caption">{t("verifiedBadge")}</AppText>
+            </View>
+          ) : null}
+        </View>
         {user?.bio ? (
           <AppText variant="bodySm" color="secondary">
             {user.bio}
@@ -317,10 +333,22 @@ const styles = StyleSheet.create({
   infoContainer: {
     gap: 12,
   },
+  nameRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   username: {
     fontSize: 18,
     fontWeight: '400',
     letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  verifiedBadge: {
+    minHeight: 28,
+    paddingHorizontal: 10,
+    justifyContent: "center",
   },
   actionButtons: {
     flexDirection: 'row',

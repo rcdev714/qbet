@@ -143,6 +143,7 @@
   "openGroupAction": "Abrir grupo",
   "openGroupA11y": "Abrir el grupo {{group}}",
   "loadMore": "Cargar más",
+  "verifiedBadge": "Verificado",
   "profileActivityPrivateTitle": "La actividad es privada",
   "profileActivityPrivateDescription": "Esta persona desactivó Mostrar mi actividad en el feed.",
   "profileActivityEmptyTitle": "Sin actividad reciente",

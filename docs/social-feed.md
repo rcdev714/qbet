@@ -11,17 +11,30 @@ Apply `supabase/migrations/20260923190000_social_activity_sharing.sql` on the da
 
 ## Semantics
 
-`public.users.show_activity_on_feed` defaults to **true** so people who were already visible to followers stay visible. Turning it off removes that person from Discover, Following, and stranger reads of their public-market bets. Their own profile still shows their activity.
+`public.users.show_activity_on_feed` defaults to **true** so people who were already visible to followers stay visible. Turning it off removes that person from Discover and Following only. It does not hide profile sections.
 
-This flag is separate from `users.is_discoverable` (the people directory) and from `update_own_privacy`. Web home in `react-anymarket` PR 35 still leads with For you / Following market posts. The activity contract both clients should call is `get_social_feed` plus this column, so a later web client does not invent a second rule.
+Profile sections are separate columns, also default **true** except the badge:
+
+| Column | Default | Who it affects |
+|--------|---------|----------------|
+| `show_open_bets` | true | Stranger reads of that person's bets on markets with `status = 'open'` |
+| `show_results` | true | Stranger reads of that person's bets on every other market status |
+| `show_activity_logs` | true | `get_profile_activity` for everyone except the owner |
+| `show_verified_badge` | false | Public badge only when this is on **and** `user_compliance_profiles.kyc_status = 'verified'` |
+
+The owner always sees Settings, KYC status, activity logs, open bets, and results. A public profile omits a section when its toggle is off. There is no locked empty state. The badge is the only identity signal on a public profile: no documents, legal name, email, phone, or provider id.
+
+These flags are separate from `users.is_discoverable` (the people directory) and from `update_own_privacy`. Web home in `react-anymarket` PR 35 still leads with For you / Following market posts. The contract both clients should call is `get_social_feed` plus `get_profile_privacy` / `set_profile_section_privacy`, so a later web client does not invent a second rule.
 
 | Viewer | Feed |
 |--------|------|
 | Follows nobody | **Discover** — other users who left activity sharing on. Never a blank dead end: if there are no posts, the feed lists people to follow. |
-| Follows someone | **Following** — only those people, and only when their flag is on. Strangers are not mixed in. If everyone opted out, the list explains that and links to Discover. |
+| Follows someone | **Following** — only those people, and only when `show_activity_on_feed` is on. Strangers are not mixed in. If everyone opted out, the list explains that and links to Discover. |
 | Opens Discover on purpose | Same Discover stream, including people they follow. |
-| Own profile | Activity tab always, even when the flag is off. |
-| Someone else's profile | Activity, open bets, and history only when that person shares activity. Followers and following lists stay available. |
+| Own profile | Settings, KYC status, logs, open bets, and results, even when every public toggle is off. |
+| Someone else's profile | Logs, open bets, and results only when that section is on. Followers, following, stats totals, and groups stay. |
+
+Feed RPCs are security definer and still key off `show_activity_on_feed`, so a post can appear in Discover while that same bet is hidden on the profile. The bets SELECT policy is what hides profile rows. Market probability charts and client bet counts that read `bets` will under-count people who turned a section off. Odds still come from `options.total_pool`.
 
 `auto` on `get_social_feed` uses the same rule: Following if `user_follows` has any row for the viewer, otherwise Discover.
 
@@ -34,18 +47,22 @@ Posts are the last 30 days: bets, results, public comments, public markets they 
 | `get_social_feed(p_mode, p_limit, p_offset, p_types)` | `discover`, `following`, or `auto` |
 | `get_following_activity_v2` | Unchanged signature. Now Following with the flag applied. |
 | `get_following_activity` | Legacy bet list. Same flag. |
-| `get_profile_activity(p_user_id, p_limit, p_offset)` | Profile timeline |
-| `profile_activity_is_visible(p_user_id)` | Owner is always true |
-| `set_show_activity_on_feed(p_enabled)` | Only client write for the flag |
+| `get_profile_activity(p_user_id, p_limit, p_offset)` | Profile timeline. Owner always. Others only when `show_activity_logs` is on |
+| `profile_activity_is_visible(p_user_id)` | Same log rule. Used only if `get_profile_privacy` is not deployed yet |
+| `set_show_activity_on_feed(p_enabled)` | Feed flag only |
+| `get_profile_privacy(p_user_id)` | Owner gets settings plus a KYC status word. Everyone else gets section booleans and `verified_badge` |
+| `set_profile_section_privacy(...)` | Writes the four profile flags. Does not change the feed flag |
 
-The setting is labeled **Show my activity on the feed** in Settings → Privacy and on your profile. Practice mode is unchanged: cards do not move live USD, identity, or withdrawals.
+**Show my activity on the feed** is in Settings → Privacy and on your profile, above the section toggles. Practice mode is unchanged: cards do not move live USD, and the profile does not unlock identity or withdrawals. The owner's KYC row is a status word that links to verification. It does not show documents.
 
 ## Verify Discover vs Following
 
 1. Sign in as A with zero follows. Home opens **Discover**. Posts belong to other people who still share activity. With no posts, people to follow still show.
 2. Follow B (flag on). Home moves to **Following** unless you already picked a tab. Only B's posts appear. Discover still shows other people.
-3. B turns the setting off. A no longer sees B on Following or Discover. B's profile still shows B's activity. A's view of B's profile says activity is private, including open bets and history.
-4. A unfollows everyone. Home returns to Discover and is not an empty Following list.
+3. B turns **Show my activity on the feed** off and leaves the profile sections on. A no longer sees B on Following or Discover. A's view of B's profile still shows logs, open bets, and results.
+4. B turns off open bets only. A's profile view omits the Open bets tab. Results and logs stay. There is no lock icon and no empty private state for that section.
+5. B turns the verified badge off, or is not verified. A sees no badge. A never sees a KYC status, documents, email, or phone on B's profile. B still sees Settings and a verification status word.
+6. A unfollows everyone. Home returns to Discover and is not an empty Following list.
 
 Markets remain the third segment for the public board. Guests land there. Signed-in people land on Discover or Following.
 
@@ -62,7 +79,7 @@ Action row is three 44pt icon buttons (like, comment, share), counts, and a Bet 
 | 412dp | Pixel-class Android |
 | 430pt | iPhone Pro Max |
 
-Profile stats scroll horizontally. The activity toggle label wraps beside the switch. Odds chips are equal-width and at least 44pt tall. Reduced motion skips decorative animation; these rows do not animate in.
+Profile stats scroll horizontally. Feed and profile-section labels wrap beside the switch and stay at least 44pt tall, including at 320pt. Odds chips are equal-width and at least 44pt tall. Reduced motion skips decorative animation; these rows do not animate in. The verified badge wraps onto the next line next to a long handle.
 
 ## Checks
 

@@ -137,7 +137,7 @@ Apply production: `npx supabase db push`
 
 | Doc | Purpose |
 |-----|---------|
-| [social-feed.md](./social-feed.md) | Discover vs Following, activity sharing, phone QA |
+| [social-feed.md](./social-feed.md) | Discover vs Following, profile section privacy, phone QA |
 
 ---
 

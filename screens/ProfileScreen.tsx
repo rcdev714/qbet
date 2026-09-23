@@ -24,6 +24,7 @@ import { StatsView } from "../components/profile/StatsView";
 import { UserGroupsSection } from "../components/profile/UserGroupsSection";
 import { ActivityFeed } from "../components/social/ActivityFeed";
 import { ActivitySharingToggle } from "../components/social/ActivitySharingToggle";
+import { ProfileSectionToggles } from "../components/social/ProfileSectionToggles";
 import { SEO } from "../components/SEO";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useSocialFollow } from "../contexts/SocialFollowContext";
@@ -31,6 +32,18 @@ import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useWalletContext } from "../contexts/WalletContext";
 import { isAppAdmin } from "../lib/admin";
+import {
+  coerceProfileTab,
+  hiddenPublicSections,
+  includeBetOnProfile,
+  kycStatusLabelKey,
+  ownerProfileSections,
+  profileMoneyVisible,
+  resolveProfileSections,
+  visibleProfileTabs,
+  type ProfileSections,
+} from "../lib/social/profile-privacy";
+import { complianceService } from "../services/compliance.service";
 import { betService } from "../services/bet.service";
 import { groupService } from "../services/group.service";
 import { moderationService } from "../services/moderation.service";
@@ -88,7 +101,12 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   // View State
   const [viewedUser, setViewedUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
-  const [activityVisible, setActivityVisible] = useState(!userIdProp);
+  const [sections, setSections] = useState<ProfileSections>(() =>
+    isOwnProfile ? ownerProfileSections() : hiddenPublicSections(),
+  );
+  const [sectionsReady, setSectionsReady] = useState(isOwnProfile);
+  const [verifiedBadge, setVerifiedBadge] = useState(false);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [isAuraModalVisible, setIsAuraModalVisible] = useState(false);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followingModalVisible, setFollowingModalVisible] = useState(false);
@@ -115,9 +133,16 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
     if (!targetUserId) return;
     
     // If it's our own profile, we might initially just show currentUser data to be fast
+    if (!isOwnProfile) {
+      setSections(hiddenPublicSections());
+      setSectionsReady(false);
+      setBets([]);
+      setVerifiedBadge(false);
+      setKycStatus(null);
+    }
+
     if (isOwnProfile && currentUser && !viewedUser) {
-        // Safe cast as partial profile
-         setViewedUser({ ...currentUser } as unknown as UserProfile);
+        setViewedUser({ ...currentUser } as unknown as UserProfile);
     }
 
     try {
@@ -146,14 +171,33 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
           }
       }
 
-      const activityIsVisible = isOwnProfile
-        ? true
-        : await socialService.isProfileActivityVisible(targetUserId);
-      setActivityVisible(activityIsVisible);
+      const privacyResult = await socialService.getProfilePrivacy(targetUserId);
+      const legacyActivityVisible =
+        !isOwnProfile && privacyResult.missing
+          ? await socialService.isProfileActivityVisible(targetUserId)
+          : false;
+      const nextSections = resolveProfileSections({
+        isOwner: isOwnProfile,
+        privacy: privacyResult.privacy,
+        missing: privacyResult.missing,
+        legacyActivityVisible,
+      });
+      let nextKyc = isOwnProfile ? privacyResult.privacy?.kycStatus ?? null : null;
+      if (isOwnProfile && !nextKyc) {
+        const compliance = await complianceService.getProfile(targetUserId);
+        nextKyc = compliance?.kyc_status ?? "not_started";
+      }
+      setSections(nextSections);
+      setVerifiedBadge(Boolean(privacyResult.privacy?.verifiedBadge));
+      setKycStatus(nextKyc);
+      setSectionsReady(true);
 
-      // 2. Fetch bets only when this profile shares activity (owner always can).
-      const userBets = activityIsVisible
-        ? await betService.getUserBetsWithDetails(targetUserId)
+      // Bets are fetched only for sections this viewer may see. RLS is the backstop.
+      const mayReadBets = nextSections.open_bets || nextSections.results;
+      const userBets = mayReadBets
+        ? (await betService.getUserBetsWithDetails(targetUserId)).filter((bet) =>
+            includeBetOnProfile(bet.markets?.status, nextSections),
+          )
         : [];
       setBets(userBets);
       
@@ -192,15 +236,16 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       const winRate = resolvedBets > 0 ? wins / resolvedBets : 0;
       const averageBet = totalBets > 0 ? wagered / totalBets : 0;
       const serverStats = profileData?.stats;
+      const showMoney = profileMoneyVisible(nextSections);
 
       setStats({
         totalBets: serverStats?.total_bets ?? totalBets,
-        activeBets,
+        activeBets: showMoney ? activeBets : 0,
         winRate: serverStats?.win_rate ?? winRate,
-        totalWagered: wagered,
-        totalWon: won,
-        bestWin: best,
-        averageBet,
+        totalWagered: showMoney ? wagered : 0,
+        totalWon: showMoney ? won : 0,
+        bestWin: showMoney ? best : 0,
+        averageBet: showMoney ? averageBet : 0,
         followersCount: followStats.followers,
         followingCount: followStats.following,
         groupsCount,
@@ -209,6 +254,13 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
       
     } catch (error) {
       console.error("Error loading profile data:", error);
+      if (!isOwnProfile) {
+        setSections(hiddenPublicSections());
+        setBets([]);
+        setVerifiedBadge(false);
+        setKycStatus(null);
+      }
+      setSectionsReady(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -217,8 +269,15 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
 
   useEffect(() => {
     loadData();
-  }, [targetUserId, currentUser?.id]); 
+  }, [targetUserId, currentUser?.id]);
   // Add currentUser?.id dependency so if we login/out it refreshes
+
+  useEffect(() => {
+    if (!sectionsReady) return;
+    const visible = visibleProfileTabs(sections);
+    const next = coerceProfileTab(activeTab, visible);
+    if (next !== activeTab) setActiveTab(next);
+  }, [sectionsReady, sections, activeTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -309,6 +368,39 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
     return [];
   };
 
+  const visibleTabs = visibleProfileTabs(sections);
+  const hiddenTabs = (["activity", "stats", "groups", "open", "closed"] as ProfileTab[]).filter(
+    (tab) => !visibleTabs.includes(tab),
+  );
+  const showBetMoney = profileMoneyVisible(sections);
+
+  const renderActiveTab = () => {
+    if (!sectionsReady) {
+      return <EmptyState icon="hourglass-outline" title={tSocial("loading")} />;
+    }
+    if (activeTab === "activity") {
+      if (!sections.activity_logs || !targetUserId) return null;
+      return (
+        <ActivityFeed profileUserId={targetUserId} scrollEnabled={false} discoverPlacement="none" />
+      );
+    }
+    if (activeTab === "stats") {
+      if (isPlayMode && (isOwnProfile || showBetMoney)) {
+        return <PlayStatsView userId={targetUserId} />;
+      }
+      return <StatsView stats={stats} bets={showBetMoney ? bets : []} />;
+    }
+    if (activeTab === "groups") {
+      return <UserGroupsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile} />;
+    }
+    if (activeTab === "open" && !sections.open_bets) return null;
+    if (activeTab === "closed" && !sections.results) return null;
+    if (getFilteredBets().length === 0) {
+      return <EmptyState icon="ticket-outline" title="No bets found." />;
+    }
+    return getFilteredBets().map((bet) => <BetHistoryCard key={bet.id} bet={bet} />);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO 
@@ -371,6 +463,23 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
             <IconSymbol name="chevron.right" size={16} color={theme.textSecondary} />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            testID="profile-kyc-status"
+            style={[styles.accountActionRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => router.push("/wallet/verify" as any)}
+            accessibilityRole="button"
+            accessibilityLabel={t("kycStatusLabel")}
+          >
+            <View style={[styles.accountActionIcon, { backgroundColor: theme.primarySoft }]}>
+              <IconSymbol name="checkmark" size={18} color={theme.primary} />
+            </View>
+            <AppText variant="body" style={styles.accountActionLabel}>
+              {t("kycStatusLabel")}
+              {kycStatus ? ` · ${t(kycStatusLabelKey(kycStatus))}` : ""}
+            </AppText>
+            <IconSymbol name="chevron.right" size={16} color={theme.textSecondary} />
+          </TouchableOpacity>
+
           {isAppAdmin(currentUser) ? (
             <TouchableOpacity
               style={[styles.accountActionRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -399,7 +508,16 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
           showsVerticalScrollIndicator={false}
         >
           <ProfileHeader
-            user={viewedUser}
+            user={
+              viewedUser
+                ? {
+                    username: viewedUser.username,
+                    avatar_url: viewedUser.avatar_url,
+                    bio: viewedUser.bio,
+                  }
+                : null
+            }
+            verifiedBadge={verifiedBadge}
             stats={{
               totalBets: stats.totalBets,
               followersCount: stats.followersCount,
@@ -449,39 +567,18 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
           {isOwnProfile ? (
             <View style={styles.activityToggle}>
               <ActivitySharingToggle />
+              <ProfileSectionToggles />
             </View>
           ) : null}
-          <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
-
-          {activeTab === "activity" ? (
-            activityVisible && targetUserId ? (
-              <ActivityFeed profileUserId={targetUserId} scrollEnabled={false} discoverPlacement="none" />
-            ) : (
-              <EmptyState
-                icon="lock-closed-outline"
-                title={tSocial("profileActivityPrivateTitle")}
-                description={tSocial("profileActivityPrivateDescription")}
-              />
-            )
-          ) : activeTab === "stats" ? (
-            isPlayMode ? (
-              <PlayStatsView userId={targetUserId} />
-            ) : (
-              <StatsView stats={stats} bets={bets} />
-            )
-          ) : activeTab === "groups" ? (
-            <UserGroupsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile} />
-          ) : !activityVisible ? (
-            <EmptyState
-              icon="lock-closed-outline"
-              title={tSocial("profileActivityPrivateTitle")}
-              description={tSocial("profileActivityPrivateDescription")}
+          {sectionsReady ? (
+            <ProfileTabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              hiddenTabs={hiddenTabs}
             />
-          ) : getFilteredBets().length === 0 ? (
-            <EmptyState icon="ticket-outline" title="No bets found." />
-          ) : (
-            getFilteredBets().map((bet) => <BetHistoryCard key={bet.id} bet={bet} />)
-          )}
+          ) : null}
+
+          {renderActiveTab()}
         </ScrollView>
       </WebContentColumn>
 
@@ -550,6 +647,7 @@ const styles = StyleSheet.create({
   activityToggle: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    gap: 16,
   },
   moderationRow: {
     flexDirection: 'row',

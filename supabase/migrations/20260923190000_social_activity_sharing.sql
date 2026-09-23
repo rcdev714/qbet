@@ -9,8 +9,11 @@
 --     following — only users the viewer follows who left the flag on.
 --     auto      — following when the viewer follows anyone, otherwise discover.
 --   get_following_activity_v2 keeps its signature and now applies the same flag.
---   get_profile_activity — owner always; everyone else only when the flag is on.
---   set_show_activity_on_feed — the only client write path for the flag.
+--   get_profile_activity — owner always; everyone else only when show_activity_logs is on.
+--   show_open_bets / show_results gate stranger reads of those bet rows.
+--   show_verified_badge may add a badge when kyc_status is verified. No documents or PII.
+--   set_show_activity_on_feed — feed flag only.
+--   set_profile_section_privacy — profile section flags. Does not change update_own_privacy.
 --
 -- Apply on the database the client uses (Expo project jweyqlcvvmdyyqgqcsjd,
 -- web project ztqunamafyvathalyrxp). Do not fork a second feed RPC.
@@ -18,10 +21,22 @@
 begin;
 
 alter table public.users
-  add column if not exists show_activity_on_feed boolean not null default true;
+  add column if not exists show_activity_on_feed boolean not null default true,
+  add column if not exists show_open_bets boolean not null default true,
+  add column if not exists show_results boolean not null default true,
+  add column if not exists show_activity_logs boolean not null default true,
+  add column if not exists show_verified_badge boolean not null default false;
 
 comment on column public.users.show_activity_on_feed is
-  'When false, Discover, Following, and stranger reads of public-market bets omit this user. The owner still sees their own profile activity.';
+  'When false, Discover and Following omit this user. Does not by itself hide profile sections.';
+comment on column public.users.show_open_bets is
+  'When false, other people cannot read this user''s open public-market bets.';
+comment on column public.users.show_results is
+  'When false, other people cannot read this user''s resolved or closed public-market bets.';
+comment on column public.users.show_activity_logs is
+  'When false, other people cannot read this user''s profile activity log. The owner still can.';
+comment on column public.users.show_verified_badge is
+  'When true and KYC status is verified, public profiles may show a badge. Never exposes documents or PII.';
 
 -- ---------------------------------------------------------------------------
 -- Who may appear
@@ -44,7 +59,13 @@ as $$
     when p_actor is null then false
     when p_mode = 'profile' then
       p_actor = p_profile_user
-      and (p_actor = p_viewer or coalesce(p_share, true))
+      and (
+        p_actor = p_viewer
+        or coalesce(
+          (select u.show_activity_logs from public.users u where u.id = p_actor),
+          true
+        )
+      )
     when coalesce(p_share, true) is not true or p_actor = p_viewer then false
     when p_mode = 'discover' then true
     when p_mode = 'following' then exists (
@@ -144,7 +165,7 @@ begin
 
   if p_mode = 'profile' and p_profile_user is not null and p_profile_user <> p_viewer then
     if coalesce(
-      (select u.show_activity_on_feed from public.users u where u.id = p_profile_user),
+      (select u.show_activity_logs from public.users u where u.id = p_profile_user),
       true
     ) is not true then
       return;
@@ -761,7 +782,7 @@ as $$
     when p_user_id is null then false
     when auth.uid() = p_user_id then true
     else coalesce(
-      (select u.show_activity_on_feed from public.users u where u.id = p_user_id),
+      (select u.show_activity_logs from public.users u where u.id = p_user_id),
       false
     )
   end;
@@ -793,27 +814,26 @@ begin
 end;
 $$;
 
--- Strangers can read public-market bets only when the bettor shares activity.
--- Own bets and group-member reads stay on their existing policies.
+-- Strangers read a public-market bet only when that profile section is on.
+-- Open markets follow show_open_bets. Anything else follows show_results.
+-- Feed RPCs are security definer and still use show_activity_on_feed.
+-- Own bets and group-member reads stay.
 drop policy if exists "Users can view bets" on public.bets;
 create policy "Users can view bets"
   on public.bets
   for select
   using (
     (select auth.uid()) = user_id
-    or (
-      exists (
-        select 1
-        from public.markets m
-        where m.id = bets.market_id
-          and m.is_public = true
-      )
-      and exists (
-        select 1
-        from public.users u
-        where u.id = bets.user_id
-          and coalesce(u.show_activity_on_feed, true) = true
-      )
+    or exists (
+      select 1
+      from public.markets m
+      join public.users u on u.id = bets.user_id
+      where m.id = bets.market_id
+        and m.is_public = true
+        and (
+          (m.status = 'open' and coalesce(u.show_open_bets, true))
+          or (m.status is distinct from 'open' and coalesce(u.show_results, true))
+        )
     )
     or exists (
       select 1
@@ -824,11 +844,131 @@ create policy "Users can view bets"
     )
   );
 
+create or replace function public.get_profile_privacy(p_user_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_viewer uuid := auth.uid();
+  v_owner boolean;
+  v_open boolean;
+  v_results boolean;
+  v_logs boolean;
+  v_badge_pref boolean;
+  v_feed boolean;
+  v_kyc text;
+  v_badge boolean;
+begin
+  if v_viewer is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+  if p_user_id is null then
+    raise exception 'Profile not found' using errcode = 'P0002';
+  end if;
+
+  select
+    coalesce(u.show_open_bets, true),
+    coalesce(u.show_results, true),
+    coalesce(u.show_activity_logs, true),
+    coalesce(u.show_verified_badge, false),
+    coalesce(u.show_activity_on_feed, true)
+  into v_open, v_results, v_logs, v_badge_pref, v_feed
+  from public.users u
+  where u.id = p_user_id;
+
+  if not found then
+    raise exception 'Profile not found' using errcode = 'P0002';
+  end if;
+
+  v_owner := v_viewer = p_user_id;
+
+  -- Status word only. Do not select metadata, sessions, documents, or provider ids.
+  select ucp.kyc_status into v_kyc
+  from public.user_compliance_profiles ucp
+  where ucp.user_id = p_user_id;
+
+  v_badge := v_badge_pref and v_kyc = 'verified';
+
+  if v_owner then
+    return jsonb_build_object(
+      'is_owner', true,
+      'verified_badge', v_badge,
+      'kyc_status', coalesce(v_kyc, 'not_started'),
+      'settings', jsonb_build_object(
+        'show_activity_on_feed', v_feed,
+        'show_open_bets', v_open,
+        'show_results', v_results,
+        'show_activity_logs', v_logs,
+        'show_verified_badge', v_badge_pref
+      ),
+      'sections', jsonb_build_object(
+        'settings', true,
+        'kyc_status', true,
+        'activity_logs', true,
+        'open_bets', true,
+        'results', true
+      )
+    );
+  end if;
+
+  return jsonb_build_object(
+    'is_owner', false,
+    'verified_badge', v_badge,
+    'sections', jsonb_build_object(
+      'settings', false,
+      'kyc_status', false,
+      'activity_logs', v_logs,
+      'open_bets', v_open,
+      'results', v_results
+    )
+  );
+end;
+$$;
+
+create or replace function public.set_profile_section_privacy(
+  p_show_open_bets boolean,
+  p_show_results boolean,
+  p_show_activity_logs boolean,
+  p_show_verified_badge boolean
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+
+  update public.users
+  set
+    show_open_bets = coalesce(p_show_open_bets, false),
+    show_results = coalesce(p_show_results, false),
+    show_activity_logs = coalesce(p_show_activity_logs, false),
+    show_verified_badge = coalesce(p_show_verified_badge, false)
+  where id = v_user_id;
+
+  if not found then
+    raise exception 'Profile not found' using errcode = 'P0002';
+  end if;
+
+  return public.get_profile_privacy(v_user_id);
+end;
+$$;
+
 revoke all on function public.get_social_feed(text, int, int, text[]) from public, anon;
 revoke all on function public.get_profile_activity(uuid, int, int) from public, anon;
 revoke all on function public.get_following_activity_v2(int, int, text[]) from public, anon;
 revoke all on function public.get_following_activity(int) from public, anon;
 revoke all on function public.set_show_activity_on_feed(boolean) from public, anon;
+revoke all on function public.get_profile_privacy(uuid) from public, anon;
+revoke all on function public.set_profile_section_privacy(boolean, boolean, boolean, boolean) from public, anon;
 revoke all on function public.profile_activity_is_visible(uuid) from public;
 
 grant execute on function public.get_social_feed(text, int, int, text[]) to authenticated;
@@ -836,6 +976,8 @@ grant execute on function public.get_profile_activity(uuid, int, int) to authent
 grant execute on function public.get_following_activity_v2(int, int, text[]) to authenticated;
 grant execute on function public.get_following_activity(int) to authenticated;
 grant execute on function public.set_show_activity_on_feed(boolean) to authenticated;
+grant execute on function public.get_profile_privacy(uuid) to authenticated;
+grant execute on function public.set_profile_section_privacy(boolean, boolean, boolean, boolean) to authenticated;
 grant execute on function public.profile_activity_is_visible(uuid) to anon, authenticated;
 
 commit;

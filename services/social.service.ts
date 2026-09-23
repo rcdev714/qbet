@@ -2,6 +2,11 @@ import { User } from "@supabase/supabase-js";
 import { USER_FOLLOWS_FOLLOWER_SELECT } from "../lib/supabase-embeds";
 import { supabase } from "../lib/supabase";
 import { isMissingRpcError } from "@/lib/social/feed-visibility";
+import {
+    parseProfilePrivacy,
+    type ProfilePrivacySettings,
+    type ProfilePrivacyView,
+} from "@/lib/social/profile-privacy";
 import { mapDiscoverableUsers, mapSuggestedUsers, parseToggleFollowResponse, type DiscoverableUser } from "./social.parsers";
 
 export interface UserProfile extends User {
@@ -432,6 +437,48 @@ export const socialService = {
             return Boolean(data.show_activity_on_feed);
         } catch {
             return true;
+        }
+    },
+
+    async getProfilePrivacy(userId: string): Promise<{
+        privacy: ProfilePrivacyView | null;
+        missing: boolean;
+        error: Error | null;
+    }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("get_profile_privacy", {
+                p_user_id: userId,
+            });
+            if (error) {
+                if (isMissingRpcError(error)) return { privacy: null, missing: true, error: null };
+                return { privacy: null, missing: false, error };
+            }
+            const privacy = parseProfilePrivacy(data);
+            if (!privacy) return { privacy: null, missing: false, error: new Error("Invalid profile privacy") };
+            return { privacy, missing: false, error: null };
+        } catch (error) {
+            return { privacy: null, missing: false, error: error as Error };
+        }
+    },
+
+    async setProfileSectionPrivacy(
+        settings: Pick<
+            ProfilePrivacySettings,
+            "show_open_bets" | "show_results" | "show_activity_logs" | "show_verified_badge"
+        >,
+    ): Promise<{ privacy: ProfilePrivacyView | null; error: Error | null }> {
+        try {
+            const { data, error } = await (supabase as any).rpc("set_profile_section_privacy", {
+                p_show_open_bets: settings.show_open_bets,
+                p_show_results: settings.show_results,
+                p_show_activity_logs: settings.show_activity_logs,
+                p_show_verified_badge: settings.show_verified_badge,
+            });
+            if (error) throw error;
+            return { privacy: parseProfilePrivacy(data), error: null };
+        } catch (error) {
+            console.error("Error updating profile section privacy:", error);
+            return { privacy: null, error: error as Error };
         }
     },
 
