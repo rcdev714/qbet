@@ -2,11 +2,13 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { socialHandle, socialLabel } from "../../lib/social/display-name";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface SocialShareProfileCardProps {
   user: {
     username?: string | null;
+    display_name?: string | null;
     avatar_url?: string | null;
   } | null;
   stats: {
@@ -65,7 +67,13 @@ export function SocialShareProfileCard({
                   contentFit="cover"
                 />
             </View>
-            <Text style={styles.username}>@{user?.username || "prediction_master"}</Text>
+            <Text style={styles.username}>
+              {socialLabel({ displayName: user?.display_name, username: user?.username, fallback: "Someone" })}
+            </Text>
+            {socialHandle(user?.username) &&
+            socialLabel({ displayName: user?.display_name, username: user?.username }) !== user?.username?.trim() ? (
+              <Text style={styles.username}>{socialHandle(user?.username)}</Text>
+            ) : null}
             <View style={styles.badge}>
                 <Text style={styles.badgeText}>ELITE PREDICTOR</Text>
             </View>

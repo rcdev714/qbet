@@ -1,6 +1,7 @@
 export interface DiscoverableUser {
     user_id: string;
     username: string;
+    display_name?: string | null;
     avatar_url: string | null;
     created_at: string;
     total_bets: number;
@@ -16,6 +17,7 @@ export function mapDiscoverableUser(row: Record<string, unknown>): DiscoverableU
     return {
         user_id: String(row.user_id),
         username: String(row.username),
+        display_name: typeof row.display_name === "string" ? row.display_name : null,
         avatar_url: (row.avatar_url as string | null) ?? null,
         created_at: String(row.created_at),
         total_bets: Number(row.total_bets ?? 0),
@@ -27,6 +29,7 @@ export function mapSuggestedUsers(rows: Record<string, unknown>[]): Discoverable
     return rows.map((row) => ({
         user_id: String(row.user_id),
         username: String(row.username),
+        display_name: typeof row.display_name === "string" ? row.display_name : null,
         avatar_url: (row.avatar_url as string | null) ?? null,
         created_at: new Date().toISOString(),
         total_bets: Number(row.total_bets ?? 0),

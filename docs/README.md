@@ -138,6 +138,7 @@ Apply production: `npx supabase db push`
 | Doc | Purpose |
 |-----|---------|
 | [social-feed.md](./social-feed.md) | Discover vs Following, profile section privacy, phone QA |
+| [social-identity.md](./social-identity.md) | Display names and sticker messages shared with web |
 
 ---
 

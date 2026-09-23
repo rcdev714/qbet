@@ -2160,8 +2160,10 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           country_of_residence: string | null
           created_at: string
+          display_name: string | null
           email: string | null
           id: string
           is_admin: boolean | null
@@ -2173,8 +2175,10 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           country_of_residence?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id: string
           is_admin?: boolean | null
@@ -2186,8 +2190,10 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           country_of_residence?: string | null
           created_at?: string
+          display_name?: string | null
           email?: string | null
           id?: string
           is_admin?: boolean | null

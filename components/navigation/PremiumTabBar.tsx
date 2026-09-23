@@ -22,6 +22,7 @@ import { UserAvatar } from '@/components/social/UserAvatar';
 import { IconSymbol, type IconSymbolName } from '@/components/ui/icon-symbol';
 import { DESKTOP_SPLIT_HEADER_HEIGHT, SIDEBAR_WIDTH_COLLAPSED, SIDEBAR_WIDTH_EXPANDED_MAX } from '@/constants/layout';
 import { FontWeight } from '@/constants/typography';
+import { socialLabel } from '@/lib/social/display-name';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNavigationLayout } from '@/contexts/NavigationLayoutContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -198,7 +199,7 @@ function SidebarAccountItem({
 }) {
   const { theme: colors } = useTheme();
   const [hovered, setHovered] = React.useState(false);
-  const displayName = username.trim() || email?.split('@')[0] || 'Member';
+  const displayName = username.trim() || 'Member';
   const avatarSize = collapsed ? 36 : 28;
 
   return (
@@ -454,7 +455,11 @@ export function PremiumDesktopSidebar({ state, descriptors, navigation }: Bottom
         {profileRoute ? (
           user ? (
             <SidebarAccountItem
-              username={user.username ?? ''}
+              username={socialLabel({
+                displayName: user.display_name,
+                username: user.username,
+                fallback: "Member",
+              })}
               email={user.email}
               avatarUrl={user.avatar_url}
               focused={profileFocused}

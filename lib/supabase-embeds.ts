@@ -31,6 +31,7 @@ export const MESSAGE_SELECT = `
 export const MARKET_CHAT_USER_SELECT = `
   id,
   username,
+  display_name,
   email,
   avatar_url
 `;
@@ -45,6 +46,7 @@ export const USER_FOLLOWS_FOLLOWER_SELECT = `
   follower:users!user_follows_follower_id_fkey (
     id,
     username,
+    display_name,
     avatar_url
   )
 `;

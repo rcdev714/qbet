@@ -8,7 +8,8 @@ export type MessageType =
   | "shared_market"
   | "shared_group"
   | "shared_profile"
-  | "shared_bet";
+  | "shared_bet"
+  | "sticker";
 
 // Message status for delivery indicators
 // 'sending' = Optimistic message, not yet saved to server (shows single gray check)

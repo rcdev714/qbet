@@ -6,6 +6,8 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { AppText } from "@/components/ui/AppText";
 import { ACTIVE_OPACITY } from "@/constants/motion";
+import { socialLabel } from "@/lib/social/display-name";
+import { stickerPreview } from "@/lib/social/stickers";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { GroupSummary } from "@/types/group";
 import type { Message } from "@/types/message";
@@ -28,12 +30,11 @@ export function HomeGroupListRow({
 
   const getSenderName = () => {
     if (!lastMessage) return null;
-    if (lastMessage.user?.username) return lastMessage.user.username;
-    if (lastMessage.user?.email) {
-      const emailParts = lastMessage.user.email.split("@");
-      return emailParts[0] || "User";
-    }
-    return "User";
+    return socialLabel({
+      displayName: lastMessage.user?.display_name,
+      username: lastMessage.user?.username,
+      fallback: "Someone",
+    });
   };
 
   const senderName = getSenderName();
@@ -43,6 +44,9 @@ export function HomeGroupListRow({
     if (!lastMessage) return "No messages yet";
     if (lastMessage.message_type === "market") {
       return `${isMyMessage ? "You" : senderName} started a prediction`;
+    }
+    if (lastMessage.message_type === "sticker") {
+      return stickerPreview(lastMessage.content);
     }
     return lastMessage.content || "Message";
   };

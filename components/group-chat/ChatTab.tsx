@@ -1,4 +1,5 @@
 import { MentionMessage } from "@/components/chat/MentionMessage";
+import { StickerMessage } from "@/components/chat/StickerTray";
 import { FeedTradingPanel } from "@/components/feed/FeedTradingPanel";
 import { ChatComposer } from "@/components/group-chat/ChatComposer";
 import { ReportContentButton } from "@/components/moderation/ReportContentButton";
@@ -8,6 +9,7 @@ import { CHAT_LIST_PADDING_TOP, CHAT_LIST_PADDING_X } from "@/constants/layout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMarket } from "@/hooks/useMarket";
 import { getRandomColor } from "@/lib/colors";
+import { socialLabel } from "@/lib/social/display-name";
 import { marketService } from "@/services/market.service";
 import type { Market } from "@/types/market";
 import type { MentionEmbedPayload } from "@/types/mention";
@@ -15,6 +17,7 @@ import type { Message } from "@/types/message";
 import { Image } from "expo-image";
 import { Router } from "expo-router";
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     FlatList,
@@ -114,6 +117,7 @@ interface ChatTabProps {
   isUploadingImage: boolean;
   groupId: string;
   onSendMention: (payload: MentionEmbedPayload) => void | Promise<void>;
+  onSendSticker?: (content: string) => void | Promise<void>;
   onBet: (market: Market, optionId: string, side: "yes" | "no") => void;
   onResolve: (marketId: string, optionId: string) => void;
   currentUserId?: string;
@@ -135,12 +139,14 @@ export function ChatTab({
   isUploadingImage,
   groupId,
   onSendMention,
+  onSendSticker,
   onBet,
   onResolve,
   currentUserId,
   embedded = false,
 }: ChatTabProps) {
   const { theme, isDark } = useTheme();
+  const { t } = useTranslation("social");
   const flatListRef = useRef<FlatList>(null);
   const skipKeyboardAvoiding = embedded || Platform.OS === "web";
 
@@ -160,13 +166,11 @@ export function ChatTab({
 
     const getDisplayName = () => {
       if (isMe) return null;
-      if (item.user?.username?.trim()) return item.user.username;
-      if (item.user?.email) {
-        const parts = item.user.email.split("@");
-        if (parts[0]?.trim()) return parts[0];
-      }
-      if (item.user_id) return item.user_id.substring(0, 8);
-      return "User";
+      return socialLabel({
+        displayName: item.user?.display_name,
+        username: item.user?.username,
+        fallback: t("someone"),
+      });
     };
 
     const displayName = getDisplayName();
@@ -293,6 +297,28 @@ export function ChatTab({
         <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
           {!isMe && <Avatar />}
           <MentionMessage variant="bet" id={item.bet_id} />
+          {isMe && <Avatar />}
+        </View>
+      );
+    }
+
+    if (item.message_type === "sticker") {
+      return (
+        <View style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}>
+          {!isMe && <Avatar />}
+          <View style={[styles.stickerWrap, isMe && styles.stickerWrapMine]}>
+            {!isMe && displayName ? (
+              <TouchableOpacity onPress={navigateToProfile}>
+                <Text style={[styles.senderName, { color: getRandomColor(displayName) }]}>
+                  {displayName}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            <StickerMessage content={item.content} />
+            <Text style={[styles.messageTime, { color: theme.textSecondary }]}>
+              {new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </Text>
+          </View>
           {isMe && <Avatar />}
         </View>
       );
@@ -440,6 +466,7 @@ export function ChatTab({
         isUploadingImage={isUploadingImage}
         mentionContext={{ groupId }}
         onSendMention={onSendMention}
+        onSendSticker={onSendSticker}
       />
     </View>
   );
@@ -509,6 +536,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   // Message rows
+  stickerWrap: {
+    alignItems: "flex-start",
+    maxWidth: "80%",
+  },
+  stickerWrapMine: {
+    alignItems: "flex-end",
+  },
   messageRow: {
     flexDirection: "row",
     alignItems: "flex-end",

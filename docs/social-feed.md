@@ -9,6 +9,8 @@ Expo home is a social stream. Discover and Following share one contract with the
 
 Apply `supabase/migrations/20260923190000_social_activity_sharing.sql` on the database the running client uses. Do not add a second feed RPC.
 
+Activity rows include `display_name` immediately after `username`. `get_social_feed`, `get_profile_activity`, and `get_following_activity_v2` share that shape. Legacy `get_following_activity(int)` does not. Names and stickers: [social-identity.md](./social-identity.md).
+
 ## Semantics
 
 `public.users.show_activity_on_feed` defaults to **true** so people who were already visible to followers stay visible. Turning it off removes that person from Discover and Following only. It does not hide profile sections.

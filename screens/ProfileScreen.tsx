@@ -1,6 +1,7 @@
 import { AppText, EmptyState } from "@/components/ui";
 import { BackButton } from "@/components/ui/BackButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { socialLabel } from "@/lib/social/display-name";
 import { showAppAlertRaw } from "@/lib/ui/feedback";
 import * as Haptics from "expo-haptics";
 import { useGroupNavigation } from "@/hooks/useGroupNavigation";
@@ -404,10 +405,10 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SEO 
-        title={viewedUser?.username ? `${viewedUser.username} on Anymarkt` : "Anymarkt Profile"}
-        description={viewedUser?.username ? `See ${viewedUser.username}'s prediction track record on Anymarkt: ${stats.totalBets} predictions with a ${Math.round(stats.winRate * 100)}% win rate.` : "View an Anymarkt profile and prediction track record."}
+        title={viewedUser ? `${socialLabel({ displayName: viewedUser.display_name, username: viewedUser.username })} on Anymarkt` : "Anymarkt Profile"}
+        description={viewedUser ? `See ${socialLabel({ displayName: viewedUser.display_name, username: viewedUser.username })}'s prediction track record on Anymarkt: ${stats.totalBets} predictions with a ${Math.round(stats.winRate * 100)}% win rate.` : "View an Anymarkt profile and prediction track record."}
         image={viewedUser?.avatar_url || undefined}
-        imageAlt={viewedUser?.username ? `${viewedUser.username}'s Anymarkt profile` : "Anymarkt profile preview"}
+        imageAlt={viewedUser ? `${socialLabel({ displayName: viewedUser.display_name, username: viewedUser.username })}'s Anymarkt profile` : "Anymarkt profile preview"}
         url={`/profile/${targetUserId}`}
         type="profile"
       />
@@ -512,6 +513,7 @@ export function ProfileScreen({ userId: userIdProp }: { userId?: string }) {
               viewedUser
                 ? {
                     username: viewedUser.username,
+                    display_name: viewedUser.display_name,
                     avatar_url: viewedUser.avatar_url,
                     bio: viewedUser.bio,
                   }

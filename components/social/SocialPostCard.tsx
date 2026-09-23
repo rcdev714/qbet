@@ -7,6 +7,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { socialHandle, socialLabel } from "@/lib/social/display-name";
 import { likeService } from "@/services/like.service";
 import { shareService } from "@/services/share.service";
 import type { FollowingActivity } from "@/services/social.service";
@@ -39,7 +40,13 @@ export function SocialPostCard({ item }: SocialPostCardProps) {
   const relativeTime = formatRelativeTime(item.created_at, t, i18n.language);
   const odds = oddsPercents(item.market_yes_pct);
   const hasMarket = Boolean(item.market_id);
-  const handle = item.username?.trim() || "someone";
+  const label = socialLabel({
+    displayName: item.display_name,
+    username: item.username,
+    fallback: t("someone"),
+  });
+  const handle = socialHandle(item.username);
+  const showHandle = Boolean(handle && label !== item.username?.trim());
 
   useEffect(() => {
     if (!item.market_id) return;
@@ -134,16 +141,16 @@ export function SocialPostCard({ item }: SocialPostCardProps) {
         <Pressable
           onPress={openProfile}
           accessibilityRole="button"
-          accessibilityLabel={t("viewProfile", { username: handle })}
+          accessibilityLabel={t("viewProfile", { username: label })}
           style={styles.actor}
         >
-          <UserAvatar uri={item.avatar_url} username={handle} size={44} />
+          <UserAvatar uri={item.avatar_url} username={label} size={44} />
           <View style={styles.actorMeta}>
             <AppText variant="bodySm" numberOfLines={1}>
-              @{handle}
+              {label}
             </AppText>
             <AppText variant="caption" color="secondary" numberOfLines={1}>
-              {verb}
+              {showHandle ? `${handle} · ${verb}` : verb}
             </AppText>
           </View>
         </Pressable>

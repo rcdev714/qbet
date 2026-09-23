@@ -20,8 +20,8 @@ export function UserAvatar({
   accessibilityLabel,
 }: UserAvatarProps) {
   const { theme } = useTheme();
-  const initial = (email?.trim()?.[0] ?? username?.trim()?.[0] ?? "?").toUpperCase();
-  const label = accessibilityLabel ?? (username ? `@${username}` : email ?? "User");
+  const initial = (username?.trim()?.[0] ?? email?.trim()?.[0] ?? "?").toUpperCase();
+  const label = accessibilityLabel ?? (username?.trim() ? username.trim() : "User");
   const hasImage = Boolean(uri?.trim());
 
   if (hasImage) {

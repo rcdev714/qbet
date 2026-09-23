@@ -15,6 +15,8 @@
   "chatNoMessages": "No messages yet. Be the first to comment!",
   "chatPlaceholder": "Say something...",
   "chatReport": "Report",
+  "stickerTrayA11y": "Stickers",
+  "stickerMessage": "Sticker",
   "adminEmptyTitle": "No markets on the feed",
   "adminEmptyDescription": "Create or promote markets to populate the board.",
   "openFeedManager": "Open Feed Manager",

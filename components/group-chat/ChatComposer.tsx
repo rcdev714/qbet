@@ -1,4 +1,5 @@
 import { MentionPicker, type MentionContext } from "@/components/chat/MentionPicker";
+import { selectAndRememberSticker, StickerTray } from "@/components/chat/StickerTray";
 import { AppIconButton } from "@/components/ui/AppIconButton";
 import { AppText } from "@/components/ui/AppText";
 import { ChatMessageInput } from "@/components/ui/ChatMessageInput";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/chat-composer";
 import { detectMentionQuery, stripMentionTrigger } from "@/lib/mentions";
 import type { MentionEmbedPayload } from "@/types/mention";
+import type { Sticker } from "@/lib/social/stickers";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +37,7 @@ interface ChatComposerProps {
   maxLength?: number;
   mentionContext?: MentionContext;
   onSendMention?: (payload: MentionEmbedPayload) => void | Promise<void>;
+  onSendSticker?: (content: string) => void | Promise<void>;
 }
 
 export function ChatComposer({
@@ -47,6 +50,7 @@ export function ChatComposer({
   maxLength = CHAT_MESSAGE_MAX_LENGTH,
   mentionContext,
   onSendMention,
+  onSendSticker,
 }: ChatComposerProps) {
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
@@ -57,6 +61,7 @@ export function ChatComposer({
   const [isFocused, setIsFocused] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | undefined>(undefined);
+  const [stickersOpen, setStickersOpen] = useState(false);
   const horizontalPad = isDesktopWebNav ? CHAT_LIST_PADDING_X : resolveGutter(width);
 
   const trimmed = value.trim();
@@ -69,6 +74,20 @@ export function ChatComposer({
     () => (onSendMention ? detectMentionQuery(value, selectionStart) : null),
     [value, selectionStart, onSendMention],
   );
+
+  const handleSendSticker = useCallback(async (sticker: Sticker) => {
+    if (!onSendSticker || isSending) return;
+    setIsSending(true);
+    try {
+      if (Platform.OS !== "web") {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      const content = await selectAndRememberSticker(sticker);
+      await Promise.resolve(onSendSticker(content));
+    } finally {
+      setIsSending(false);
+    }
+  }, [isSending, onSendSticker]);
 
   const handleSend = useCallback(async () => {
     if (!trimmed || isSending) return;
@@ -146,6 +165,14 @@ export function ChatComposer({
 
   return (
     <View style={styles.composerStack}>
+      {onSendSticker ? (
+        <StickerTray
+          visible={stickersOpen}
+          onClose={() => setStickersOpen(false)}
+          onSelect={(sticker) => void handleSendSticker(sticker)}
+        />
+      ) : null}
+
       {mentionState?.active && mentionContext && onSendMention ? (
         <MentionPicker
           visible
@@ -193,6 +220,18 @@ export function ChatComposer({
           }
           variant="ghost"
         />
+
+        {onSendSticker ? (
+          <AppIconButton
+            accessibilityLabel={t("stickerTrayA11y")}
+            onPress={() => {
+              setStickersOpen((open) => !open);
+              inputRef.current?.blur();
+            }}
+            icon={<IconSymbol name="sparkles" size={22} color={theme.primary} />}
+            variant="ghost"
+          />
+        ) : null}
 
         <View
           style={[

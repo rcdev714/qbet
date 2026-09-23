@@ -9,6 +9,7 @@
 --     following — only users the viewer follows who left the flag on.
 --     auto      — following when the viewer follows anyone, otherwise discover.
 --   get_following_activity_v2 keeps its signature and now applies the same flag.
+--   Activity rows include display_name after username. Legacy get_following_activity(int) does not.
 --   get_profile_activity — owner always; everyone else only when show_activity_logs is on.
 --   show_open_bets / show_results gate stranger reads of those bet rows.
 --   show_verified_badge may add a badge when kyc_status is verified. No documents or PII.
@@ -134,6 +135,7 @@ returns table (
   activity_id uuid,
   user_id uuid,
   username text,
+  display_name text,
   avatar_url text,
   activity_type text,
   market_id uuid,
@@ -178,6 +180,7 @@ begin
       b.id as activity_id,
       u.id as user_id,
       u.username,
+      u.display_name,
       u.avatar_url,
       'bet_placed'::text as activity_type,
       m.id as market_id,
@@ -281,6 +284,7 @@ begin
       b.id,
       u.id,
       u.username,
+      u.display_name,
       u.avatar_url,
       case
         when (
@@ -389,6 +393,7 @@ begin
       msg.id,
       u.id,
       u.username,
+      u.display_name,
       u.avatar_url,
       'market_comment'::text,
       m.id,
@@ -437,6 +442,7 @@ begin
       m.id,
       u.id,
       u.username,
+      u.display_name,
       u.avatar_url,
       'market_posted'::text,
       m.id,
@@ -485,6 +491,7 @@ begin
       g.id,
       u.id,
       u.username,
+      u.display_name,
       u.avatar_url,
       'group_created'::text,
       null::uuid,
@@ -522,6 +529,7 @@ begin
       md5(gm.user_id::text || ':' || gm.group_id::text || ':joined')::uuid,
       u.id,
       u.username,
+      u.display_name,
       u.avatar_url,
       'group_joined'::text,
       null::uuid,
@@ -581,6 +589,7 @@ returns table (
   activity_id uuid,
   user_id uuid,
   username text,
+  display_name text,
   avatar_url text,
   activity_type text,
   market_id uuid,
@@ -640,6 +649,7 @@ returns table (
   activity_id uuid,
   user_id uuid,
   username text,
+  display_name text,
   avatar_url text,
   activity_type text,
   market_id uuid,
@@ -689,6 +699,7 @@ returns table (
   activity_id uuid,
   user_id uuid,
   username text,
+  display_name text,
   avatar_url text,
   activity_type text,
   market_id uuid,

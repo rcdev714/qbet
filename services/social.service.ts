@@ -11,6 +11,7 @@ import { mapDiscoverableUsers, mapSuggestedUsers, parseToggleFollowResponse, typ
 
 export interface UserProfile extends User {
     username?: string;
+    display_name?: string | null;
     avatar_url?: string;
     bio?: string | null;
     show_activity_on_feed?: boolean;
@@ -30,6 +31,7 @@ export interface FollowingActivity {
     activity_id: string;
     user_id: string;
     username: string;
+    display_name?: string | null;
     avatar_url: string;
     activity_type: string;
     market_id: string | null;
@@ -120,22 +122,33 @@ export const socialService = {
             // 1. Get user details
             const withFlag = await (supabase as any)
                 .from("users")
-                .select("id, username, avatar_url, bio, show_activity_on_feed")
+                .select("id, username, display_name, avatar_url, bio, show_activity_on_feed")
                 .eq("id", targetUserId)
                 .single();
 
             let userData = withFlag.data;
             if (withFlag.error) {
-                if (!isMissingRpcError(withFlag.error) && !/show_activity_on_feed/i.test(withFlag.error.message ?? "")) {
+                const missingColumn = /show_activity_on_feed|display_name/i.test(withFlag.error.message ?? "");
+                if (!isMissingRpcError(withFlag.error) && !missingColumn) {
                     throw withFlag.error;
                 }
                 const basic = await (supabase as any)
                     .from("users")
-                    .select("id, username, avatar_url, bio")
+                    .select("id, username, display_name, avatar_url, bio")
                     .eq("id", targetUserId)
                     .single();
-                if (basic.error) throw basic.error;
-                userData = { ...basic.data, show_activity_on_feed: true };
+                if (basic.error && /display_name/i.test(basic.error.message ?? "")) {
+                    const legacy = await (supabase as any)
+                        .from("users")
+                        .select("id, username, avatar_url, bio")
+                        .eq("id", targetUserId)
+                        .single();
+                    if (legacy.error) throw legacy.error;
+                    userData = { ...legacy.data, display_name: null, show_activity_on_feed: true };
+                } else {
+                    if (basic.error) throw basic.error;
+                    userData = { ...basic.data, show_activity_on_feed: true };
+                }
             }
 
             // 2. Get stats
@@ -237,22 +250,37 @@ export const socialService = {
         {
             id: string;
             username: string;
+            display_name: string | null;
             avatar_url: string;
             created_at: string;
         }[]
     > {
         try {
-            const { data, error } = await supabase
+            const legacySelect = USER_FOLLOWS_FOLLOWER_SELECT.replace(/\n\s*display_name,/, "");
+            const primary = await supabase
                 .from("user_follows")
                 .select(USER_FOLLOWS_FOLLOWER_SELECT)
                 .eq("following_id", userId)
                 .order("created_at", { ascending: false });
 
+            let rows = primary.data;
+            let error = primary.error;
+            if (error && /display_name/i.test(error.message ?? "")) {
+                const retry = await supabase
+                    .from("user_follows")
+                    .select(legacySelect)
+                    .eq("following_id", userId)
+                    .order("created_at", { ascending: false });
+                rows = (retry.data ?? null) as typeof rows;
+                error = retry.error;
+            }
+
             if (error) throw error;
 
-            return data.map((item: any) => ({
+            return (rows ?? []).map((item: any) => ({
                 id: item.follower.id,
                 username: item.follower.username,
+                display_name: item.follower.display_name ?? null,
                 avatar_url: item.follower.avatar_url,
                 created_at: item.created_at,
             }));
@@ -268,6 +296,7 @@ export const socialService = {
         {
             id: string;
             username: string;
+            display_name: string | null;
             avatar_url: string;
             followed_at: string;
         }[]
@@ -282,6 +311,7 @@ export const socialService = {
             return ((data ?? []) as any[]).map((row: any) => ({
                 id: row.id,
                 username: row.username,
+                display_name: typeof row.display_name === "string" ? row.display_name : null,
                 avatar_url: row.avatar_url,
                 followed_at: row.followed_at,
             }));

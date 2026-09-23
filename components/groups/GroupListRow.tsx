@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppText } from "@/components/ui/AppText";
 import { ACTIVE_OPACITY } from "@/constants/motion";
+import { socialLabel } from "@/lib/social/display-name";
+import { stickerPreview } from "@/lib/social/stickers";
 import { formatCurrency } from "@/lib/parimutuel";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { GroupSummary } from "@/types/group";
@@ -38,12 +40,11 @@ export function GroupListRow({
 
   const getSenderName = () => {
     if (!lastMessage) return null;
-    if (lastMessage.user?.username) return lastMessage.user.username;
-    if (lastMessage.user?.email) {
-      const emailParts = lastMessage.user.email.split("@");
-      return emailParts[0] || "User";
-    }
-    return "User";
+    return socialLabel({
+      displayName: lastMessage.user?.display_name,
+      username: lastMessage.user?.username,
+      fallback: "Someone",
+    });
   };
 
   const senderName = getSenderName();
@@ -62,6 +63,9 @@ export function GroupListRow({
     }
     if (lastMessage.message_type === "shared_bet") {
       return `${isMyMessage ? "You" : senderName} shared a bet`;
+    }
+    if (lastMessage.message_type === "sticker") {
+      return stickerPreview(lastMessage.content);
     }
     return lastMessage.content || "Message";
   };

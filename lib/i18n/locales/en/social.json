@@ -72,6 +72,7 @@
   "followUser": "Follow @{{username}}",
   "unfollowUser": "Unfollow @{{username}}",
   "viewProfile": "View @{{username}}'s profile",
+  "someone": "Someone",
   "openDiscover": "Discover people",
   "joinGroup": "Join a group",
   "joinGroupHelper": "Enter the 6-character invite code from a group admin.",

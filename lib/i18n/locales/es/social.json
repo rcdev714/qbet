@@ -86,6 +86,7 @@
   "followUser": "Seguir a @{{username}}",
   "unfollowUser": "Dejar de seguir a @{{username}}",
   "viewProfile": "Ver perfil de @{{username}}",
+  "someone": "Alguien",
   "openDiscover": "Descubrir personas",
   "joinGroup": "Unirse a un grupo",
   "activitySection": "De personas que sigues",
