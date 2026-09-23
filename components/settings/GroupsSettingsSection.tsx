@@ -34,7 +34,7 @@ export function GroupsSettingsSection({ theme }: GroupsSettingsSectionProps) {
         leading={<IconSymbol name="person.3.fill" size={22} color={appTheme.primary} />}
         onPress={() => router.push("/manage/groups" as any)}
       />
-      <JoinGroupPanel collapsible={false} onJoined={() => router.push("/(tabs)/groups" as any)} />
+      <JoinGroupPanel collapsible={false} />
     </View>
   );
 }

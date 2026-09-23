@@ -236,6 +236,7 @@ Use `useCeremony(key)` to skip repeat visits. Cap list stagger at 8 items (`STAG
 - Desktop ≥900px: left sidebar; mobile: bottom tab bar
 - Content centering via `WebContentColumn` + `AppScreen` `columnVariant`
 - **Master-detail (Groups):** at `DESKTOP_BREAKPOINT` (900px), the Groups tab uses a WhatsApp-style split: fixed **360px** list pane (`GROUPS_LIST_PANE_WIDTH`) + flexible detail pane. Routes live under `app/(tabs)/groups/` (`index` = placeholder, `[id]` = embedded `GroupScreen`). Mobile/narrow web keeps stack navigation (`groups/index` → `groups/[id]`). Deep links to `/group/[id]` redirect into the split route on desktop.
+- **Create / join sheets:** `CreateGroupSheet` and `JoinGroupSheet` are page sheets (one step or one preview card). Semantics are in [social-groups.md](./social-groups.md). They do not add a decorative animation.
 - Hover: subtle background on list rows (web only)
 - Reserve skeleton space to prevent layout shift
 

@@ -1,36 +1,28 @@
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
+import { CreateGroupSheet } from "@/components/groups/CreateGroupSheet";
 import { HomeGroupListRow } from "@/components/groups/HomeGroupListRow";
+import { JoinGroupSheet } from "@/components/groups/JoinGroupSheet";
 import {
-  AppButton,
   AppIconButton,
-  AppInput,
   AppScreen,
   AppText,
   EmptyState,
-  FieldGroup,
-  ModalHeader,
 } from "@/components/ui";
-import { CodeInput } from "@/components/ui/CodeInput";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { SECTION_GAP_MD } from "@/constants/layout";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGroupNavigation } from "@/hooks/useGroupNavigation";
 import { useGroups } from "@/hooks/useGroups";
 import { betService } from "@/services/bet.service";
 import { messageService } from "@/services/message.service";
@@ -83,7 +75,9 @@ function StatPill({
 }
 
 export function HomeScreen() {
-  const { groups, loading: groupsLoading, createGroup, joinGroup, refresh } = useGroups();
+  const { t } = useTranslation("groups");
+  const { openGroup } = useGroupNavigation();
+  const { groups, loading: groupsLoading, refresh } = useGroups();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
   const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
@@ -96,58 +90,21 @@ export function HomeScreen() {
     closedBets: 0,
   });
 
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "join">("create");
-  const [inputValue, setInputValue] = useState("");
-  const [descriptionValue, setDescriptionValue] = useState("");
-  const [createLoading, setCreateLoading] = useState(false);
-  const [joinCode, setJoinCode] = useState("");
-  const [showJoinInput, setShowJoinInput] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const prevGroupIdsRef = useRef<string>("");
 
-  const handleGroupAction = async (codeToJoin?: string) => {
-    const finalCode = codeToJoin || inputValue;
-
-    if (!finalCode.trim()) {
-      Alert.alert(
-        "Error",
-        `Please enter a ${modalMode === "create" && !codeToJoin ? "group name" : "4-letter code"}`,
-      );
-      return;
-    }
-
-    Keyboard.dismiss();
-    setCreateLoading(true);
-    try {
-      if (modalMode === "create" && !codeToJoin) {
-        const { error } = await createGroup(finalCode, descriptionValue);
-        if (error) throw error;
-      } else {
-        const { error } = await joinGroup(finalCode.toUpperCase());
-        if (error) throw error;
-      }
-
-      setCreateModalVisible(false);
-      setInputValue("");
-      setDescriptionValue("");
-      setJoinCode("");
-      setShowJoinInput(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
-      const message =
-        errorMessage === "Group not found" ? "Invalid code. Please check and try again." : errorMessage;
-      Alert.alert("Failed", message);
-    } finally {
-      setCreateLoading(false);
-    }
+  const handleCreated = (group: GroupSummary) => {
+    setCreateOpen(false);
+    void refresh();
+    openGroup(group.id, { message: t("opening") });
   };
 
-  const openModal = (mode: "create" | "join") => {
-    setModalMode(mode);
-    setInputValue("");
-    setDescriptionValue("");
-    setCreateModalVisible(true);
+  const handleJoined = (groupId: string) => {
+    setJoinOpen(false);
+    void refresh();
+    openGroup(groupId, { message: t("opening") });
   };
 
   useEffect(() => {
@@ -280,15 +237,15 @@ export function HomeScreen() {
         </View>
         <View style={styles.headerButtons}>
           <AppIconButton
-            icon={<IconSymbol name="person.3.fill" size={24} color={theme.text} />}
-            accessibilityLabel="Toggle join group"
-            onPress={() => setShowJoinInput(!showJoinInput)}
+            icon={<IconSymbol name="link" size={24} color={theme.text} />}
+            accessibilityLabel={t("joinWithCode")}
+            onPress={() => setJoinOpen(true)}
             style={{ marginRight: 8 }}
           />
           <AppIconButton
             icon={<IconSymbol name="plus" size={24} color={theme.text} />}
-            accessibilityLabel="Create new group"
-            onPress={() => openModal("create")}
+            accessibilityLabel={t("createSheetTitle")}
+            onPress={() => setCreateOpen(true)}
           />
         </View>
       </View>
@@ -299,24 +256,11 @@ export function HomeScreen() {
             icon="people-outline"
             title="No groups yet"
             description="Start a prediction group with your friends"
-            actionLabel={showJoinInput ? "Cancel" : "Join a Group"}
-            onAction={() => setShowJoinInput(!showJoinInput)}
-            secondaryActionLabel="Create New Group"
-            onSecondaryAction={() => openModal("create")}
+            actionLabel={t("joinWithCode")}
+            onAction={() => setJoinOpen(true)}
+            secondaryActionLabel={t("createSheetTitle")}
+            onSecondaryAction={() => setCreateOpen(true)}
           />
-          {showJoinInput ? (
-            <View style={styles.emptyJoinPanel}>
-              <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
-              {joinCode.length === 6 ? (
-                <AppButton
-                  title="Join Group"
-                  loading={createLoading}
-                  onPress={() => handleGroupAction(joinCode)}
-                  style={{ marginTop: SECTION_GAP_MD }}
-                />
-              ) : null}
-            </View>
-          ) : null}
         </View>
       ) : (
         <FlatList
@@ -325,78 +269,14 @@ export function HomeScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            showJoinInput ? (
-              <View style={{ borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth }}>
-                <View style={[styles.headerJoinPanel, { paddingHorizontal: theme.spacing.lg }]}>
-                  <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
-                  {joinCode.length === 6 ? (
-                    <AppButton
-                      title="Join Now"
-                      loading={createLoading}
-                      onPress={() => handleGroupAction(joinCode)}
-                      style={{ marginTop: theme.spacing.md, minWidth: 140 }}
-                    />
-                  ) : null}
-                </View>
-              </View>
-            ) : null
-          }
           ItemSeparatorComponent={() => (
             <View style={[styles.groupSeparator, { backgroundColor: theme.border }]} />
           )}
         />
       )}
 
-      <Modal visible={isCreateModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
-        <TouchableWithoutFeedback onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}>
-          <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalKeyboardAvoiding}>
-              <View
-                style={[
-                  styles.modalContent,
-                  {
-                    backgroundColor: theme.background,
-                    borderColor: theme.border,
-                    borderTopLeftRadius: theme.radius.xl,
-                    borderTopRightRadius: theme.radius.xl,
-                  },
-                ]}
-              >
-                <ModalHeader
-                  title={modalMode === "create" ? "New Group" : "Join Group"}
-                  closeLabel="Cancel"
-                  onClose={() => setCreateModalVisible(false)}
-                />
-                <FieldGroup>
-                  <AppInput
-                    placeholder={modalMode === "create" ? "Group Name" : "Enter invite code (e.g. A1B2C3)"}
-                    value={inputValue}
-                    onChangeText={(text) => setInputValue(modalMode === "join" ? text.toUpperCase() : text)}
-                    autoFocus
-                    autoCapitalize={modalMode === "join" ? "characters" : "sentences"}
-                    maxLength={modalMode === "join" ? 6 : 50}
-                  />
-                  {modalMode === "create" ? (
-                    <AppInput
-                      placeholder="Group Description (Optional)"
-                      value={descriptionValue}
-                      onChangeText={setDescriptionValue}
-                      multiline
-                      style={{ minHeight: 100, textAlignVertical: "top" }}
-                    />
-                  ) : null}
-                  <AppButton
-                    title={modalMode === "create" ? "Create Group" : "Join Group"}
-                    loading={createLoading}
-                    onPress={() => handleGroupAction()}
-                  />
-                </FieldGroup>
-              </View>
-            </KeyboardAvoidingView>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      <CreateGroupSheet visible={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
+      <JoinGroupSheet visible={joinOpen} onClose={() => setJoinOpen(false)} onJoined={handleJoined} />
     </AppScreen>
   );
 }
@@ -454,33 +334,7 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginLeft: 80,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  modalKeyboardAvoiding: {
-    width: "100%",
-  },
-  modalContent: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 10 : 20,
-    minHeight: 250,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  headerJoinPanel: {
-    paddingBottom: 20,
-    alignItems: "center",
-  },
   emptyWrap: {
     flex: 1,
-  },
-  emptyJoinPanel: {
-    width: "100%",
-    maxWidth: 350,
-    alignSelf: "center",
-    paddingHorizontal: 32,
-    marginTop: -24,
-    marginBottom: 32,
   },
 });

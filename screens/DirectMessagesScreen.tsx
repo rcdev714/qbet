@@ -2,13 +2,11 @@ import { buildTradingSummary, GroupListRow } from "@/components/groups/GroupList
 import { AppButton, AppText, StaggerGroup } from "@/components/ui";
 import { DESKTOP_SPLIT_HEADER_HEIGHT } from "@/constants/layout";
 import { Brand } from "@/constants/theme";
-import { showAppAlertRaw } from "@/lib/ui/feedback";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     FlatList,
-    Keyboard,
     Platform,
     ScrollView,
     StatusBar,
@@ -17,11 +15,11 @@ import {
     View
 } from "react-native";
 import { AnymarktLoader } from "../components/AnymarktLoader";
-import { CreateGroupModal } from "../components/CreateGroupModal";
 import { GlobalHeader } from "../components/GlobalHeader";
+import { CreateGroupSheet } from "../components/groups/CreateGroupSheet";
+import { JoinGroupSheet } from "../components/groups/JoinGroupSheet";
 import { WebContentColumn } from "../components/layout/WebContentColumn";
 import { NotificationBell } from "../components/notifications/NotificationBell";
-import { CodeInput } from "../components/ui/CodeInput";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useIsDesktopWebNav } from "../contexts/NavigationLayoutContext";
@@ -84,11 +82,12 @@ export function DirectMessagesScreen({
   const { navigate } = usePremiumNavigation();
   const { openGroup } = useGroupNavigation();
   const isListPane = layout === "list-pane";
-  const { groups, loading: groupsLoading, createGroup, joinGroup, refresh } = useGroups();
+  const { groups, loading: groupsLoading, refresh } = useGroups();
   const { user } = useAuthContext();
   const { theme, isDark } = useTheme();
   const isDesktopWebNav = useIsDesktopWebNav();
   const { t: tSocial } = useTranslation("social");
+  const { t: tGroups } = useTranslation("groups");
   const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [groupMarketStats, setGroupMarketStats] = useState<Record<string, GroupMarketStats>>({});
@@ -101,61 +100,22 @@ export function DirectMessagesScreen({
     closedBets: 0,
   });
 
-  // Group state
-  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  
-  // Separate state for the inline Join Code input
-  const [joinCode, setJoinCode] = useState("");
-  const [showJoinInput, setShowJoinInput] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
-  const handleCreateGroup = async (name: string, description: string) => {
+  const handleCreated = (group: GroupSummary) => {
     const isFirstGroup = groups.length === 0;
-    Keyboard.dismiss();
-    setCreateLoading(true);
-    try {
-      const { group, error } = await createGroup(name, description);
-      if (error) throw error;
-      setCreateModalVisible(false);
-      if (isFirstGroup && group?.id) {
-        openGroup(group.id, { onboarding: "first-bet", message: "Opening your group..." });
-      }
-    } catch (error) {
-       const errorMessage = error instanceof Error ? error.message : "An error occurred";
-       showAppAlertRaw("Failed", errorMessage);
-    } finally {
-      setCreateLoading(false);
+    setCreateOpen(false);
+    void refresh();
+    if (isFirstGroup) {
+      openGroup(group.id, { onboarding: "first-bet", message: tGroups("opening") });
     }
   };
 
-  const handleJoinGroup = async (code: string) => {
-    if (!code.trim()) {
-      showAppAlertRaw("Error", "Please enter a valid code");
-      return;
-    }
-
-    Keyboard.dismiss();
-    setCreateLoading(true);
-    try {
-      const { error } = await joinGroup(code.toUpperCase());
-      if (error) throw error;
-
-      setCreateModalVisible(false);
-      setJoinCode(""); // Reset inline join code if it was used there
-      setShowJoinInput(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
-      const message = errorMessage === 'Group not found'
-        ? "Invalid code. Please check and try again."
-        : errorMessage;
-      showAppAlertRaw("Failed", message);
-    } finally {
-      setCreateLoading(false);
-    }
-  };
-
-  const openModal = () => {
-    setCreateModalVisible(true);
+  const handleJoined = (groupId: string) => {
+    setJoinOpen(false);
+    void refresh();
+    openGroup(groupId, { message: tGroups("opening") });
   };
 
   // Track group IDs to avoid refetching messages unnecessarily
@@ -306,15 +266,18 @@ export function DirectMessagesScreen({
       ) : null}
       <TouchableOpacity
         style={[styles.headerButton, { marginRight: 8 }]}
-        onPress={() => {
-          setShowJoinInput(!showJoinInput);
-        }}
+        onPress={() => setJoinOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={tSocial("joinGroup")}
+        accessibilityLabel={tGroups("joinWithCode")}
       >
         <IconSymbol name="link" size={24} color={theme.text} />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.headerButton} onPress={() => openModal()}>
+      <TouchableOpacity
+        style={styles.headerButton}
+        onPress={() => setCreateOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={tGroups("createSheetTitle")}
+      >
         <IconSymbol name="plus" size={24} color={theme.text} />
       </TouchableOpacity>
     </View>
@@ -352,15 +315,15 @@ export function DirectMessagesScreen({
             </StaggerGroup>
 
             <AppButton
-              title="Create my first group"
-              onPress={() => openModal()}
+              title={tGroups("createFirst")}
+              onPress={() => setCreateOpen(true)}
               style={styles.onboardingPrimaryButton}
             />
 
             <AppButton
-              title={showJoinInput ? "Hide invite code" : "I have an invite code"}
+              title={tGroups("haveInviteCode")}
               variant="secondary"
-              onPress={() => setShowJoinInput(!showJoinInput)}
+              onPress={() => setJoinOpen(true)}
               style={styles.onboardingSecondaryButton}
             />
 
@@ -371,19 +334,6 @@ export function DirectMessagesScreen({
               style={styles.onboardingExploreButton}
             />
 
-            {showJoinInput && (
-              <View style={styles.onboardingJoinPanel}>
-                <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
-                {joinCode.length === 6 && (
-                  <AppButton
-                    title="Join Group"
-                    loading={createLoading}
-                    onPress={() => handleJoinGroup(joinCode)}
-                    style={styles.confirmJoinBtn}
-                  />
-                )}
-              </View>
-            )}
           </View>
         </ScrollView>
       ) : (
@@ -393,23 +343,7 @@ export function DirectMessagesScreen({
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            showJoinInput ? (
-              <View style={{ borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth }}>
-                <View style={styles.headerJoinPanel}>
-                  <CodeInput value={joinCode} onChange={setJoinCode} length={6} autoFocus />
-                  {joinCode.length === 6 && (
-                    <AppButton
-                      title="Join Now"
-                      loading={createLoading}
-                      onPress={() => handleJoinGroup(joinCode)}
-                      style={styles.headerJoinSubmit}
-                    />
-                  )}
-                </View>
-              </View>
-            ) : null
-          }
+          ListHeaderComponent={null}
           ItemSeparatorComponent={
             isListPane
               ? undefined
@@ -443,13 +377,10 @@ export function DirectMessagesScreen({
   );
 
   const createModal = (
-    <CreateGroupModal
-      visible={isCreateModalVisible}
-      onClose={() => setCreateModalVisible(false)}
-      onCreate={handleCreateGroup}
-      onJoin={handleJoinGroup}
-      loading={createLoading}
-    />
+    <>
+      <CreateGroupSheet visible={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCreated} />
+      <JoinGroupSheet visible={joinOpen} onClose={() => setJoinOpen(false)} onJoined={handleJoined} />
+    </>
   );
 
   if (isListPane) {
@@ -528,7 +459,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   headerButton: {
-    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statsWheelContainer: {
     marginTop: 8,

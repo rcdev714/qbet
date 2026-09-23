@@ -9,7 +9,7 @@ Expo home is a social stream. Discover and Following share one contract with the
 
 Apply `supabase/migrations/20260923190000_social_activity_sharing.sql` on the database the running client uses. Do not add a second feed RPC.
 
-Activity rows include `display_name` immediately after `username`. `get_social_feed`, `get_profile_activity`, and `get_following_activity_v2` share that shape. Legacy `get_following_activity(int)` does not. Names and stickers: [social-identity.md](./social-identity.md).
+Activity rows include `display_name` immediately after `username`. `get_social_feed`, `get_profile_activity`, and `get_following_activity_v2` share that shape. Legacy `get_following_activity(int)` does not. Names and stickers: [social-identity.md](./social-identity.md). Group create and join: [social-groups.md](./social-groups.md).
 
 ## Semantics
 

@@ -2618,6 +2618,18 @@ export type Database = {
         Args: { p_labels: string[]; p_market_id: string }
         Returns: Database["public"]["Tables"]["options"]["Row"][]
       }
+      preview_group_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          avatar_url: string | null
+          description: string | null
+          group_id: string
+          is_discoverable: boolean
+          is_member: boolean
+          member_count: number
+          name: string
+        }[]
+      }
       join_group_by_code: {
         Args: { p_code: string }
         Returns: {

@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import {
-    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -14,9 +13,10 @@ interface CodeInputProps {
   onChange: (value: string) => void;
   length?: number;
   autoFocus?: boolean;
+  accessibilityLabel?: string;
 }
 
-export function CodeInput({ value, onChange, length = 6, autoFocus = false }: CodeInputProps) {
+export function CodeInput({ value, onChange, length = 6, autoFocus = false, accessibilityLabel }: CodeInputProps) {
   const { theme, isDark } = useTheme();
   const inputRef = useRef<TextInput>(null);
 
@@ -80,6 +80,7 @@ export function CodeInput({ value, onChange, length = 6, autoFocus = false }: Co
         autoCapitalize="characters"
         autoCorrect={false}
         textContentType="oneTimeCode"
+        accessibilityLabel={accessibilityLabel}
       />
     </TouchableOpacity>
   );
@@ -98,17 +99,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   cell: {
-    width: 44,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    maxWidth: 48,
     height: 54,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    ...Platform.select({
-      web: {
-        transition: 'all 0.2s ease',
-      },
-    }),
   },
   cellText: {
     fontSize: 24,
